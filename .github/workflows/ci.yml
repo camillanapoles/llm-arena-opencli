@@ -1,0 +1,71 @@
+name: ci
+
+# Core CI/CD gates for the arena driver: typecheck, wasm build, tests.
+# Every job here is itself a "gate event" source for gate-driver.yml
+# (workflow_run) so the gate driver stays in lockstep with the codebase.
+
+on:
+  push:
+    branches: [main, "arena/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: typecheck + wasm + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build WASM runtime core
+        run: npm run build:wasm
+
+      - name: Test (db, cache, factory, gate driver, http api, wasm)
+        run: npm test
+
+      - name: Upload arena-runtime.wasm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arena-runtime-wasm
+          path: wasm/dist/arena-runtime.wasm
+          if-no-files-found: error
+
+  backend-smoke:
+    name: backend smoke (boot + /health)
+    runs-on: ubuntu-latest
+    needs: gates
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Boot backend and hit /health
+        run: |
+          node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts serve --port 8787 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8787/health && exit 0
+            sleep 1
+          done
+          echo "backend never became healthy" >&2
+          exit 1

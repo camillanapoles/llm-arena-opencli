@@ -1,0 +1,9 @@
+node_modules/
+dist/
+data/
+wasm/dist/
+*.db
+*.db-journal
+*.tsbuildinfo
+.DS_Store
+.env

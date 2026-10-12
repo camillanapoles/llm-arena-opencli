@@ -1,0 +1,160 @@
+name: gate-driver
+
+# Gate driver: converts GitHub "gate events" (triggers) into gate runs.
+#
+# Event sources wired here:
+#   - workflow_run   : every completed `ci` workflow is re-evaluated as a gate event
+#   - repository_dispatch (type `gate-event`) : external automation injects events
+#   - issue_comment  : `/gate run` on any PR/issue (developer trigger)
+#   - schedule       : periodic gate heartbeat
+#   - workflow_dispatch : manual trigger
+#
+# The job feeds the event to `src/cli/gate-cli.ts receive`, which executes the
+# matching gates (blocking gates fail the job on red), persists runs to SQLite
+# and writes a job summary. The SQLite file is uploaded as an artifact so the
+# backend/API can be re-hydrated with the same state.
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+  repository_dispatch:
+    types: [gate-event]
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      event:
+        description: "Gate event type to simulate"
+        required: false
+        default: "manual"
+      ref:
+        description: "Git ref for the simulated event"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: gate-driver-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: event admission
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+      event_type: ${{ steps.decide.outputs.event_type }}
+    steps:
+      - name: Decide whether this event reaches the driver
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          DISPATCH_TYPE: ${{ github.event.action }}
+        run: |
+          case "$EVENT_NAME" in
+            issue_comment)
+              if [ "$COMMENT_BODY" = "/gate run" ]; then
+                echo "run=true" >> "$GITHUB_OUTPUT"
+                echo "event_type=issue_comment" >> "$GITHUB_OUTPUT"
+              else
+                echo "run=false" >> "$GITHUB_OUTPUT"
+                echo "event_type=issue_comment" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            workflow_run)
+              if [ "$RUN_CONCLUSION" = "success" ] || [ "$RUN_CONCLUSION" = "failure" ]; then
+                echo "run=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "run=false" >> "$GITHUB_OUTPUT"
+              fi
+              echo "event_type=workflow_run" >> "$GITHUB_OUTPUT"
+              ;;
+            repository_dispatch)
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              echo "event_type=repository_dispatch" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              echo "event_type=$EVENT_NAME" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+  run-gates:
+    name: gate driver run
+    runs-on: ubuntu-latest
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Seed default gates and functions
+        run: npm run seed
+
+      - name: Receive gate event and execute matching gates
+        id: receive
+        env:
+          EVENT_TYPE: ${{ needs.guard.outputs.event_type }}
+          EVENT_REF: ${{ github.event.workflow_run.head_branch || github.ref }}
+          EVENT_ACTOR: ${{ github.actor }}
+          PAYLOAD: ${{ toJson(github.event) }}
+        run: |
+          node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts receive \
+            --event "$EVENT_TYPE" \
+            --ref "$EVENT_REF" \
+            --actor "$EVENT_ACTOR" \
+            --payload "$PAYLOAD" | tee gate-result.json
+          echo "result=$(jq -c . gate-result.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Write job summary
+        if: always()
+        run: |
+          {
+            echo "## Gate driver result"
+            echo '```json'
+            cat gate-result.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload gate state (SQLite + result)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-state-${{ github.run_id }}
+          path: |
+            gate-result.json
+            data/
+          if-no-files-found: warn
+
+  reply-on-comment:
+    name: report on /gate run comment
+    runs-on: ubuntu-latest
+    needs: [guard, run-gates]
+    if: always() && github.event_name == 'issue_comment' && needs.guard.outputs.run == 'true'
+    steps:
+      - name: React with gate status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          RESULT: ${{ needs.run-gates.result }}
+        run: |
+          if [ "$RESULT" = "success" ]; then REACTION=hooray; else REACTION=confused; fi
+          gh api -X POST \
+            "repos/${{ github.repository }}/issues/comments/$COMMENT_ID/reactions" \
+            -f content="$REACTION" || true

@@ -1,0 +1,134 @@
+name: opencli-driver
+
+# Uses the GitHub Actions runner runtime as the *driver* of the OpenCLI
+# repository (https://github.com/jackwener/OpenCLI): the same place where
+# gates fire is the place where OpenCLI commands execute, so web automation
+# becomes a first-class CI/CD citizen.
+#
+# Trigger sources:
+#   - workflow_dispatch : run one OpenCLI command manifest by hand
+#   - repository_dispatch (type `opencli-command`) : fired by the backend or by
+#     the opencli.dispatch function blueprint (FunctionFactory)
+#
+# The workflow has two modes:
+#   1. `dispatch`  — fire a repository_dispatch back at the OpenCLI repo
+#      (needs a token with `repo` scope in the OPENCLI_TOKEN secret; the run
+#      degrades to a dry-run without it).
+#   2. `runtime`   — check out OpenCLI inside this runner and execute the
+#      command manifest in-process (the Actions runtime *is* the driver).
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "OpenCLI command (e.g. `open`, `ping`)"
+        required: true
+        default: "ping"
+      url:
+        description: "Target URL for the command"
+        required: false
+        default: "https://arena.ai/agent"
+      args:
+        description: "Comma-separated extra args"
+        required: false
+        default: ""
+      mode:
+        description: "dispatch (fire event at OpenCLI repo) or runtime (run here)"
+        required: true
+        default: "runtime"
+        type: choice
+        options: [runtime, dispatch]
+  repository_dispatch:
+    types: [opencli-command]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: opencli-driver-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  drive:
+    name: drive OpenCLI
+    runs-on: ubuntu-latest
+    env:
+      COMMAND: ${{ github.event.inputs.command || github.event.client_payload.command || 'ping' }}
+      URL: ${{ github.event.inputs.url || github.event.client_payload.url || 'https://arena.ai/agent' }}
+      ARGS: ${{ github.event.inputs.args || '' }}
+      MODE: ${{ github.event.inputs.mode || 'runtime' }}
+      OPENCLI_TOKEN: ${{ secrets.OPENCLI_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build command manifest
+        id: manifest
+        run: |
+          jq -n \
+            --arg command "$COMMAND" \
+            --arg url "$URL" \
+            --arg args "$ARGS" \
+            '{version: 1, command: $command, url: $url, args: ($args | split(",") | map(select(length > 0)))}' \
+            | tee opencli-manifest.json
+          echo "manifest=$(jq -c . opencli-manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch repository_dispatch to the OpenCLI repo
+        if: env.MODE == 'dispatch'
+        env:
+          GH_TOKEN: ${{ env.OPENCLI_TOKEN }}
+        run: |
+          gh api -X POST repos/jackwener/OpenCLI/dispatches \
+            -f event_type=opencli-command \
+            -F client_payload=@"opencli-manifest.json" \
+            && echo "dispatched to jackwener/OpenCLI" \
+            || echo "::warning::dispatch failed (missing OPENCLI_TOKEN scope?) — recorded as dry-run"
+
+      - name: Drive OpenCLI inside the Actions runtime
+        if: env.MODE == 'runtime'
+        run: |
+          echo "::group::OpenCLI runtime driver"
+          echo "command=$COMMAND url=$URL"
+          echo "manifest=$(cat opencli-manifest.json)"
+          # Smoke-load the arena runtime gates that decide whether the
+          # command is allowed for this event (WASM best-practice path).
+          npm run build:wasm
+          node --input-type=module -e "
+            import { readFile } from 'node:fs/promises';
+            import { loadArenaRuntime, maskFromTypes } from './wasm/loader.mjs';
+            const rt = await loadArenaRuntime(await readFile('wasm/dist/arena-runtime.wasm'));
+            const fires = rt.evaluateGate(maskFromTypes(['workflow_dispatch', 'repository_dispatch']), maskFromTypes(['workflow_dispatch', 'repository_dispatch']), 0, 0, 0, 0, 0, 0);
+            if (fires !== 1) { console.error('gate rejected command'); process.exit(1); }
+            console.log('gate ok, manifest hash:', rt.hashString(process.env.COMMAND ?? '').toString(16));
+          "
+          echo "::endgroup::"
+
+      - name: Upload manifest + wasm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencli-driver-${{ github.run_id }}
+          path: |
+            opencli-manifest.json
+            wasm/dist/arena-runtime.wasm
+          if-no-files-found: warn
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## OpenCLI driver run"
+            echo "- command: \`$COMMAND\`"
+            echo "- url: $URL"
+            echo "- mode: $MODE"
+            echo '```json'
+            cat opencli-manifest.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,17 +1,97 @@
-# llm-arena-opencli — API Pública do DataJud (CNJ) via curl
+# llm-arena-opencli — consulta processual nas APIs públicas do CNJ
 
-Kit para consultar a **API Pública do DataJud** (metadados de processos públicos do Judiciário brasileiro)
-direto do terminal, com foco no **TJPE (Pernambuco)**:
+Consulta um processo judicial e gera um **relatório em Markdown** com tudo o que as APIs
+públicas do CNJ entregam: capa, partes(*) e movimentações (DataJud) + publicações, intimações
+e inteiro teor (DJEN).
 
-- `scripts/datajud.sh` — CLI em `bash` + `curl` + `jq`: contagem, busca por processo, agregações,
-  relatório em Markdown/CSV e paginação.
-- `docs/01-api-datajud.md` — o que a API oferece, autenticação, campos (glossário), DSL, erros e regras.
-- `docs/02-receitas-curl-tjpe.md` — **receitas `curl` prontas** para contar processos, gerar relatório e
-  baixar listas do TJPE.
-- `docs/exemplo-saida/` — exemplo do relatório gerado (saída de demonstração do mock, não são dados reais).
-- `tests/` — mock local da API + suíte de testes (32 verificações), roda **sem internet e sem chave real**.
+```bash
+python3 main.py 0001234-56.2024.8.17.2001            # relatório em Markdown no terminal
+python3 main.py 0001234-56.2024.8.17.2001 -o rel.md  # grava em arquivo
+python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
+```
 
-Baseado na documentação oficial: <https://datajud-wiki.cnj.jus.br/api-publica/acesso>
+    (*) a API do DataJud não expõe nome/CPF das partes — veja "Anexos e documentos" abaixo.
+
+| Arquivo | Para que serve |
+| --- | --- |
+| **`main.py`** | consulta **um processo** (DataJud + DJEN) e gera relatório completo em Markdown |
+| `scripts/datajud.sh` | CLI `curl`+`jq`: contagens, agregações e relatórios **agregados** (por classe, vara, ano…) |
+| `docs/01-api-datajud.md` | referência da API do DataJud (acesso, campos, DSL, erros, regras) |
+| `docs/02-receitas-curl-tjpe.md` | receitas `curl` prontas para o TJPE |
+| `docs/exemplo-saida/` | exemplo do relatório de processo e do relatório agregado |
+| `tests/` | mock local das APIs + suítes de teste offline |
+
+Requisitos: **Python 3.8+** (só biblioteca padrão) para o `main.py`; `bash`, `curl` e `jq` para o `scripts/datajud.sh`.
+
+---
+
+## 1. Consultar um processo (`main.py`)
+
+```bash
+python3 main.py 0001234-56.2024.8.17.2001               # TJPE (deduzido do número CNJ)
+python3 main.py 0001234-56.2024.8.17.2001 -o processo.md
+python3 main.py 0000832-35.2018.4.01.3202               # TRF1
+python3 main.py 0001234-56.2024.8.17.2001 --todos       # varre TJPE, TRF5, TRT6, TRE-PE, STJ, TST, TSE, STM
+python3 main.py 0001234-56.2024.8.17.2001 --sem-djen    # só DataJud
+python3 main.py --chave-publica                         # imprime a chave pública vigente da wiki
+```
+
+O script lê o **número único (Resolução CNJ 65/2008)**: valida o dígito verificador (módulo 97
+base 10), descobre o tribunal pelo campo `J.TR` e escolhe o índice correto do DataJud — inclusive
+os casos especiais (`8.07` → `tjdft`, `6.07` → `tre-dft`, `5.00` → `tst`).
+
+### O que entra no relatório
+
+1. **Resumo executivo** — tribunal, grau(s), classe, órgão julgador, ajuizamento, nº de movimentações, última movimentação, publicações no DJEN.
+2. **Identificação e validação do número** — DV conferido, campos `NNNNNNN/DD/AAAA/J/TR/OOOO` decodificados.
+3. **Capa do processo** — classe e assuntos (TPU), órgão julgador + município (IBGE), sigilo, formato, sistema, datas de atualização. Um bloco por grau encontrado (G1 e G2).
+4. **Movimentações processuais** — tabela completa (data/hora, código TPU, nome, complementos tabelados, órgão).
+5. **Panorama estatístico** — movimentações por ano (com gráfico de barras), movimentos mais frequentes, órgãos, maior intervalo sem movimentação, janela temporal e dias de inércia.
+6. **Publicações e intimações (DJEN)** — disponibilização, tipo, órgão, texto e link do inteiro teor.
+7. **Anexos e documentos** — o que é público, onde buscar os autos e o que a API não entrega.
+8. **Links oficiais de consulta** — TJPE/PJe 1º e 2º grau, portal, DJe, DJEN.
+9. **Índices consultados** — rastreabilidade (documentos por índice, erros).
+10. **Notas, limitações e conformidade** — Termo de Uso e LGPD.
+
+Exemplo completo: [`docs/exemplo-saida/relatorio-processo-exemplo.md`](docs/exemplo-saida/relatorio-processo-exemplo.md).
+
+### Opções
+
+| Opção | Efeito |
+| --- | --- |
+| `-o, --saida ARQUIVO` | grava o relatório no arquivo (.md ou .json) |
+| `--json` | devolve o JSON cru (DataJud + DJEN) em vez do Markdown |
+| `--todos` | procura também em TRF5, TRT6, TRE-PE, STJ, TST, TSE e STM |
+| `--buscar-em tjpe,trf5` | escolhe manualmente os índices do DataJud |
+| `--sem-djen` | não consulta as publicações |
+| `--chave-publica` | imprime a chave pública vigente da wiki do CNJ |
+| `-k, --chave-api CHAVE` | usa outra chave do DataJud |
+| `--debug` | mostra as requisições HTTP (com a chave mascarada) |
+| `-q, --quieto` | silencia o progresso (stderr) |
+
+Variáveis: `DATAJUD_API_KEY`, `DATAJUD_BASE_URL`, `DJEN_BASE_URL`, `DATAJUD_TIMEOUT`.
+
+### Anexos e documentos: o que dá e o que não dá
+
+Ser honesto aqui evita frustração: **a API Pública do DataJud não devolve peças nem anexos** —
+ela expõe metadados (número, classe, assuntos, órgão, datas, movimentações). O relatório deixa
+isso explícito e aponta os caminhos públicos:
+
+| O que | Onde |
+| --- | --- |
+| Movimentações e metadados | DataJud (já no relatório) |
+| Publicações/intimações e **inteiro teor em PDF** | DJEN/Comunica (link no relatório) |
+| **Autos, petições, decisões e anexos** | Consulta pública do tribunal: [PJe 1º grau TJPE](https://pje.cloud.tjpe.jus.br/1g/ConsultaPublica/listView.seam), [PJe 2º grau](https://pje.cloud.tjpe.jus.br/2g/ConsultaPublica/listView.seam), [consulta unificada](http://srv01.tjpe.jus.br/consultaprocessualunificada/) |
+| Partes (nome, CPF/CNPJ), valores | autos no portal do tribunal — a API pública não expõe |
+| Integração autenticada (advogado) | MNI do PJe, com certificado digital |
+
+Processo em **segredo de justiça** não aparece em nenhuma consulta pública: o acesso é restrito
+às partes e advogados habilitados.
+
+---
+
+## 2. Consultas agregadas (`scripts/datajud.sh`)
+
 
 ---
 
@@ -91,11 +171,12 @@ Uso (dados não garantidos pelo CNJ, uso não comercial, ciência ao CNJ ao divu
 ## Testes (sem internet)
 
 ```bash
-./tests/rodar-testes.sh
+python3 tests/testar_main.py   # 29 testes do main.py (NUP/DV, relatório, DJEN, erros)
+./tests/rodar-testes.sh        # 32 testes do scripts/datajud.sh (curl + jq)
 ```
 
-Sobe `tests/mock_datajud.py` (API simulada: autenticação, erros 400/401/404/429, agregações, paginação) e
-valida os 32 comportamentos do script. Nenhuma requisição real ao CNJ é feita.
+As duas suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam
+autenticação, erros 400/401/404/429, agregações e paginação. **Nenhuma requisição real ao CNJ é feita.**
 
 ## Requisitos
 

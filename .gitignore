@@ -3,3 +3,5 @@ saida/
 *.jsonl
 processos-*.jsonl
 .datajud-key
+__pycache__/
+*.pyc

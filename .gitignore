@@ -1,0 +1,5 @@
+# artefatos gerados pelas consultas
+saida/
+*.jsonl
+processos-*.jsonl
+.datajud-key

@@ -5,7 +5,8 @@ LIMITE   ?= 1000
 # processo de exemplo (DV válido) usado por `make consultar`
 NUMERO   ?= 0001234-43.2024.8.17.2001
 
-.PHONY: ajuda chave chave-publica consultar contar processo relatorio paginar testes limpar
+.PHONY: ajuda chave chave-publica consultar contar processo relatorio paginar testes limpar \
+        bootstrap regenerar-bootstrap verificar
 
 ajuda: ## mostra o manual do script
 	@bash scripts/datajud.sh ajuda
@@ -31,9 +32,20 @@ relatorio: ## gera o relatório em markdown/csv (SAIDA=saida)
 paginar: ## baixa processos em JSONL (LIMITE=1000)
 	@bash scripts/datajud.sh paginar --tribunal $(TRIBUNAL) --limite $(LIMITE) --saida processos-$(TRIBUNAL).jsonl
 
-testes: ## roda as duas suítes offline (Python + bash)
+testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + bootstrap)
+	@python3 tests/testar_conformidade.py
 	@python3 tests/testar_main.py
 	@bash tests/rodar-testes.sh
+	@bash tests/testar_bootstrap.sh
+
+bootstrap: ## cria o projeto completo do zero (DIR=./projeto-datajud)
+	@bash bootstrap.sh --destino "$${DIR:-./projeto-datajud}"
+
+regenerar-bootstrap: ## regera o bootstrap.sh a partir dos arquivos atuais
+	@python3 tools/gerar_bootstrap.py
+
+verificar: ## confere hashes e permissões do projeto atual (DIR=.)
+	@bash bootstrap.sh --destino "$${DIR:-.}" --verificar
 
 limpar: ## remove artefatos gerados
 	rm -rf $(SAIDA) processos-*.jsonl

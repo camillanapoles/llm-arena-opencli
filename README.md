@@ -19,7 +19,8 @@ python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
 | `docs/01-api-datajud.md` | referência da API do DataJud (acesso, campos, DSL, erros, regras) |
 | `docs/02-receitas-curl-tjpe.md` | receitas `curl` prontas para o TJPE |
 | `docs/exemplo-saida/` | exemplo do relatório de processo e do relatório agregado |
-| `tests/` | mock local das APIs + suítes de teste offline |
+| `tests/` | mock local das APIs + 4 suítes de teste offline (112 verificações) |
+| **`bootstrap.sh`** + `BOOTSTRAP.md` | recriam/configuram o projeto inteiro (arquivos, permissões, hashes) e validam tudo |
 
 Requisitos: **Python 3.8+** (só biblioteca padrão) para o `main.py`; `bash`, `curl` e `jq` para o `scripts/datajud.sh`.
 
@@ -171,12 +172,25 @@ Uso (dados não garantidos pelo CNJ, uso não comercial, ciência ao CNJ ao divu
 ## Testes (sem internet)
 
 ```bash
-python3 tests/testar_main.py   # 29 testes do main.py (NUP/DV, relatório, DJEN, erros)
-./tests/rodar-testes.sh        # 32 testes do scripts/datajud.sh (curl + jq)
+make testes                          # todas as suítes (112 verificações)
+python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
+python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
+./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
+./tests/testar_bootstrap.sh          # 22 — recria o projeto e compara byte a byte
 ```
 
-As duas suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam
+As suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam
 autenticação, erros 400/401/404/429, agregações e paginação. **Nenhuma requisição real ao CNJ é feita.**
+
+### Reconstruir o projeto do zero
+
+```bash
+bash bootstrap.sh                  # cria ./projeto-datajud, confere hashes e roda os 112 testes
+bash bootstrap.sh --verificar      # só valida uma cópia existente
+python3 tools/gerar_bootstrap.py   # regera o bootstrap após editar algum arquivo
+```
+
+Detalhes de estrutura, permissões, etapas e saída esperada: [`BOOTSTRAP.md`](BOOTSTRAP.md).
 
 ## Requisitos
 

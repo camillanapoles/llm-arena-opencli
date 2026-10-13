@@ -78,6 +78,8 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 13/10 18:5x | `b9873a4/c422628` — **validação ao vivo event-driven**: `.github/workflows/validacao-cnj.yml` dispara no runner por push/PR/agenda/dispatch; na primeira execução, o runner **resolveu o DNS (`201.49.152.99`) e recebeu `HTTP 429`** do CNJ (taxa compartilhada) ⇒ `status "1"`, continuidade, **sem sucesso falso** |
 | 13/10 19:0x | O incidente virou robustez (`28d4499`): `verificar_cnj.py` passou a tratar **429 com `Retry-After`** e a expor `direcao`/`proximo_passo`; o workflow ganhou **backoff 30/60/90 s** (teto 150 s), diagnóstico pelo mesmo caminho de rede do validador (urllib) e testes novos |
 | 13/10 19:07 | **O laço fechou no runner** ([run 38451978473](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473)): `HTTP 200` do CNJ com `hits.total = 6852614`, kit curl confirmando `Total: 6852614` ⇒ a fábrica marcou a **ISSUE-006 COMPLETADA** (evidência = URL do run), **construiu a ISSUE-008** e o bot commitou o `backlog.json` (`34fc224`, marcador de skip do commit-bot) |
+| 13/10 19:31 | **MERGE em `main`** (PR #2, commit `ae171e30e`): os workflows `gates` (6/6 jobs) e `validacao-cnj` (2/2 jobs) rodaram verdes na branch padrão — **agenda diária (dias úteis, 08:00 BRT) e `workflow_dispatch` passam a valer**, então a validação ao vivo segue sozinha, sem depender de push |
+| 13/10 19:3x | Verificado na `main`: a validação respondeu **HTTP 200** e o job da fábrica devolveu **continuidade** (`pendência: ISSUE-008 · provada por esta execução: false`) sem criar issue nova — a idempotência vale no caminho de produção |
 | 13/10 19:2x | **Idempotência + correção de contrato**: o job de conclusão passou a ser dirigido pela pendência REAL (`--pendencia-ao-vivo`) em vez de fixar a ISSUE-006 — pendência de desenvolvimento não é provada pela consulta ao CNJ, então o job só registra a continuidade (sem `ISSUE-009`, `ISSUE-010`… a cada push); achado na emulação: o Python imprime `True` e o `if:` do GitHub compara com `'true'` — o output agora é normalizado em minúsculas |
 | 13/10 18:4x | Lição de CI registrada: um commit com o literal do marcador de skip na mensagem **não dispara workflows** — o workflow novo nem foi registrado até o segundo push |
 | 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
@@ -118,6 +120,12 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | **Continuidade honesta no runner** | anotação do job 6: *"a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"* | o runner do GitHub **também não alcançou o CNJ** naquele momento: em vez de marcar sucesso falso, o gate manteve a `ISSUE-006` e a direção `corrigir` (exatamente o comportamento pedido) |
 
 ### 2.6 Produção (pronto para uso)
+
+**No ar em `main`** (merge do PR #2 em 13/10 19:31 UTC, commit `ae171e30e`): `gates` e
+`validacao-cnj` estão ativos na branch padrão — a validação ao vivo do CNJ roda por evento
+(push/PR), por **agenda** (dias úteis, 08:00 BRT) e por disparo manual, sem depender de
+ninguém. Nada aqui é mock: os números acima saíram de execuções reais no runner do GitHub.
+
 
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli

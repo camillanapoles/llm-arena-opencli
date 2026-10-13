@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 9680 linhas, 461 KiB.
+#  Conteúdo embutido: 32 arquivos, 9688 linhas, 462 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -178,7 +178,7 @@ c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/work
 1ebe7247a079ef496b1ec457199469572a4b9c2b34656d92aa038c1d4254347c  ./.github/workflows/validacao-cnj.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
 4082965737ceb93c6b7422f6f672d885af391a2d93b298bf42de3229700c2c22  ./BOOTSTRAP.md
-24eecd1e2bb5f002b688ab5727c70d25b6b99e1feaac2c55872768f562b60071  ./ENTREGA.md
+8d7202082bac5574d17e1116104e38cb569cd1f5cbabe8678fb5f72277565532  ./ENTREGA.md
 0e4e1891354e193ff084ad8ce428d3b87de0c13fb0446b9cec08e0e4a6938f8a  ./Makefile
 8f3e9ccd6093f7b4b8566295877865701557e5e7d7bec0349cf258fa1bbf298b  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
@@ -1393,6 +1393,8 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 13/10 18:5x | `b9873a4/c422628` — **validação ao vivo event-driven**: `.github/workflows/validacao-cnj.yml` dispara no runner por push/PR/agenda/dispatch; na primeira execução, o runner **resolveu o DNS (`201.49.152.99`) e recebeu `HTTP 429`** do CNJ (taxa compartilhada) ⇒ `status "1"`, continuidade, **sem sucesso falso** |
 | 13/10 19:0x | O incidente virou robustez (`28d4499`): `verificar_cnj.py` passou a tratar **429 com `Retry-After`** e a expor `direcao`/`proximo_passo`; o workflow ganhou **backoff 30/60/90 s** (teto 150 s), diagnóstico pelo mesmo caminho de rede do validador (urllib) e testes novos |
 | 13/10 19:07 | **O laço fechou no runner** ([run 38451978473](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473)): `HTTP 200` do CNJ com `hits.total = 6852614`, kit curl confirmando `Total: 6852614` ⇒ a fábrica marcou a **ISSUE-006 COMPLETADA** (evidência = URL do run), **construiu a ISSUE-008** e o bot commitou o `backlog.json` (`34fc224`, marcador de skip do commit-bot) |
+| 13/10 19:31 | **MERGE em `main`** (PR #2, commit `ae171e30e`): os workflows `gates` (6/6 jobs) e `validacao-cnj` (2/2 jobs) rodaram verdes na branch padrão — **agenda diária (dias úteis, 08:00 BRT) e `workflow_dispatch` passam a valer**, então a validação ao vivo segue sozinha, sem depender de push |
+| 13/10 19:3x | Verificado na `main`: a validação respondeu **HTTP 200** e o job da fábrica devolveu **continuidade** (`pendência: ISSUE-008 · provada por esta execução: false`) sem criar issue nova — a idempotência vale no caminho de produção |
 | 13/10 19:2x | **Idempotência + correção de contrato**: o job de conclusão passou a ser dirigido pela pendência REAL (`--pendencia-ao-vivo`) em vez de fixar a ISSUE-006 — pendência de desenvolvimento não é provada pela consulta ao CNJ, então o job só registra a continuidade (sem `ISSUE-009`, `ISSUE-010`… a cada push); achado na emulação: o Python imprime `True` e o `if:` do GitHub compara com `'true'` — o output agora é normalizado em minúsculas |
 | 13/10 18:4x | Lição de CI registrada: um commit com o literal do marcador de skip na mensagem **não dispara workflows** — o workflow novo nem foi registrado até o segundo push |
 | 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
@@ -1433,6 +1435,12 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | **Continuidade honesta no runner** | anotação do job 6: *"a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"* | o runner do GitHub **também não alcançou o CNJ** naquele momento: em vez de marcar sucesso falso, o gate manteve a `ISSUE-006` e a direção `corrigir` (exatamente o comportamento pedido) |
 
 ### 2.6 Produção (pronto para uso)
+
+**No ar em `main`** (merge do PR #2 em 13/10 19:31 UTC, commit `ae171e30e`): `gates` e
+`validacao-cnj` estão ativos na branch padrão — a validação ao vivo do CNJ roda por evento
+(push/PR), por **agenda** (dias úteis, 08:00 BRT) e por disparo manual, sem depender de
+ninguém. Nada aqui é mock: os números acima saíram de execuções reais no runner do GitHub.
+
 
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli

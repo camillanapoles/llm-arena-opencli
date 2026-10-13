@@ -1,26 +1,19 @@
 # .igc-registry.yml — IGC Art. 7 (D1): descoberta de linhagens
-# Vive no default branch (via merge do PR #1 — A2'(b)); D2: todo EMIT o
-# atualiza no mesmo commit do CHECKPOINT. D3: RESUME zero-contexto começa aqui.
-#
-# Formato (contrato):
-#   linhagens:
-#     <slug>:
-#       branch: <linhagem>
-#       checkpoint_ref: <id-atual>
-#       ativa: true
+# D2: todo EMIT atualiza o registry no mesmo commit do CHECKPOINT.
 
 linhagens:
   d917b13b:
-    branch: arena/d917b13b-llm-arena-opencli
-    checkpoint_ref: 19afb06
+    branch: "arena/d917b13b-llm-arena-opencli"
+    checkpoint_ref: "88e5acb"
     ativa: true
-    sessao: d917b13b
+    sessao: "d917b13b"
     descricao: "sessão Arena — driver de automação (Node/TS + WASM) + unificação das duas pilhas; IGC v2.1 (A2': linhagem designada em runtime que proíbe criar branch)"
-    pr: 1
+    pr: "1"
+    checkpoint_em: "2026-10-13T22:30:22Z"
   ed79bd77:
-    branch: arena/ed79bd77-llm-arena-opencli
-    checkpoint_ref: ce0030b
+    branch: "arena/ed79bd77-llm-arena-opencli"
+    checkpoint_ref: "ce0030b"
     ativa: false
-    sessao: ed79bd77
-    descricao: "sessão paralela — consulta processual CNJ (Python); linhagem JÁ MESCLADA no main (PRs #2/#5); histórico preservado"
-    pr: 2
+    sessao: "ed79bd77"
+    descricao: "sessão paralela — consulta processual CNJ (Python); linhagem JÁ MESCLADA no main (PRs"
+    pr: "2"

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# IGC W4 — pre-commit do worktree da sessão: valida que a memória existe.
+# (Nunca bloqueia por teste — o gate de teste é o GATE/E2, não o hook.)
+set -euo pipefail
+for f in WAL.md STATE.yml CHECKPOINT; do
+  if [ ! -f ".session/$f" ]; then
+    echo "✘ .session/$f ausente — memória da sessão incompleta (IGC A5)" >&2
+    exit 1
+  fi
+done
+exit 0

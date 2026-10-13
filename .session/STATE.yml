@@ -1,0 +1,23 @@
+# STATE.yml — FSM da sessão (IGC v1.0, M2)
+# Estados: BOOT → RECON → PLAN → EXEC → VERIFY → GATE → EMIT → (CONTINUE|CLOSE)
+# Transição exige: condição satisfeita + entrada no WAL + commit do estado.
+
+sessao: d917b13b
+branch: arena/d917b13b-llm-arena-opencli   # ≡ sessao/d917b13b/llm-arena-opencli
+worktree: /home/user/llm-arena-opencli
+contrato: IGC v1.0
+
+estado_atual: PLAN
+historico:
+  - estado: BOOT
+    em: "2026-10-13T21:40:00Z"
+    evento: início de sessão (implementar ISSUE-2 sob IGC v1.0)
+  - estado: RECON
+    em: "2026-10-13T21:41:00Z"
+    evento: worktree divergente (HEAD local 3d9b774 × linhagem remota 9acbc18) — restaurado via reset --hard origin (M4)
+  - estado: PLAN
+    em: "2026-10-13T21:42:00Z"
+    evento: INTENT.md gravado — escopo: IGC v1.0 + ISSUE-2 (webhook real)
+
+proxima_transicao: EXEC
+condicao_de_saida: "EXEC: implementar assinatura de webhook + ping + docs/registro"

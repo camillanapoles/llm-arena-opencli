@@ -56,7 +56,7 @@ on:
   workflow_dispatch:
     inputs:
       tentativas:
-        description: "Tentativas da consulta ao CNJ (rede instável)"
+        description: "Tentativas da consulta ao CNJ (a taxa é limitada a 120 req/min)"
         required: false
         default: "3"
       concluir_no_sucesso:
@@ -93,28 +93,53 @@ jobs:
       - name: "Diagnóstico de rede (DNS · TLS · HTTP)"
         id: diagnostico
         run: |
+          set +e
           host=api-publica.datajud.cnj.jus.br
-          chave=$(python3 -c "import sys; sys.path.insert(0, 'pipeline'); import verificar_cnj as v; print(v.CHAVE_PADRAO)")
-          echo "### diagnóstico · $host"
           ip=$(getent hosts "$host" | awk '{print $1}' | head -1 || true)
           echo "DNS: ${ip:-não resolveu}"
-          http=$(curl -sS -o /tmp/diagnostico.json -w '%{http_code}' --max-time 25 \
+          # mesmo caminho de rede do validador (urllib), para diagnóstico e validação concordarem
+          diagnostico=$(python3 - <<'PY'
+          import json, urllib.error, urllib.request
+          from pipeline.verificar_cnj import CHAVE_PADRAO, BASE
+          url = f"{BASE.rstrip('/')}/api_publica_tjpe/_search"
+          corpo = json.dumps({"query": {"match_all": {}}, "size": 0,
+                              "track_total_hits": True}).encode()
+          req = urllib.request.Request(url, data=corpo, method="POST", headers={
+              "Authorization": f"APIKey {CHAVE_PADRAO}", "Content-Type": "application/json",
+              "Accept": "application/json", "User-Agent": "pipeline-gates/1.0"})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  d = json.loads(r.read().decode("utf-8", "replace"))
+              print(json.dumps({"http": r.status, "took": d.get("took"),
+                                "total": ((d.get("hits") or {}).get("total") or {}).get("value")},
+                               ensure_ascii=False))
+          except urllib.error.HTTPError as e:
+              print(json.dumps({"http": e.code, "retry_after": e.headers.get("Retry-After"),
+                                "erro": str(e)[:120]}, ensure_ascii=False))
+          except Exception as e:
+              print(json.dumps({"http": None, "erro": f"{e.__class__.__name__}: {str(e)[:120]}"},
+                               ensure_ascii=False))
+          PY
+          )
+          echo "urllib (mesmo caminho da validação): $diagnostico"
+          curl_code=$(curl -sS -o /tmp/diagnostico.json -w '%{http_code}' --max-time 25 \
             -X POST "https://$host/api_publica_tjpe/_search" \
-            -H "Authorization: APIKey $chave" \
+            -H "Authorization: APIKey $(python3 -c "import sys; sys.path.insert(0, 'pipeline'); import verificar_cnj as v; print(v.CHAVE_PADRAO)")" \
             -H "Content-Type: application/json" \
-            -d '{"query":{"match_all":{}},"size":0,"track_total_hits":true}' 2>/tmp/diagnostico.err || echo "000")
-          echo "HTTP: $http"
-          echo "corpo (300 bytes): $(head -c 300 /tmp/diagnostico.json 2>/dev/null || true)"
-          echo "erro do curl (300 bytes): $(head -c 300 /tmp/diagnostico.err 2>/dev/null || true)"
+            -d '{"query":{"match_all":{}},"size":0,"track_total_hits":true}' 2>/tmp/diagnostico.err)
+          curl_code=${curl_code:-000}
+          echo "curl: HTTP=$curl_code · erro=$(head -c 200 /tmp/diagnostico.err 2>/dev/null || true)"
+          http=$(echo "$diagnostico" | python3 -c "import json,sys;print(json.load(sys.stdin).get('http') or '')")
           echo "http=$http" >> "$GITHUB_OUTPUT"
+          set -e
           {
             echo "### diagnóstico de rede"
             echo
-            echo "- host: \`$host\`"
-            echo "- DNS: \`${ip:-falhou}\`"
-            echo "- HTTP: \`$http\`"
+            echo "- host: \`$host\` · DNS: \`${ip:-falhou}\`"
+            echo "- urllib (caminho do validador): \`$diagnostico\`"
+            echo "- curl: \`HTTP=$curl_code\`"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · HTTP=$http"
+          echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · http=${http:-—} · curl=$curl_code"
 
       - name: "Instrução da ISSUE-006 (com retentativas)"
         id: verificar
@@ -128,7 +153,12 @@ jobs:
             codigo=$?
             echo "código da tentativa: $codigo"
             [ "$codigo" = "0" ] && break
-            [ "$tentativa" != "${TENTATIVAS:-3}" ] && sleep 20
+            [ "$tentativa" = "${TENTATIVAS:-3}" ] && break
+            # respeita o Retry-After do CNJ (429) e usa backoff crescente (30s, 60s, 90s…)
+            espera=$(python3 -c "import json, os; c = '/tmp/validacao-cnj.json'; d = json.load(open(c)) if os.path.exists(c) else {}; ra = str((d.get('dados') or {}).get('retry_after') or ''); print(int(ra) if ra.isdigit() else 30 * $tentativa)" 2>/dev/null || echo 30)
+            [ "$espera" -gt 150 ] && espera=150
+            echo "aguardando ${espera}s antes da próxima tentativa"
+            sleep "$espera"
           done
           set -e
           cat /tmp/validacao-cnj.out

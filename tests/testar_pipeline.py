@@ -20,6 +20,13 @@ import unittest
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "pipeline"))
 
+import contextlib  # noqa: E402
+import io  # noqa: E402
+import urllib.error  # noqa: E402
+from unittest import mock  # noqa: E402
+
+import verificar_cnj  # noqa: E402  (pipeline/verificar_cnj.py)
+
 import gate  # noqa: E402  (módulo do pipeline)
 
 GATE = os.path.join(RAIZ, "pipeline", "gate.py")
@@ -433,6 +440,88 @@ class TesteGateFabricaNoFluxo(CasoBase):
         self.assertRegex(texto, r"(?m)^\s{2}gate-fabrica:")
 
 
+class RespostaFalsa:
+    """Resposta HTTP mínima (mesma interface usada por urllib)."""
+
+    def __init__(self, status=200, corpo=b"{}"):
+        self.status = status
+        self._corpo = corpo
+
+    def read(self):
+        return self._corpo
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *argumentos):
+        return False
+
+
+class TesteVerificarCNJ(unittest.TestCase):
+    """A instrução executável da ISSUE-006: 200/taxa/chave/rede → 0/1/2 (offline)."""
+
+    def _rodar(self, efeito):
+        if isinstance(efeito, Exception):
+            alvo = mock.patch.object(verificar_cnj.urllib.request, "urlopen",
+                                     side_effect=efeito)
+        else:
+            alvo = mock.patch.object(verificar_cnj.urllib.request, "urlopen",
+                                     return_value=efeito)
+        with alvo:
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                codigo = verificar_cnj.main(["--timeout", "1"])
+        return codigo, json.loads(buffer.getvalue())
+
+    def test_200_e_sucesso_com_direcao_proxima(self):
+        resposta = RespostaFalsa(200, json.dumps(
+            {"took": 7, "hits": {"total": {"value": 1234567}}}).encode())
+        codigo, obj = self._rodar(resposta)
+        self.assertEqual((codigo, obj["status"]), (0, "0"))
+        self.assertEqual(obj["dados"]["total"], 1234567)
+        self.assertEqual(obj["direcao"], "proxima")
+        self.assertIn("--marcar", obj["proximo_passo"])
+        self.assertIsNone(obj["next_issue"])
+        self.assertFalse(obj["continuidade"])
+
+    def test_429_e_continuidade_com_retry_after(self):
+        erro = urllib.error.HTTPError("https://x", 429, "Too Many Requests", None, None)
+        with mock.patch.object(verificar_cnj.urllib.request, "urlopen", side_effect=erro):
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                codigo = verificar_cnj.main(["--timeout", "1"])
+        obj = json.loads(buffer.getvalue())
+        self.assertEqual((codigo, obj["status"]), (1, "1"))
+        self.assertIn("429", obj["mensagem"])
+        self.assertIn("120 req/min", obj["mensagem"])
+        self.assertEqual(obj["direcao"], "continuar")
+        self.assertEqual(obj["next_issue"], "ISSUE-006")
+        self.assertTrue(obj["continuidade"])
+
+    def test_401_e_erro_tipo_2_humano(self):
+        erro = urllib.error.HTTPError("https://x", 401, "Unauthorized", None, None)
+        codigo, obj = self._rodar(erro)
+        self.assertEqual((codigo, obj["status"]), (2, "2"))
+        self.assertEqual(obj["direcao"], "humano")
+        self.assertIn("chave", obj["mensagem"])
+        self.assertFalse(obj["continuidade"])
+
+    def test_rede_indisponivel_e_continuidade(self):
+        codigo, obj = self._rodar(urllib.error.URLError("sem rota"))
+        self.assertEqual((codigo, obj["status"]), (1, "1"))
+        self.assertEqual(obj["direcao"], "continuar")
+
+    def test_contrato_completo(self):
+        codigo, obj = self._rodar(urllib.error.URLError("sem rota"))
+        for chave in ("id", "gate", "status", "codigo_saida", "mensagem", "continuidade",
+                      "next_issue", "direcao", "proximo_passo", "anexos", "dados",
+                      "timestamp", "versao"):
+            self.assertIn(chave, obj, f"falta {chave} no contrato")
+        self.assertIsInstance(obj["status"], str)
+        self.assertIsInstance(obj["mensagem"], str)
+        self.assertIsInstance(obj["anexos"], list)
+
+
 class TesteWorkflowValidacaoCNJ(unittest.TestCase):
     """O workflow event-driven da validação AO VIVO (ISSUE-006) no runner do GitHub."""
 
@@ -450,7 +539,7 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
         self.assertIn("pipeline/verificar_cnj.py", self.texto)
         self.assertIn("TENTATIVAS", self.texto)
         self.assertIn("for tentativa in", self.texto)
-        self.assertIn("sleep 20", self.texto)
+        self.assertIn('sleep "$espera"', self.texto)
 
     def test_mapeia_status_0_1_2_para_acao(self):
         self.assertIn('if [ "$status" = "2" ]', self.texto)
@@ -479,6 +568,24 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
 
     def test_guarda_de_json_invalido(self):
         self.assertIn("[ ! -s /tmp/validacao-cnj.json ]", self.texto)
+
+    def test_backoff_respeita_retry_after_do_cnj(self):
+        self.assertIn("retry_after", self.texto)
+        self.assertIn("sleep \"$espera\"", self.texto)
+        self.assertIn("espera=150", self.texto, "teto de espera por tentativa")
+
+    def test_diagnostico_usa_o_mesmo_caminho_do_validador(self):
+        self.assertIn("urllib", self.texto)
+        self.assertIn("CHAVE_PADRAO", self.texto)
+
+    def test_yaml_valido_quando_houver_pyyaml(self):
+        try:
+            import yaml  # type: ignore
+        except ImportError:
+            self.skipTest("PyYAML indisponível — a validação definitiva é o GitHub Actions")
+        dados = yaml.safe_load(self.texto)
+        self.assertIn("jobs", dados)
+        self.assertEqual(set(dados["jobs"]), {"validacao-cnj", "concluir-issue-006"})
 
     def test_blocos_run_sao_bash_valido(self):
         blocos = blocos_run(self.texto)

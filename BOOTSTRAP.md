@@ -134,7 +134,7 @@ advogados: **MNI** do PJe, com certificado digital.
 
 ## 6. Códigos de teste: o que cada suíte cobre e o resultado esperado
 
-Rode tudo de uma vez com `make testes`: são **6 suítes** e **213 verificações**, todas offline,
+Rode tudo de uma vez com `make testes`: são **6 suítes** e **221 verificações**, todas offline,
 contra mocks locais (nenhuma requisição real ao CNJ).
 
 | Suíte | Arquivo | Testes | Cobre | Saída esperada |
@@ -142,7 +142,7 @@ contra mocks locais (nenhuma requisição real ao CNJ).
 | Conformidade | `tests/testar_conformidade.py` | **29** | itens da doc oficial (seção 5), ausência de dependências externas, shebang/permissões, sintaxe do shell | `Ran 29 tests` / `OK` / código **0** |
 | Consulta de processo | `tests/testar_main.py` | **29** | DV e estrutura do NUP (4 números oficiais), decodificação de tribunais, as 10 seções do relatório, DJEN, `--json`, `-o`, erros 400/401/404/429 | `Ran 29 tests` / `OK` / código **0** |
 | Consultas agregadas | `tests/rodar-testes.sh` | **32** | `contar`, `agregar` (com fallback de campo), `processo`, `paginar` (`search_after`), `relatorio`, tratamento de 401/404/429/rede, `--debug` | `32 passaram, 0 falharam` / código **0** |
-| Pipeline de gates | `tests/testar_pipeline.py` | **59** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`/`direcao`/`proximo_passo`), semântica 0/1/2, `next_issue` (mesma issue × próxima), direção de continuidade, `--marcar`, blueprint, backlog e o workflow (inclui `bash -n` em cada bloco `run:`) | `Ran 59 tests` / `OK (skipped=1)` / código **0** |
+| Pipeline de gates | `tests/testar_pipeline.py` | **67** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`/`direcao`/`proximo_passo`), semântica 0/1/2, `next_issue` (mesma issue × próxima), direção de continuidade, `--marcar`, blueprint, backlog e o workflow (inclui `bash -n` em cada bloco `run:`) | `Ran 67 tests` / `OK` / código **0** |
 | Fábrica de issues | `tests/testar_fabrica.py` | **37** | POO (8 classes), esquema SQLite, padrão do blueprint, construção da N+1 só após sucesso, eventos event-driven, round-trip SQLite ⇄ backlog.json, contrato da CLI e do gate `fabrica` | `Ran 37 tests` / `OK` / código **0** |
 | Recriação | `tests/testar_bootstrap.sh` | **27** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
 

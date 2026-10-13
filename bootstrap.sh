@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 9205 linhas, 432 KiB.
+#  Conteúdo embutido: 32 arquivos, 9374 linhas, 442 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -175,15 +175,15 @@ while read -r esperado caminho; do
   fi
 done <<'MANIFESTO'
 c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/workflows/gates.yml
-ff5ca65735bf9a3bfdaa911f80ff34b4027a1b42cb0cc33650f7cc1a1b6e4fce  ./.github/workflows/validacao-cnj.yml
+7f0b7d42363f140cb0309088c9907ab27b859a943e00f10207739f43f7b6f112  ./.github/workflows/validacao-cnj.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
-c33bda3ffe98f41aa15b1e948c54ef0bc2ff9a9448b4ffaad7ac7e747494fba9  ./BOOTSTRAP.md
-8ba209ae955a432198ff9e5dc69ceee4ac69b3077fc2594ec75fe3c6b44bb3de  ./ENTREGA.md
+26c3dd05188b60e514932f20bdbc59d2e9382fef636b4fb949c5b1928ca475d0  ./BOOTSTRAP.md
+b0c5a5ed9e6bd34bd927fb89c6518e1a69fd3ac08b786d6c8dfa84ffa98bd39c  ./ENTREGA.md
 0e4e1891354e193ff084ad8ce428d3b87de0c13fb0446b9cec08e0e4a6938f8a  ./Makefile
-b085572d290b65d77393b0d3f2c183e3a89f7584bd407470568cdd341f7e6591  ./README.md
+2f6895ed662b0d605c056b6c9720899c7185590f8915db080ee733b8dcaac8a7  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
 5e8befc6e2434cb27c1404693dc775f7de8056893bcc94712e61644e40ddbc3f  ./docs/02-receitas-curl-tjpe.md
-f07045a15bdfe078d5984abc160cfdfb88de881a897cc441291db4b57c185d3e  ./docs/03-pipeline-gates.md
+f7e275b18821ce8660b686eaddcd26116b1b93a46138159d82fcfcc5095964a4  ./docs/03-pipeline-gates.md
 7c75c6c9e28b98ba45eb7ffdb7ad5165b2d002338c9e32dbbe61d02986e1fd06  ./docs/exemplo-saida/agg-grau.tsv
 8d95b990767a0c8a967f45ccce11471fccb2d6f875f494213f223f7a788a05d0  ./docs/exemplo-saida/agg-orgao-nome.csv
 e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo-saida/relatorio-processo-exemplo.md
@@ -194,7 +194,7 @@ c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
 4c5cf6428692501b4491ad9d1d960cefaddc9c11ed8c8b830edad8103bb42590  ./pipeline/blueprint.json
 e8d5b0c816bbac5c3f95f172ee5f498d8276900a3d6e65ffe6a0c579885d13e5  ./pipeline/factory.py
 7c0d68212116ef06ef6c554804fb19a7508086fd93ce4e6a95a712143640fc86  ./pipeline/gate.py
-74fedbc6f554883485cac903bcf696cc7b77098233e315d812080f708d57a20e  ./pipeline/verificar_cnj.py
+b0e13746b042c5388aee48c3b3b8d5dc69cd213d90654b853fc84c0534c200aa  ./pipeline/verificar_cnj.py
 dd78d8b6469b06e5ab67d11137eaac3891ac16b2856064bce8be6a801e67dea0  ./scripts/datajud.sh
 b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_apis.py
 54b84ce8348712a3e8d689f96d284d0f019e11bb2bcf888abeab2c147fe63baa  ./tests/mock_datajud.py
@@ -203,7 +203,7 @@ b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_a
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
 2da4b79eab5e5ab83abd1064219ded2ef94a9f7e4d9d380b3b6f5bf80f022ca1  ./tests/testar_fabrica.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
-37a8c2b8d271c4103531ade5dd545f29c88b183acb0c68e6ae2a30bdc577c0ba  ./tests/testar_pipeline.py
+dc74cd1dc5d98af83da1556e99c49c58342141f22a7c204639ae1991d8f658ad  ./tests/testar_pipeline.py
 5487c11416c3535f8486c07bd8bd65ec781eb24198ba6d7dc86c534f4d412cd3  ./tools/gerar_bootstrap.py
 MANIFESTO
 if [[ "$falhas_hash" == "0" ]]; then
@@ -778,7 +778,7 @@ on:
   workflow_dispatch:
     inputs:
       tentativas:
-        description: "Tentativas da consulta ao CNJ (rede instável)"
+        description: "Tentativas da consulta ao CNJ (a taxa é limitada a 120 req/min)"
         required: false
         default: "3"
       concluir_no_sucesso:
@@ -815,28 +815,53 @@ jobs:
       - name: "Diagnóstico de rede (DNS · TLS · HTTP)"
         id: diagnostico
         run: |
+          set +e
           host=api-publica.datajud.cnj.jus.br
-          chave=$(python3 -c "import sys; sys.path.insert(0, 'pipeline'); import verificar_cnj as v; print(v.CHAVE_PADRAO)")
-          echo "### diagnóstico · $host"
           ip=$(getent hosts "$host" | awk '{print $1}' | head -1 || true)
           echo "DNS: ${ip:-não resolveu}"
-          http=$(curl -sS -o /tmp/diagnostico.json -w '%{http_code}' --max-time 25 \
+          # mesmo caminho de rede do validador (urllib), para diagnóstico e validação concordarem
+          diagnostico=$(python3 - <<'PY'
+          import json, urllib.error, urllib.request
+          from pipeline.verificar_cnj import CHAVE_PADRAO, BASE
+          url = f"{BASE.rstrip('/')}/api_publica_tjpe/_search"
+          corpo = json.dumps({"query": {"match_all": {}}, "size": 0,
+                              "track_total_hits": True}).encode()
+          req = urllib.request.Request(url, data=corpo, method="POST", headers={
+              "Authorization": f"APIKey {CHAVE_PADRAO}", "Content-Type": "application/json",
+              "Accept": "application/json", "User-Agent": "pipeline-gates/1.0"})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  d = json.loads(r.read().decode("utf-8", "replace"))
+              print(json.dumps({"http": r.status, "took": d.get("took"),
+                                "total": ((d.get("hits") or {}).get("total") or {}).get("value")},
+                               ensure_ascii=False))
+          except urllib.error.HTTPError as e:
+              print(json.dumps({"http": e.code, "retry_after": e.headers.get("Retry-After"),
+                                "erro": str(e)[:120]}, ensure_ascii=False))
+          except Exception as e:
+              print(json.dumps({"http": None, "erro": f"{e.__class__.__name__}: {str(e)[:120]}"},
+                               ensure_ascii=False))
+          PY
+          )
+          echo "urllib (mesmo caminho da validação): $diagnostico"
+          curl_code=$(curl -sS -o /tmp/diagnostico.json -w '%{http_code}' --max-time 25 \
             -X POST "https://$host/api_publica_tjpe/_search" \
-            -H "Authorization: APIKey $chave" \
+            -H "Authorization: APIKey $(python3 -c "import sys; sys.path.insert(0, 'pipeline'); import verificar_cnj as v; print(v.CHAVE_PADRAO)")" \
             -H "Content-Type: application/json" \
-            -d '{"query":{"match_all":{}},"size":0,"track_total_hits":true}' 2>/tmp/diagnostico.err || echo "000")
-          echo "HTTP: $http"
-          echo "corpo (300 bytes): $(head -c 300 /tmp/diagnostico.json 2>/dev/null || true)"
-          echo "erro do curl (300 bytes): $(head -c 300 /tmp/diagnostico.err 2>/dev/null || true)"
+            -d '{"query":{"match_all":{}},"size":0,"track_total_hits":true}' 2>/tmp/diagnostico.err)
+          curl_code=${curl_code:-000}
+          echo "curl: HTTP=$curl_code · erro=$(head -c 200 /tmp/diagnostico.err 2>/dev/null || true)"
+          http=$(echo "$diagnostico" | python3 -c "import json,sys;print(json.load(sys.stdin).get('http') or '')")
           echo "http=$http" >> "$GITHUB_OUTPUT"
+          set -e
           {
             echo "### diagnóstico de rede"
             echo
-            echo "- host: \`$host\`"
-            echo "- DNS: \`${ip:-falhou}\`"
-            echo "- HTTP: \`$http\`"
+            echo "- host: \`$host\` · DNS: \`${ip:-falhou}\`"
+            echo "- urllib (caminho do validador): \`$diagnostico\`"
+            echo "- curl: \`HTTP=$curl_code\`"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · HTTP=$http"
+          echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · http=${http:-—} · curl=$curl_code"
 
       - name: "Instrução da ISSUE-006 (com retentativas)"
         id: verificar
@@ -850,7 +875,12 @@ jobs:
             codigo=$?
             echo "código da tentativa: $codigo"
             [ "$codigo" = "0" ] && break
-            [ "$tentativa" != "${TENTATIVAS:-3}" ] && sleep 20
+            [ "$tentativa" = "${TENTATIVAS:-3}" ] && break
+            # respeita o Retry-After do CNJ (429) e usa backoff crescente (30s, 60s, 90s…)
+            espera=$(python3 -c "import json, os; c = '/tmp/validacao-cnj.json'; d = json.load(open(c)) if os.path.exists(c) else {}; ra = str((d.get('dados') or {}).get('retry_after') or ''); print(int(ra) if ra.isdigit() else 30 * $tentativa)" 2>/dev/null || echo 30)
+            [ "$espera" -gt 150 ] && espera=150
+            echo "aguardando ${espera}s antes da próxima tentativa"
+            sleep "$espera"
           done
           set -e
           cat /tmp/validacao-cnj.out
@@ -1118,7 +1148,7 @@ advogados: **MNI** do PJe, com certificado digital.
 
 ## 6. Códigos de teste: o que cada suíte cobre e o resultado esperado
 
-Rode tudo de uma vez com `make testes`: são **6 suítes** e **213 verificações**, todas offline,
+Rode tudo de uma vez com `make testes`: são **6 suítes** e **221 verificações**, todas offline,
 contra mocks locais (nenhuma requisição real ao CNJ).
 
 | Suíte | Arquivo | Testes | Cobre | Saída esperada |
@@ -1126,7 +1156,7 @@ contra mocks locais (nenhuma requisição real ao CNJ).
 | Conformidade | `tests/testar_conformidade.py` | **29** | itens da doc oficial (seção 5), ausência de dependências externas, shebang/permissões, sintaxe do shell | `Ran 29 tests` / `OK` / código **0** |
 | Consulta de processo | `tests/testar_main.py` | **29** | DV e estrutura do NUP (4 números oficiais), decodificação de tribunais, as 10 seções do relatório, DJEN, `--json`, `-o`, erros 400/401/404/429 | `Ran 29 tests` / `OK` / código **0** |
 | Consultas agregadas | `tests/rodar-testes.sh` | **32** | `contar`, `agregar` (com fallback de campo), `processo`, `paginar` (`search_after`), `relatorio`, tratamento de 401/404/429/rede, `--debug` | `32 passaram, 0 falharam` / código **0** |
-| Pipeline de gates | `tests/testar_pipeline.py` | **59** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`/`direcao`/`proximo_passo`), semântica 0/1/2, `next_issue` (mesma issue × próxima), direção de continuidade, `--marcar`, blueprint, backlog e o workflow (inclui `bash -n` em cada bloco `run:`) | `Ran 59 tests` / `OK (skipped=1)` / código **0** |
+| Pipeline de gates | `tests/testar_pipeline.py` | **67** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`/`direcao`/`proximo_passo`), semântica 0/1/2, `next_issue` (mesma issue × próxima), direção de continuidade, `--marcar`, blueprint, backlog e o workflow (inclui `bash -n` em cada bloco `run:`) | `Ran 67 tests` / `OK` / código **0** |
 | Fábrica de issues | `tests/testar_fabrica.py` | **37** | POO (8 classes), esquema SQLite, padrão do blueprint, construção da N+1 só após sucesso, eventos event-driven, round-trip SQLite ⇄ backlog.json, contrato da CLI e do gate `fabrica` | `Ran 37 tests` / `OK` / código **0** |
 | Recriação | `tests/testar_bootstrap.sh` | **27** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
 
@@ -1299,17 +1329,20 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 13/10 14:2x | Publicação do pedido 4 (`92a31c0`) → o workflow `gates` dispara no Actions e o run de `push` fica **verde** |
 | 13/10 14:3x | `e864c53` corrige o job 5 em `pull_request` (`github.ref_name` = `NNN/merge` quebrava o checkout; commit do backlog agora só fora de PR) e atualiza as actions para v5 → **runs de `push` e `pull_request` verdes, 5/5 jobs** |
 | 13/10 15:1x | `cd3a80d` — pedido 4 publicado: ENTREGA.md + validação real do workflow no Actions (runs de push e PR verdes) |
+| 13/10 18:5x | `b9873a4/c422628` — **validação ao vivo event-driven**: `.github/workflows/validacao-cnj.yml` dispara no runner por push/PR/agenda/dispatch; na primeira execução, o runner **resolveu o DNS (`201.49.152.99`) e recebeu `HTTP 429`** do CNJ (taxa compartilhada) ⇒ `status "1"`, continuidade, **sem sucesso falso** |
+| 13/10 19:0x | O incidente virou robustez: `verificar_cnj.py` passou a tratar **429 com `Retry-After`** e a expor `direcao`/`proximo_passo`; o workflow ganhou **backoff 30/60/90 s** (teto 150 s), diagnóstico pelo mesmo caminho de rede do validador (urllib) e 10 testes novos |
+| 13/10 18:4x | Lição de CI registrada: um commit com o literal do marcador de skip na mensagem **não dispara workflows** — o workflow novo nem foi registrado até o segundo push |
 | 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
 | 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
 
-### 2.4 Testado (6 suítes, 213 verificações, tudo offline)
+### 2.4 Testado (6 suítes, 221 verificações, tudo offline)
 
 | Suíte | Verificações | O que cobre |
 | --- | --- | --- |
 | `tests/testar_conformidade.py` | 29 | conformidade com a doc oficial do CNJ: URL/rota/headers, aliases de tribunal, 15 campos do glossário, `search_after`, teto de 10.000, agregações com `.keyword`, 120 req/min, LGPD |
 | `tests/testar_main.py` | 29 | `main.py`: DV do número CNJ (`% 97 == 1`), montagem do número de 20 dígitos, DataJud + DJEN com mocks, relatório Markdown, anexos, exit codes |
 | `tests/rodar-testes.sh` | 32 | `scripts/datajud.sh`: chave pública, consulta, contagem, agregação, relatório, paginação, erros |
-| `tests/testar_pipeline.py` | 59 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
+| `tests/testar_pipeline.py` | 67 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
 | `tests/testar_fabrica.py` | 37 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
 | `tests/testar_bootstrap.sh` | 27 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 5 suítes rodando **dentro** do projeto recriado, gates (fabrica/blueprint/continuidade) no projeto recriado, `--verificar`, proteção contra sobrescrita |
 
@@ -1322,13 +1355,14 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Planta BPMN × implementação | `python3 pipeline/gate.py blueprint` | `status "0"` — *5 gates, 15 transições* |
 | Gatilho de continuidade | `python3 pipeline/gate.py continuidade` | `status "1"` (há issue aberta) — **continuidade**, como manda a regra |
 | CI/CD | `python3 pipeline/gate.py cicd` | `status "0"` — 5 execuções, nenhuma com erro |
-| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 213 verificações aprovadas |
+| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 221 verificações aprovadas |
 | Fábrica de issues | `python3 pipeline/gate.py fabrica` | `status "0"` — 8 classes, tabelas `eventos`/`issues`/`schema_info`, round-trip SQLite ⇄ `backlog.json` ok, nenhuma issue sem instrução de desenvolvimento |
 | Eventos event-driven | `python3 pipeline/factory.py --evento "ci_falhou\|run=42"` | `continuar` na MESMA issue, com a direção `depurar` (CI) / `corrigir` (teste) — a fila não incha |
 | Construção da N+1 | `python3 pipeline/factory.py --concluir ISSUE-006 --proxima` | cria a `ISSUE-008` dependendo da última concluída e recusa (status 1) enquanto houver issue pendente |
 | Shell do workflow | teste `test_blocos_run_sao_bash_valido` | os 8 blocos `run:` são `bash -n` válidos |
 | Sem fonte de dados (`gh` ausente) | `python3 pipeline/gate.py issues --sem-gh` | `status "2"` (erro tipo 2) — não inventa sucesso |
 | Projeto reconstruído funciona | `bash bootstrap.sh --destino /tmp/x` | 7/7 etapas ✔, exit 0 |
+| **Validação ao vivo event-driven** | [run de `validacao-cnj` (push)](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451236091) | job verde com **diagnóstico real**: DNS `201.49.152.99`, `HTTP 429` do CNJ ⇒ `status "1"`, `::warning::` de continuidade e a ISSUE-006 mantida — o gate **não inventou sucesso** |
 | **Workflow no GitHub Actions** | [run de `push`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444008073) e [run de `pull_request`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444012416) | **os dois verdes**, com os **6 jobs** passando (`gate 1·issues`, `gate 2·cicd`, `gate 3·testes`, `gate 4·fábrica`, `gate 5·continuidade`, `gate 6·issue`) e 6 artifacts publicados — é a validação real do YAML |
 | **Fábrica no CI** | job `gate 4 · fábrica de issues (padrão + SQLite)` | verde em 5–8 s; o passo de eventos registra `issue_aberta`/`ci_falhou`/`teste_falhou` conforme os gates anteriores |
 | **Continuidade honesta no runner** | anotação do job 6: *"a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"* | o runner do GitHub **também não alcançou o CNJ** naquele momento: em vez de marcar sucesso falso, o gate manteve a `ISSUE-006` e a direção `corrigir` (exatamente o comportamento pedido) |
@@ -1338,7 +1372,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli
 
-make testes        # 6 suítes, 213 verificações, offline
+make testes        # 6 suítes, 221 verificações, offline
 make gates         # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
 make fabrica       # estado da fábrica de issues (SQLite): pendências, eventos e próximo passo
 make consultar NUMERO=0001234-43.2024.8.17.2001   # relatório Markdown do processo (rede real)
@@ -1369,7 +1403,7 @@ tools/gerar_bootstrap.py    gerador/verificador do bootstrap (--conferir)
 BOOTSTRAP.md                manual do bootstrap
 ENTREGA.md                  este relatório
 
-tests/                      6 suítes, 213 verificações (offline, com mocks)
+tests/                      6 suítes, 221 verificações (offline, com mocks)
 ```
 
 ---
@@ -1493,7 +1527,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 | ISSUE-003 | Bootstrap auto-criador do projeto | concluída |
 | ISSUE-004 | Validação de conformidade com a documentação do CNJ | concluída |
 | ISSUE-005 | Pipeline de gates (contrato JSON, 0/1/2) | concluída |
-| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente** (o sandbox e o runner do GitHub não alcançaram o CNJ; o gate manteve a pendência) |
+| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente, agora automática**: o runner alcança o CNJ (DNS ok) e a API respondeu `429` (taxa compartilhada) ⇒ continuidade. O workflow `validacao-cnj` tenta de novo a cada evento/agenda e, quando a taxa liberar, **conclui a ISSUE-006 e constrói a próxima sozinho** |
 | ISSUE-007 | Decidir unificação com o fluxo da issue #3 (outra sessão) | bloqueada (decisão humana) |
 
 ---
@@ -1502,7 +1536,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 
 | Limitação | Detalhe | Próximo passo |
 | --- | --- | --- |
-| Validação **ao vivo** do CNJ (ISSUE-006) | nem o sandbox de desenvolvimento nem o **runner do GitHub** conseguiram falar com `api-publica.datajud.cnj.jus.br` (TLS encerrado pelo proxy local; do runner, a anotação do job 6 registrou "continuidade na MESMA issue") — `pipeline/verificar_cnj.py` devolve honestamente `status "1"` | rodar `python3 pipeline/verificar_cnj.py` numa máquina/rede que alcance o CNJ; `status "0"` ⇒ `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` (ou `make fabrica-proxima`), e a fábrica constrói a N+1 |
+| Validação **ao vivo** do CNJ (ISSUE-006) | **resolvido como processo**: o sandbox não tem rota; o **runner do GitHub tem (DNS ok), mas a API respondeu `HTTP 429`** — o limite é de **120 req/min por IP** e o IP de saída é compartilhado. O pipeline trata como continuidade e tenta de novo (backoff + `Retry-After` + agenda) | nada a fazer do seu lado: o workflow `validacao-cnj` conclui a ISSUE-006 sozinho quando a taxa liberar. Para forçar agora: **Actions → validacao-cnj → Run workflow** (merge em `main` habilita agenda e dispatch) |
 | ISSUE-007 (unificação com a issue #3, de outra sessão) | o outro fluxo não está em `main` (`.github/workflows` → 404 no ref `main`) e vive na issue #3; não foi tocado | gate devolve `2` de propósito: requer decisão do usuário |
 | YAML do workflow | não há PyYAML no ambiente de desenvolvimento; a checagem local é estrutural (indentação, tabulação, gatilhos, jobs) | **já validado**: o workflow rodou de verdade no Actions ([push](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [PR](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644)), 5/5 jobs verdes |
 | Permissão de escrita do bot | o job `executa-issue` só commita o backlog quando disparado com `marcar=true` (e o repositório precisa permitir "Read and write permissions" para o `GITHUB_TOKEN`) | conferir em **Settings → Actions → General → Workflow permissions** |
@@ -1517,8 +1551,9 @@ Backlog do projeto (`pipeline/backlog.json`):
 - [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
 - [x] **Realizado** — 8 marcos de commit + 11 arquivos novos, tudo versionado no branch (seção 2.3)
 - [x] **Fábrica de issues (pedido 5)** — event-driven, POO + SQLite, padrão declarado no blueprint, instrução de desenvolvimento em todas as issues e construção automática da próxima indexada após o sucesso testado (seção 4.4)
-- [x] **Testado** — 6 suítes, **213 verificações**, todas offline e reprodutíveis (seção 2.4)
-- [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero e **os 5 jobs do workflow verdes no GitHub Actions** (seção 2.5)
+- [x] **Testado** — 6 suítes, **221 verificações**, todas offline e reprodutíveis (seção 2.4)
+- [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero, **os 6 jobs do workflow verdes** e a **validação ao vivo rodando no runner** (seção 2.5)
+- [x] **Automático até o fim (pedido 6)** — a validação ao vivo é event-driven: no sucesso, a fábrica conclui a ISSUE-006, constrói a próxima indexada e versiona o backlog sem intervenção (seção 5-bis de `docs/03`)
 - [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
 - [x] **Documentado** — `README.md` (visão geral), `BOOTSTRAP.md` (instalação), `docs/01-03` (API, receitas, pipeline) e esta `ENTREGA.md`
 - [ ] **Pendente do usuário** — rodar a validação ao vivo do CNJ (ISSUE-006) num ambiente com internet e decidir a ISSUE-007
@@ -1824,19 +1859,21 @@ O **gatilho só é positivo** quando não há issue aberta **e** o CI não tem e
 
 A consulta real ao CNJ não roda no sandbox de desenvolvimento (sem rota), mas roda no
 **runner do GitHub**: o workflow `validacao-cnj` dispara em `push`, `pull_request`, agenda
-(dias úteis, 08:00 BRT) e manualmente, tenta até 3 vezes, publica o diagnóstico de rede
+(dias úteis, 08:00 BRT) e manualmente, tenta até 3 vezes com backoff (respeitando o `Retry-After`), publica o diagnóstico de rede
 (DNS/HTTP) e, se o CNJ responder **200**, marca a ISSUE-006 como **COMPLETADA** e a
-**fábrica constrói a próxima issue indexada** — commit `[skip ci]`, com a URL da execução
-gravada como evidência. Se a rede falhar, fica em **continuidade** (warning), sem sucesso falso.
+**fábrica constrói a próxima issue indexada** — com a URL da execução gravada como evidência.
+Se a rede falhar ou o CNJ responder **429** (taxa compartilhada de 120 req/min), fica em
+**continuidade** (warning), sem sucesso falso. Medido em 13/10: DNS `201.49.152.99` e
+`HTTP 429` — o runner alcança o CNJ; a validação fica esperando a janela de taxa.
 
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 6 suítes (213 verificações)
+make testes                          # todas as 6 suítes (221 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
-python3 tests/testar_pipeline.py     # 59 — contrato JSON, 0/1/2, direção, blueprint, workflow
+python3 tests/testar_pipeline.py     # 67 — contrato JSON, 0/1/2, direção, blueprint, workflow
 python3 tests/testar_fabrica.py      # 37 — fábrica de issues (SQLite, eventos, padrão BPMN)
 ./tests/testar_bootstrap.sh          # 27 — recria o projeto e compara byte a byte
 ```
@@ -2590,9 +2627,14 @@ JSON do resto do pipeline):
 
 | status | significado | o que o workflow faz |
 | --- | --- | --- |
-| `"0"` | o CNJ respondeu 200 | job `concluir-issue-006`: `factory.py --concluir ISSUE-006 --evidencia validacao_ao_vivo=<URL da execução> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
-| `"1"` | a rede do runner não alcançou o CNJ | `::warning::` — continuidade: a ISSUE-006 permanece pendente e a próxima tentativa é o próximo evento/agenda |
+| `"0"` | o CNJ respondeu **200** | job `concluir-issue-006`: `factory.py --concluir ISSUE-006 --evidencia validacao_ao_vivo=<URL da execução> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
+| `"1"` | rede indisponível **ou** `HTTP 429` (taxa compartilhada de 120 req/min) | `::warning::` — continuidade: a ISSUE-006 permanece pendente; o job espera `Retry-After` (ou 30 s × tentativa, teto 150 s) e tenta de novo; a próxima tentativa também vem do próximo evento/agenda |
 | `"2"` | chave recusada / ilegível | `::error::` e o job **falha** (exige humano) |
+
+**Evidência medida no runner** (execução de 13/10): DNS resolveu `201.49.152.99`, a API
+respondeu **HTTP 429** (limite de taxa compartilhado do IP de saída) e o pipeline tratou como
+**continuidade** (`status "1"`) em vez de sucesso falso — foi o que motivou o backoff e o
+`Retry-After`. Quando a janela de taxa abre, a conclusão é automática.
 
 A evidência de sucesso fica na própria issue: o `backlog.json` guarda
 `evidencias: [{sucesso: COMPLETADA, validacao_ao_vivo: <URL do run>, http: 200, …}]`.
@@ -2603,7 +2645,7 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (59 testes) e `tests/testar_fabrica.py` (37 testes), offline, verificam:
+`tests/testar_pipeline.py` (67 testes) e `tests/testar_fabrica.py` (37 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
@@ -6150,10 +6192,9 @@ objeto JSON do contrato do pipeline (id, mensagem, anexos, status, next_issue).
 
 Códigos (contrato do projeto):
     0 — a API respondeu 200 com JSON válido: acesso ao CNJ confirmado
-    1 — não foi possível alcançar a API (rede restrita/timeout): continuidade,
-        precisa rodar num ambiente com internet
-    2 — a API respondeu, mas de forma inesperada (ex.: 401 — chave trocada;
-        precisa de decisão humana)
+    1 — não foi possível concluir agora: rede restrita/timeout OU HTTP 429
+        (taxa compartilhada excedida). Continuidade: repetir depois
+    2 — a API respondeu de forma que exige humano (ex.: 401/403 — chave trocada)
 
 Uso:
     python3 pipeline/verificar_cnj.py [--tribunal tjpe] [--timeout 20] [--json-saida F]
@@ -6173,7 +6214,16 @@ CHAVE_PADRAO = "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw=="
 BASE = os.environ.get("DATAJUD_BASE_URL", "https://api-publica.datajud.cnj.jus.br")
 
 
+DIRECOES = {
+    "0": ("proxima", "python3 pipeline/gate.py issue --id ISSUE-006 --marcar"),
+    "1": ("continuar", "python3 pipeline/verificar_cnj.py --timeout 20   "
+                       "# repetir quando a taxa do CNJ liberar"),
+    "2": ("humano", "python3 main.py --chave-publica   # atualizar a chave pública"),
+}
+
+
 def objeto(status: str, mensagem: str, dados: dict, id_gate: str = "verificar-cnj") -> dict:
+    direcao, passo = DIRECOES[str(status)]
     return {
         "id": f"{id_gate}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
         "gate": id_gate,
@@ -6182,6 +6232,8 @@ def objeto(status: str, mensagem: str, dados: dict, id_gate: str = "verificar-cn
         "mensagem": mensagem,
         "continuidade": str(status) == "1",
         "next_issue": "ISSUE-006" if str(status) != "0" else None,
+        "direcao": direcao,
+        "proximo_passo": passo,
         "anexos": [],
         "dados": dados,
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -6216,15 +6268,25 @@ def main(argv=None) -> int:
                                {"url": url, "http": resposta.status, "took_ms": dados.get("took"),
                                 "total": total, "duracao_s": round(time.time() - inicio, 2)})
     except urllib.error.HTTPError as e:
+        retry_after = e.headers.get("Retry-After") if e.headers else None
         if e.code in (401, 403):
             resultado = objeto("2", f"HTTP {e.code}: chave pública recusada pelo CNJ — "
                                     "atualize a chave (python3 main.py --chave-publica) "
                                     "(erro tipo 2: exige decisão humana)",
-                               {"url": url, "http": e.code})
+                               {"url": url, "http": e.code,
+                                "duracao_s": round(time.time() - inicio, 2)})
+        elif e.code == 429:
+            resultado = objeto("1", "HTTP 429: o CNJ limitou a taxa (o Termo de Uso permite "
+                                    "120 req/min; o IP de saída é compartilhado) — "
+                                    "continuidade: tente novamente depois"
+                                    + (f" (Retry-After: {retry_after}s)" if retry_after else ""),
+                               {"url": url, "http": e.code, "retry_after": retry_after,
+                                "duracao_s": round(time.time() - inicio, 2)})
         else:
             resultado = objeto("1", f"HTTP {e.code} do CNJ — situação inesperada; "
                                     "continuidade: tente novamente",
-                               {"url": url, "http": e.code})
+                               {"url": url, "http": e.code, "retry_after": retry_after,
+                                "duracao_s": round(time.time() - inicio, 2)})
     except (urllib.error.URLError, TimeoutError, OSError) as e:
         resultado = objeto("1", f"não foi possível alcançar {BASE} ({e.__class__.__name__}: "
                                 f"{str(e)[:160]}) — continuidade: rode num ambiente com internet",
@@ -8604,6 +8666,13 @@ import unittest
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "pipeline"))
 
+import contextlib  # noqa: E402
+import io  # noqa: E402
+import urllib.error  # noqa: E402
+from unittest import mock  # noqa: E402
+
+import verificar_cnj  # noqa: E402  (pipeline/verificar_cnj.py)
+
 import gate  # noqa: E402  (módulo do pipeline)
 
 GATE = os.path.join(RAIZ, "pipeline", "gate.py")
@@ -9017,6 +9086,88 @@ class TesteGateFabricaNoFluxo(CasoBase):
         self.assertRegex(texto, r"(?m)^\s{2}gate-fabrica:")
 
 
+class RespostaFalsa:
+    """Resposta HTTP mínima (mesma interface usada por urllib)."""
+
+    def __init__(self, status=200, corpo=b"{}"):
+        self.status = status
+        self._corpo = corpo
+
+    def read(self):
+        return self._corpo
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *argumentos):
+        return False
+
+
+class TesteVerificarCNJ(unittest.TestCase):
+    """A instrução executável da ISSUE-006: 200/taxa/chave/rede → 0/1/2 (offline)."""
+
+    def _rodar(self, efeito):
+        if isinstance(efeito, Exception):
+            alvo = mock.patch.object(verificar_cnj.urllib.request, "urlopen",
+                                     side_effect=efeito)
+        else:
+            alvo = mock.patch.object(verificar_cnj.urllib.request, "urlopen",
+                                     return_value=efeito)
+        with alvo:
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                codigo = verificar_cnj.main(["--timeout", "1"])
+        return codigo, json.loads(buffer.getvalue())
+
+    def test_200_e_sucesso_com_direcao_proxima(self):
+        resposta = RespostaFalsa(200, json.dumps(
+            {"took": 7, "hits": {"total": {"value": 1234567}}}).encode())
+        codigo, obj = self._rodar(resposta)
+        self.assertEqual((codigo, obj["status"]), (0, "0"))
+        self.assertEqual(obj["dados"]["total"], 1234567)
+        self.assertEqual(obj["direcao"], "proxima")
+        self.assertIn("--marcar", obj["proximo_passo"])
+        self.assertIsNone(obj["next_issue"])
+        self.assertFalse(obj["continuidade"])
+
+    def test_429_e_continuidade_com_retry_after(self):
+        erro = urllib.error.HTTPError("https://x", 429, "Too Many Requests", None, None)
+        with mock.patch.object(verificar_cnj.urllib.request, "urlopen", side_effect=erro):
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                codigo = verificar_cnj.main(["--timeout", "1"])
+        obj = json.loads(buffer.getvalue())
+        self.assertEqual((codigo, obj["status"]), (1, "1"))
+        self.assertIn("429", obj["mensagem"])
+        self.assertIn("120 req/min", obj["mensagem"])
+        self.assertEqual(obj["direcao"], "continuar")
+        self.assertEqual(obj["next_issue"], "ISSUE-006")
+        self.assertTrue(obj["continuidade"])
+
+    def test_401_e_erro_tipo_2_humano(self):
+        erro = urllib.error.HTTPError("https://x", 401, "Unauthorized", None, None)
+        codigo, obj = self._rodar(erro)
+        self.assertEqual((codigo, obj["status"]), (2, "2"))
+        self.assertEqual(obj["direcao"], "humano")
+        self.assertIn("chave", obj["mensagem"])
+        self.assertFalse(obj["continuidade"])
+
+    def test_rede_indisponivel_e_continuidade(self):
+        codigo, obj = self._rodar(urllib.error.URLError("sem rota"))
+        self.assertEqual((codigo, obj["status"]), (1, "1"))
+        self.assertEqual(obj["direcao"], "continuar")
+
+    def test_contrato_completo(self):
+        codigo, obj = self._rodar(urllib.error.URLError("sem rota"))
+        for chave in ("id", "gate", "status", "codigo_saida", "mensagem", "continuidade",
+                      "next_issue", "direcao", "proximo_passo", "anexos", "dados",
+                      "timestamp", "versao"):
+            self.assertIn(chave, obj, f"falta {chave} no contrato")
+        self.assertIsInstance(obj["status"], str)
+        self.assertIsInstance(obj["mensagem"], str)
+        self.assertIsInstance(obj["anexos"], list)
+
+
 class TesteWorkflowValidacaoCNJ(unittest.TestCase):
     """O workflow event-driven da validação AO VIVO (ISSUE-006) no runner do GitHub."""
 
@@ -9034,7 +9185,7 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
         self.assertIn("pipeline/verificar_cnj.py", self.texto)
         self.assertIn("TENTATIVAS", self.texto)
         self.assertIn("for tentativa in", self.texto)
-        self.assertIn("sleep 20", self.texto)
+        self.assertIn('sleep "$espera"', self.texto)
 
     def test_mapeia_status_0_1_2_para_acao(self):
         self.assertIn('if [ "$status" = "2" ]', self.texto)
@@ -9063,6 +9214,24 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
 
     def test_guarda_de_json_invalido(self):
         self.assertIn("[ ! -s /tmp/validacao-cnj.json ]", self.texto)
+
+    def test_backoff_respeita_retry_after_do_cnj(self):
+        self.assertIn("retry_after", self.texto)
+        self.assertIn("sleep \"$espera\"", self.texto)
+        self.assertIn("espera=150", self.texto, "teto de espera por tentativa")
+
+    def test_diagnostico_usa_o_mesmo_caminho_do_validador(self):
+        self.assertIn("urllib", self.texto)
+        self.assertIn("CHAVE_PADRAO", self.texto)
+
+    def test_yaml_valido_quando_houver_pyyaml(self):
+        try:
+            import yaml  # type: ignore
+        except ImportError:
+            self.skipTest("PyYAML indisponível — a validação definitiva é o GitHub Actions")
+        dados = yaml.safe_load(self.texto)
+        self.assertIn("jobs", dados)
+        self.assertEqual(set(dados["jobs"]), {"validacao-cnj", "concluir-issue-006"})
 
     def test_blocos_run_sao_bash_valido(self):
         blocos = blocos_run(self.texto)

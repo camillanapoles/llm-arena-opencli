@@ -260,9 +260,14 @@ JSON do resto do pipeline):
 
 | status | significado | o que o workflow faz |
 | --- | --- | --- |
-| `"0"` | o CNJ respondeu 200 | job `concluir-issue-006`: `factory.py --concluir ISSUE-006 --evidencia validacao_ao_vivo=<URL da execução> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
-| `"1"` | a rede do runner não alcançou o CNJ | `::warning::` — continuidade: a ISSUE-006 permanece pendente e a próxima tentativa é o próximo evento/agenda |
+| `"0"` | o CNJ respondeu **200** | job `concluir-issue-006`: `factory.py --concluir ISSUE-006 --evidencia validacao_ao_vivo=<URL da execução> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
+| `"1"` | rede indisponível **ou** `HTTP 429` (taxa compartilhada de 120 req/min) | `::warning::` — continuidade: a ISSUE-006 permanece pendente; o job espera `Retry-After` (ou 30 s × tentativa, teto 150 s) e tenta de novo; a próxima tentativa também vem do próximo evento/agenda |
 | `"2"` | chave recusada / ilegível | `::error::` e o job **falha** (exige humano) |
+
+**Evidência medida no runner** (execução de 13/10): DNS resolveu `201.49.152.99`, a API
+respondeu **HTTP 429** (limite de taxa compartilhado do IP de saída) e o pipeline tratou como
+**continuidade** (`status "1"`) em vez de sucesso falso — foi o que motivou o backoff e o
+`Retry-After`. Quando a janela de taxa abre, a conclusão é automática.
 
 A evidência de sucesso fica na própria issue: o `backlog.json` guarda
 `evidencias: [{sucesso: COMPLETADA, validacao_ao_vivo: <URL do run>, http: 200, …}]`.
@@ -273,7 +278,7 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (59 testes) e `tests/testar_fabrica.py` (37 testes), offline, verificam:
+`tests/testar_pipeline.py` (67 testes) e `tests/testar_fabrica.py` (37 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados

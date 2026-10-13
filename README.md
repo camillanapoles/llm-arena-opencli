@@ -201,19 +201,21 @@ O **gatilho só é positivo** quando não há issue aberta **e** o CI não tem e
 
 A consulta real ao CNJ não roda no sandbox de desenvolvimento (sem rota), mas roda no
 **runner do GitHub**: o workflow `validacao-cnj` dispara em `push`, `pull_request`, agenda
-(dias úteis, 08:00 BRT) e manualmente, tenta até 3 vezes, publica o diagnóstico de rede
+(dias úteis, 08:00 BRT) e manualmente, tenta até 3 vezes com backoff (respeitando o `Retry-After`), publica o diagnóstico de rede
 (DNS/HTTP) e, se o CNJ responder **200**, marca a ISSUE-006 como **COMPLETADA** e a
-**fábrica constrói a próxima issue indexada** — commit `[skip ci]`, com a URL da execução
-gravada como evidência. Se a rede falhar, fica em **continuidade** (warning), sem sucesso falso.
+**fábrica constrói a próxima issue indexada** — com a URL da execução gravada como evidência.
+Se a rede falhar ou o CNJ responder **429** (taxa compartilhada de 120 req/min), fica em
+**continuidade** (warning), sem sucesso falso. Medido em 13/10: DNS `201.49.152.99` e
+`HTTP 429` — o runner alcança o CNJ; a validação fica esperando a janela de taxa.
 
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 6 suítes (213 verificações)
+make testes                          # todas as 6 suítes (221 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
-python3 tests/testar_pipeline.py     # 59 — contrato JSON, 0/1/2, direção, blueprint, workflow
+python3 tests/testar_pipeline.py     # 67 — contrato JSON, 0/1/2, direção, blueprint, workflow
 python3 tests/testar_fabrica.py      # 37 — fábrica de issues (SQLite, eventos, padrão BPMN)
 ./tests/testar_bootstrap.sh          # 27 — recria o projeto e compara byte a byte
 ```

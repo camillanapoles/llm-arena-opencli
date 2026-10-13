@@ -75,17 +75,20 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 13/10 14:2x | Publicação do pedido 4 (`92a31c0`) → o workflow `gates` dispara no Actions e o run de `push` fica **verde** |
 | 13/10 14:3x | `e864c53` corrige o job 5 em `pull_request` (`github.ref_name` = `NNN/merge` quebrava o checkout; commit do backlog agora só fora de PR) e atualiza as actions para v5 → **runs de `push` e `pull_request` verdes, 5/5 jobs** |
 | 13/10 15:1x | `cd3a80d` — pedido 4 publicado: ENTREGA.md + validação real do workflow no Actions (runs de push e PR verdes) |
+| 13/10 18:5x | `b9873a4/c422628` — **validação ao vivo event-driven**: `.github/workflows/validacao-cnj.yml` dispara no runner por push/PR/agenda/dispatch; na primeira execução, o runner **resolveu o DNS (`201.49.152.99`) e recebeu `HTTP 429`** do CNJ (taxa compartilhada) ⇒ `status "1"`, continuidade, **sem sucesso falso** |
+| 13/10 19:0x | O incidente virou robustez: `verificar_cnj.py` passou a tratar **429 com `Retry-After`** e a expor `direcao`/`proximo_passo`; o workflow ganhou **backoff 30/60/90 s** (teto 150 s), diagnóstico pelo mesmo caminho de rede do validador (urllib) e 10 testes novos |
+| 13/10 18:4x | Lição de CI registrada: um commit com o literal do marcador de skip na mensagem **não dispara workflows** — o workflow novo nem foi registrado até o segundo push |
 | 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
 | 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
 
-### 2.4 Testado (6 suítes, 213 verificações, tudo offline)
+### 2.4 Testado (6 suítes, 221 verificações, tudo offline)
 
 | Suíte | Verificações | O que cobre |
 | --- | --- | --- |
 | `tests/testar_conformidade.py` | 29 | conformidade com a doc oficial do CNJ: URL/rota/headers, aliases de tribunal, 15 campos do glossário, `search_after`, teto de 10.000, agregações com `.keyword`, 120 req/min, LGPD |
 | `tests/testar_main.py` | 29 | `main.py`: DV do número CNJ (`% 97 == 1`), montagem do número de 20 dígitos, DataJud + DJEN com mocks, relatório Markdown, anexos, exit codes |
 | `tests/rodar-testes.sh` | 32 | `scripts/datajud.sh`: chave pública, consulta, contagem, agregação, relatório, paginação, erros |
-| `tests/testar_pipeline.py` | 59 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
+| `tests/testar_pipeline.py` | 67 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
 | `tests/testar_fabrica.py` | 37 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
 | `tests/testar_bootstrap.sh` | 27 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 5 suítes rodando **dentro** do projeto recriado, gates (fabrica/blueprint/continuidade) no projeto recriado, `--verificar`, proteção contra sobrescrita |
 
@@ -98,13 +101,14 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Planta BPMN × implementação | `python3 pipeline/gate.py blueprint` | `status "0"` — *5 gates, 15 transições* |
 | Gatilho de continuidade | `python3 pipeline/gate.py continuidade` | `status "1"` (há issue aberta) — **continuidade**, como manda a regra |
 | CI/CD | `python3 pipeline/gate.py cicd` | `status "0"` — 5 execuções, nenhuma com erro |
-| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 213 verificações aprovadas |
+| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 221 verificações aprovadas |
 | Fábrica de issues | `python3 pipeline/gate.py fabrica` | `status "0"` — 8 classes, tabelas `eventos`/`issues`/`schema_info`, round-trip SQLite ⇄ `backlog.json` ok, nenhuma issue sem instrução de desenvolvimento |
 | Eventos event-driven | `python3 pipeline/factory.py --evento "ci_falhou\|run=42"` | `continuar` na MESMA issue, com a direção `depurar` (CI) / `corrigir` (teste) — a fila não incha |
 | Construção da N+1 | `python3 pipeline/factory.py --concluir ISSUE-006 --proxima` | cria a `ISSUE-008` dependendo da última concluída e recusa (status 1) enquanto houver issue pendente |
 | Shell do workflow | teste `test_blocos_run_sao_bash_valido` | os 8 blocos `run:` são `bash -n` válidos |
 | Sem fonte de dados (`gh` ausente) | `python3 pipeline/gate.py issues --sem-gh` | `status "2"` (erro tipo 2) — não inventa sucesso |
 | Projeto reconstruído funciona | `bash bootstrap.sh --destino /tmp/x` | 7/7 etapas ✔, exit 0 |
+| **Validação ao vivo event-driven** | [run de `validacao-cnj` (push)](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451236091) | job verde com **diagnóstico real**: DNS `201.49.152.99`, `HTTP 429` do CNJ ⇒ `status "1"`, `::warning::` de continuidade e a ISSUE-006 mantida — o gate **não inventou sucesso** |
 | **Workflow no GitHub Actions** | [run de `push`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444008073) e [run de `pull_request`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444012416) | **os dois verdes**, com os **6 jobs** passando (`gate 1·issues`, `gate 2·cicd`, `gate 3·testes`, `gate 4·fábrica`, `gate 5·continuidade`, `gate 6·issue`) e 6 artifacts publicados — é a validação real do YAML |
 | **Fábrica no CI** | job `gate 4 · fábrica de issues (padrão + SQLite)` | verde em 5–8 s; o passo de eventos registra `issue_aberta`/`ci_falhou`/`teste_falhou` conforme os gates anteriores |
 | **Continuidade honesta no runner** | anotação do job 6: *"a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"* | o runner do GitHub **também não alcançou o CNJ** naquele momento: em vez de marcar sucesso falso, o gate manteve a `ISSUE-006` e a direção `corrigir` (exatamente o comportamento pedido) |
@@ -114,7 +118,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli
 
-make testes        # 6 suítes, 213 verificações, offline
+make testes        # 6 suítes, 221 verificações, offline
 make gates         # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
 make fabrica       # estado da fábrica de issues (SQLite): pendências, eventos e próximo passo
 make consultar NUMERO=0001234-43.2024.8.17.2001   # relatório Markdown do processo (rede real)
@@ -145,7 +149,7 @@ tools/gerar_bootstrap.py    gerador/verificador do bootstrap (--conferir)
 BOOTSTRAP.md                manual do bootstrap
 ENTREGA.md                  este relatório
 
-tests/                      6 suítes, 213 verificações (offline, com mocks)
+tests/                      6 suítes, 221 verificações (offline, com mocks)
 ```
 
 ---
@@ -269,7 +273,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 | ISSUE-003 | Bootstrap auto-criador do projeto | concluída |
 | ISSUE-004 | Validação de conformidade com a documentação do CNJ | concluída |
 | ISSUE-005 | Pipeline de gates (contrato JSON, 0/1/2) | concluída |
-| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente** (o sandbox e o runner do GitHub não alcançaram o CNJ; o gate manteve a pendência) |
+| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente, agora automática**: o runner alcança o CNJ (DNS ok) e a API respondeu `429` (taxa compartilhada) ⇒ continuidade. O workflow `validacao-cnj` tenta de novo a cada evento/agenda e, quando a taxa liberar, **conclui a ISSUE-006 e constrói a próxima sozinho** |
 | ISSUE-007 | Decidir unificação com o fluxo da issue #3 (outra sessão) | bloqueada (decisão humana) |
 
 ---
@@ -278,7 +282,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 
 | Limitação | Detalhe | Próximo passo |
 | --- | --- | --- |
-| Validação **ao vivo** do CNJ (ISSUE-006) | nem o sandbox de desenvolvimento nem o **runner do GitHub** conseguiram falar com `api-publica.datajud.cnj.jus.br` (TLS encerrado pelo proxy local; do runner, a anotação do job 6 registrou "continuidade na MESMA issue") — `pipeline/verificar_cnj.py` devolve honestamente `status "1"` | rodar `python3 pipeline/verificar_cnj.py` numa máquina/rede que alcance o CNJ; `status "0"` ⇒ `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` (ou `make fabrica-proxima`), e a fábrica constrói a N+1 |
+| Validação **ao vivo** do CNJ (ISSUE-006) | **resolvido como processo**: o sandbox não tem rota; o **runner do GitHub tem (DNS ok), mas a API respondeu `HTTP 429`** — o limite é de **120 req/min por IP** e o IP de saída é compartilhado. O pipeline trata como continuidade e tenta de novo (backoff + `Retry-After` + agenda) | nada a fazer do seu lado: o workflow `validacao-cnj` conclui a ISSUE-006 sozinho quando a taxa liberar. Para forçar agora: **Actions → validacao-cnj → Run workflow** (merge em `main` habilita agenda e dispatch) |
 | ISSUE-007 (unificação com a issue #3, de outra sessão) | o outro fluxo não está em `main` (`.github/workflows` → 404 no ref `main`) e vive na issue #3; não foi tocado | gate devolve `2` de propósito: requer decisão do usuário |
 | YAML do workflow | não há PyYAML no ambiente de desenvolvimento; a checagem local é estrutural (indentação, tabulação, gatilhos, jobs) | **já validado**: o workflow rodou de verdade no Actions ([push](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [PR](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644)), 5/5 jobs verdes |
 | Permissão de escrita do bot | o job `executa-issue` só commita o backlog quando disparado com `marcar=true` (e o repositório precisa permitir "Read and write permissions" para o `GITHUB_TOKEN`) | conferir em **Settings → Actions → General → Workflow permissions** |
@@ -293,8 +297,9 @@ Backlog do projeto (`pipeline/backlog.json`):
 - [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
 - [x] **Realizado** — 8 marcos de commit + 11 arquivos novos, tudo versionado no branch (seção 2.3)
 - [x] **Fábrica de issues (pedido 5)** — event-driven, POO + SQLite, padrão declarado no blueprint, instrução de desenvolvimento em todas as issues e construção automática da próxima indexada após o sucesso testado (seção 4.4)
-- [x] **Testado** — 6 suítes, **213 verificações**, todas offline e reprodutíveis (seção 2.4)
-- [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero e **os 5 jobs do workflow verdes no GitHub Actions** (seção 2.5)
+- [x] **Testado** — 6 suítes, **221 verificações**, todas offline e reprodutíveis (seção 2.4)
+- [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero, **os 6 jobs do workflow verdes** e a **validação ao vivo rodando no runner** (seção 2.5)
+- [x] **Automático até o fim (pedido 6)** — a validação ao vivo é event-driven: no sucesso, a fábrica conclui a ISSUE-006, constrói a próxima indexada e versiona o backlog sem intervenção (seção 5-bis de `docs/03`)
 - [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
 - [x] **Documentado** — `README.md` (visão geral), `BOOTSTRAP.md` (instalação), `docs/01-03` (API, receitas, pipeline) e esta `ENTREGA.md`
 - [ ] **Pendente do usuário** — rodar a validação ao vivo do CNJ (ISSUE-006) num ambiente com internet e decidir a ISSUE-007

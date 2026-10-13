@@ -47,6 +47,7 @@ the same gate logic can run on the web at [arena.ai/agent](https://arena.ai/agen
 | **GitHub Actions driver** | `src/drivers/github-actions.driver.ts` | `repository_dispatch` / `workflow_dispatch` / polling de runs — o runtime do Actions como atuador do repo alvo (`jackwener/OpenCLI` por padrão) |
 | **OpenCLI driver** | `src/drivers/opencli.driver.ts` | Transforma intenções em *command manifests* executados pelo runtime do Actions |
 | **WASM core** | `wasm/` | Primitivas de gate/cache em AssemblyScript + loader web com best practices (`instantiateStreaming`, scratch buffer, magic check, API congelada) |
+| **Continuidade** | `src/session/`, `src/cli/session-cli.ts`, `.github/workflows/continuity.yml` | Contexto de sessão durável (`session/`) + handoff automático de branch/PR no merge + segunda via via GH CLI/webhook/comentário |
 
 ## Quick start
 
@@ -107,6 +108,37 @@ Como `workflow_run` encadeia os fluxos: cada conclusão do `ci` volta a entrar
 como *gate event* no `gate-driver` — a fiação de automação é self-hosted no
 próprio Actions.
 
+## 🔁 Continuidade da sessão (a "segunda via")
+
+> **O merge do PR encerra a sessão do Arena — não encerra o fluxo.** Toda a
+> continuidade é garantida por GitHub Actions + contexto versionado em git.
+
+| Gatilho (GH CLI / webhook / UI) | Efeito |
+| --- | --- |
+| **Merge do PR** (`pull_request: closed`) | `continuity.yml` cria automaticamente a branch `arena/continuity-<ts>` **no mesmo repo** + draft PR com *briefing de retomada* + comentário no PR mesclado |
+| `push` em `main`/`arena/**` | Checkpoint automático: `session/state.json` commitado pelo bot + artifact `session-context-*` |
+| Comentário `/session continue` | Briefing + checkpoint + branch de continuidade |
+| Comentário `/session checkpoint [nota]` | Checkpoint com nota |
+| Comentário `/session branch` | Cria a branch de continuidade agora |
+| Comentário `/session heartbeat` | Roda os gates (`npm run ci`) e reporta (verde/vermelho) |
+| `gh workflow run continuity.yml -f action=continue` | Mesma superfície via GH CLI |
+| `gh api repos/<owner>/<repo>/dispatches -f event_type=session-continue` | Webhook externo (`session-continue`, `session-checkpoint`, `session-branch`) |
+| `schedule` (6/6h) | Heartbeat: gates vivos + re-dispara `gate-driver.yml` + reporta na issue `session-continuity` |
+
+**Contexto durável:** `session/CONTEXT.md` (metas, arquitetura, convenções,
+próximas ações) + `session/state.json` (checkpoints, status, PR/branch) —
+versionados em git e publicados como artifacts. Qualquer novo ator retoma com:
+
+```sh
+npm run session -- resume          # briefing completo de retomada
+npm run session -- checkpoint --note "..." --event manual
+npm run session -- branch-name     # nome sugerido p/ próxima branch
+```
+
+Sem sessão aberta, a automação continua de pé: `gate-driver.yml` segue
+reagindo a gate events, o heartbeat roda os gates a cada 6h e os comandos
+`/session ...` na issue de continuidade operam tudo pela interface do GitHub.
+
 ## WebAssembly (best practices para a web)
 
 O núcleo `wasm/assembly/index.ts` exporta primitivas **puras** (`fnv1a`,
@@ -129,10 +161,11 @@ congelada, sem `eval`.
 
 ## Testes
 
-`npm test` roda `node:test` sobre seis suítes: `db`, `cache`, `factory`
+`npm test` roda `node:test` sobre sete suítes: `db`, `cache`, `factory`
 (pattern factory + builtins), `gate-driver` (triggers, blocking vs advisory,
-dispatch OpenCLI via mock transport), `server` (CRUD HTTP, webhooks, CORS) e
-`wasm` (vetores FNV-1a, paridade com a lógica TS de triggers).
+dispatch OpenCLI via mock transport), `server` (CRUD HTTP, webhooks, CORS),
+`session` (continuidade: checkpoints, briefing, handoff) e `wasm` (vetores
+FNV-1a, paridade com a lógica TS de triggers).
 
 ## Créditos
 

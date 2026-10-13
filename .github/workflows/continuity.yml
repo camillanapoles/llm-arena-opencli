@@ -1,0 +1,296 @@
+name: continuity
+
+# ============================================================================
+# CONTINUIDADE DA SESSÃO — a "segunda via".
+#
+# A sessão do Arena termina quando o PR é mesclado. Este workflow garante que o
+# fluxo CI/CD e o CONTEXTO sobrevivam sem nenhuma sessão aberta:
+#
+#  Gatilhos (GH CLI / webhook / GitHub UI):
+#    - pull_request [closed]          → merge detectado: cria branch de
+#                                       continuidade + draft PR com briefing
+#    - push (main, arena/**)          → checkpoint automático do contexto
+#    - repository_dispatch:
+#        session-continue | session-checkpoint | session-branch   (webhook)
+#    - issue_comment `/session ...`   → continue | checkpoint | branch | heartbeat
+#    - workflow_dispatch -f action=   → gh workflow run continuity.yml -f ...
+#    - schedule (6/6h)                → heartbeat dos gates (CI/CD sempre vivo)
+#
+# Estado durável: session/state.json + session/CONTEXT.md (commitados pelo bot)
+# + artifacts `session-context-*` (sobrevivem a branch deletada).
+# ============================================================================
+
+on:
+  pull_request:
+    types: [closed]
+  push:
+    branches: [main, "arena/**"]
+  repository_dispatch:
+    types: [session-continue, session-checkpoint, session-branch]
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: "42 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Ação de continuidade"
+        required: true
+        default: "resume-report"
+        type: choice
+        options: [checkpoint, create-branch, heartbeat, resume-report, continue]
+      note:
+        description: "Nota opcional para o checkpoint"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: continuity-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: decidir ação
+    runs-on: ubuntu-latest
+    outputs:
+      action: ${{ steps.decide.outputs.action }}
+      note: ${{ steps.decide.outputs.note }}
+      base_sha: ${{ steps.decide.outputs.base_sha }}
+      pr_number: ${{ steps.decide.outputs.pr_number }}
+    steps:
+      - name: Mapear evento -> ação de continuidade
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MERGED: ${{ github.event.pull_request.merged }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          DISPATCH_ACTION: ${{ github.event.action }}
+          INPUT_ACTION: ${{ github.event.inputs.action }}
+          INPUT_NOTE: ${{ github.event.inputs.note }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          NOTE="${INPUT_NOTE:-auto}"
+          echo "note=$NOTE" >> "$GITHUB_OUTPUT"
+          echo "base_sha=${MERGE_SHA:-$HEAD_SHA}" >> "$GITHUB_OUTPUT"
+          echo "pr_number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
+
+          case "$EVENT_NAME" in
+            pull_request)
+              if [ "$MERGED" = "true" ]; then
+                echo "action=continue" >> "$GITHUB_OUTPUT"
+              else
+                echo "action=none" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            push)
+              echo "action=checkpoint" >> "$GITHUB_OUTPUT"
+              ;;
+            repository_dispatch)
+              case "$DISPATCH_ACTION" in
+                session-continue)   echo "action=continue" >> "$GITHUB_OUTPUT" ;;
+                session-checkpoint) echo "action=checkpoint" >> "$GITHUB_OUTPUT" ;;
+                session-branch)     echo "action=create-branch" >> "$GITHUB_OUTPUT" ;;
+                *)                  echo "action=resume-report" >> "$GITHUB_OUTPUT" ;;
+              esac
+              ;;
+            issue_comment)
+              case "$COMMENT_BODY" in
+                "/session continue"*)   echo "action=continue" >> "$GITHUB_OUTPUT" ;;
+                "/session checkpoint"*) echo "action=checkpoint" >> "$GITHUB_OUTPUT" ;;
+                "/session branch"*)     echo "action=create-branch" >> "$GITHUB_OUTPUT" ;;
+                "/session heartbeat"*)  echo "action=heartbeat" >> "$GITHUB_OUTPUT" ;;
+                "/session resume"*)     echo "action=resume-report" >> "$GITHUB_OUTPUT" ;;
+                *)                      echo "action=none" >> "$GITHUB_OUTPUT" ;;
+              esac
+              if [ "$COMMENT_BODY" != "${COMMENT_BODY#/session checkpoint }" ]; then
+                NOTE="${COMMENT_BODY#/session checkpoint }"
+                echo "note=$NOTE" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            schedule)
+              echo "action=heartbeat" >> "$GITHUB_OUTPUT"
+              ;;
+            workflow_dispatch)
+              echo "action=${INPUT_ACTION:-resume-report}" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "action=none" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+  checkpoint:
+    name: checkpoint de contexto
+    runs-on: ubuntu-latest
+    needs: guard
+    if: contains(fromJSON('["checkpoint","continue"]'), needs.guard.outputs.action)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Registrar checkpoint em session/state.json
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          NOTE: ${{ needs.guard.outputs.note }}
+          BASE_SHA: ${{ needs.guard.outputs.base_sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          node --disable-warning=ExperimentalWarning src/cli/session-cli.ts checkpoint \
+            --event "$EVENT_NAME" \
+            --note "$NOTE" \
+            --sha "$BASE_SHA"
+          node --disable-warning=ExperimentalWarning src/cli/session-cli.ts show
+
+      - name: Commit bot do contexto (se mudou)
+        run: |
+          git config user.name "arena-continuity[bot]"
+          git config user.email "arena-continuity[bot]@users.noreply.github.com"
+          git add session/state.json
+          if git diff --cached --quiet; then
+            echo "sem mudanças de contexto"
+          else
+            git commit -m "chore(session): auto-checkpoint [skip ci]"
+            git push || echo "::warning::push do checkpoint falhou (sem permissão na branch protegida?)"
+          fi
+
+      - name: Upload artifact session-context
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-context-${{ github.run_id }}
+          path: session/
+          if-no-files-found: error
+
+  create-continuity-branch:
+    name: branch de continuidade + draft PR
+    runs-on: ubuntu-latest
+    needs: guard
+    if: contains(fromJSON('["create-branch","continue"]'), needs.guard.outputs.action)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.guard.outputs.base_sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Criar branch no mesmo repo + draft PR com briefing
+        id: branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ needs.guard.outputs.base_sha }}
+          PR_NUMBER: ${{ needs.guard.outputs.pr_number }}
+          NOTE: ${{ needs.guard.outputs.note }}
+        run: |
+          git config user.name "arena-continuity[bot]"
+          git config user.email "arena-continuity[bot]@users.noreply.github.com"
+
+          BRANCH="$(node --disable-warning=ExperimentalWarning src/cli/session-cli.ts branch-name)"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+          git checkout -B "$BRANCH" "$BASE_SHA"
+
+          # Handoff: status -> continuity + checkpoint do merge/trigger
+          node --disable-warning=ExperimentalWarning src/cli/session-cli.ts checkpoint \
+            --event "continuity-branch-created" \
+            --note "Handoff automático: $NOTE" \
+            --sha "$BASE_SHA" \
+            --status continuity
+          git add session/state.json
+          git commit -m "chore(session): handoff de continuidade para $BRANCH [skip ci]"
+          git push origin "$BRANCH"
+
+          BRIEFING="$(node --disable-warning=ExperimentalWarning src/cli/session-cli.ts resume)"
+          PR_URL="$(gh pr create --draft \
+            --base main \
+            --head "$BRANCH" \
+            --title "[continuity] retomada automática da sessão ($BRANCH)" \
+            --body "$BRIEFING")"
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "Branch de continuidade: $BRANCH -> $PR_URL"
+
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "🔁 **Sessão transferida automaticamente.** Continuidade em \`$BRANCH\` ($PR_URL). Contexto: \`session/CONTEXT.md\` + \`session/state.json\`. Segunda via: \`/session continue\` ou \`gh workflow run continuity.yml -f action=continue\`."
+          fi
+
+  heartbeat:
+    name: heartbeat dos gates (CI/CD sempre vivo)
+    runs-on: ubuntu-latest
+    needs: guard
+    if: needs.guard.outputs.action == 'heartbeat'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Rodar gates completos (typecheck + wasm + testes)
+        id: gates
+        run: |
+          npm ci
+          if npm run ci; then
+            echo "status=green" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=red" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Auto-disparar gate-driver (prova de continuidade da corrente)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run gate-driver.yml -f event=manual \
+            && echo "gate-driver re-disparado via GH CLI" \
+            || echo "::warning::não foi possível re-disparar gate-driver"
+
+      - name: Reportar na issue de continuidade
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS: ${{ steps.gates.outputs.status }}
+        run: |
+          ISSUE="$(gh issue list --label session-continuity --state open --json number -q '.[0].number // empty')"
+          MSG="💓 heartbeat $(date -u +%FT%TZ): gates **${STATUS:-unknown}** — CI/CD segue operando sem sessão aberta."
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --body "$MSG"
+          else
+            echo "$MSG" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  resume-report:
+    name: briefing de retomada
+    runs-on: ubuntu-latest
+    needs: guard
+    if: contains(fromJSON('["resume-report","continue"]'), needs.guard.outputs.action)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Publicar briefing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRIEFING="$(node --disable-warning=ExperimentalWarning src/cli/session-cli.ts resume)"
+          echo "$BRIEFING" >> "$GITHUB_STEP_SUMMARY"
+          ISSUE="$(gh issue list --label session-continuity --state open --json number -q '.[0].number // empty')"
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --body "$BRIEFING"
+          fi

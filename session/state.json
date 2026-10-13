@@ -1,0 +1,21 @@
+{
+  "sessionId": "arena/d917b13b-llm-arena-opencli",
+  "branch": "arena/d917b13b-llm-arena-opencli",
+  "pr": 1,
+  "status": "active",
+  "updatedAt": "2026-10-13T00:00:00.000Z",
+  "checkpoints": [
+    {
+      "at": "2026-10-13T00:00:00.000Z",
+      "event": "session-bootstrap",
+      "note": "Driver CI/CD implementado (gate events, backend SQLite+cache+CRUD+function factory, drivers Actions/OpenCLI, WASM core). PR #1 aberto. Camada de continuidade criada para sobreviver ao merge da sessão.",
+      "sha": "70d10f4"
+    }
+  ],
+  "nextActions": [
+    "Aguardar review/merge do PR #1 (merge encerra a sessão; continuity.yml cria arena/continuity-<ts> + draft PR com briefing)",
+    "Configurar secret OPENCLI_TOKEN (repo scope) para o modo dispatch do opencli-driver.yml",
+    "Conectar POST /api/events ao webhook real do GitHub ou manter fluxo via gh/repository_dispatch",
+    "Publicar arena-runtime.wasm para o front de arena.ai/agent (artifact arena-runtime-wasm)"
+  ]
+}

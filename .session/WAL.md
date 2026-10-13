@@ -23,3 +23,4 @@
 2026-10-13T22:30:22Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38477985120) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38477985120) | 88e5acb
 2026-10-13T22:30:28Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38477990531) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38477990531) | 33bb5a6
 2026-10-13T22:35:00Z | FIX | FIX | M1 (refino): a âncora WAL#7 para o EMIT do PR (comment 6155983956) está correta; o parêntese de WAL#13 que chamava #10 de EMIT do webhook estava errado — #10 é AMENDA (retificação do contrato) | correção por entrada nova (M1) | âncoras finais: EMIT PR = WAL#7; contração E5 = WAL#12; EMIT v2.1 = WAL#16 | 66a7fa9
+2026-10-13T22:36:11Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38478751781) | C1: append WAL + recompute CHECKPOINT | pipeline CI verde (run 38478751781) | d7e51ca

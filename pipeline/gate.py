@@ -258,6 +258,26 @@ def proxima_pendente(backlog: dict, excluir=None) -> dict | None:
     return None
 
 
+def proxima_executavel(backlog: dict, excluir=None) -> dict | None:
+    """A próxima issue EXECUTÁVEL (status `pendente`), não a bloqueada.
+
+    `bloqueada` é uma issue estacionada por **decisão humana** e não congela o fluxo
+    (a mesma regra da fábrica em `Fabrica.em_desenvolvimento`): o gate 6 executa a
+    pendente seguinte enquanto o veredito de continuidade segue reportando a bloqueada.
+    Só quando **não há nenhuma pendente** é que a bloqueada é devolvida — aí sim ela é
+    a resposta honesta: falta decisão de gente para destravar.
+    """
+    ignorar = set(excluir or ())
+    abertas = [i for i in ordenar(backlog.get("issues", []))
+               if i.get("id") not in ignorar
+               and str(i.get("status", "")).lower() not in ("concluida", "concluída",
+                                                            "completada", "done")]
+    for item in abertas:
+        if str(item.get("status", "")).lower() == "pendente":
+            return item
+    return abertas[0] if abertas else None
+
+
 def achar_issue(backlog: dict, identificador: str) -> dict | None:
     for item in backlog["issues"]:
         if item.get("id") == identificador:
@@ -550,7 +570,7 @@ def gate_issue(args, saida_dir: str) -> dict:
     """
     inicio = time.time()
     backlog = ler_backlog(args.backlog)
-    identificador = args.id or (proxima_pendente(backlog) or {}).get("id")
+    identificador = args.id or (proxima_executavel(backlog) or {}).get("id")
     if not identificador:
         raise ErroGate("não há issue pendente no backlog e nenhuma foi informada em --id")
 
@@ -584,7 +604,7 @@ def gate_issue(args, saida_dir: str) -> dict:
                 json.dump(backlog, fh, ensure_ascii=False, indent=2)
                 fh.write("\n")
         # a issue recém-validada não entra como "próxima" (mesmo sem --marcar)
-        proxima = proxima_pendente(backlog, excluir=[identificador])
+        proxima = proxima_executavel(backlog, excluir=[identificador])
         if proxima:
             guia = [
                 f"# Próxima issue: {proxima.get('id')} — {proxima.get('titulo')}", "",

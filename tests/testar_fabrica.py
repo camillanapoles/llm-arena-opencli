@@ -30,10 +30,12 @@ GATE_CLI = os.path.join(RAIZ, "pipeline", "gate.py")
 
 
 def primeira_aberta(issues):
-    """A primeira issue não concluída (o que o contrato expõe como next_issue)."""
+    """A pendência EXECUTÁVEL (status 'pendente'); 'bloqueada' não é próxima ação."""
     abertas = [i for i in sorted(issues, key=lambda x: x["indice"])
                if str(i["status"]).lower() not in ("concluida", "completada", "done")]
-    return abertas[0]["id"] if abertas else None
+    pendentes = [i for i in abertas if str(i["status"]).lower() == "pendente"]
+    alvo = pendentes or abertas
+    return alvo[0]["id"] if alvo else None
 
 
 def rodar(script, *argumentos):

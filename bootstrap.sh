@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 9634 linhas, 458 KiB.
+#  Conteúdo embutido: 32 arquivos, 9677 linhas, 461 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -177,13 +177,13 @@ done <<'MANIFESTO'
 c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/workflows/gates.yml
 38aa726b3053301344b1d34280abc5fcc99e94fe9375276a83573efa890d978c  ./.github/workflows/validacao-cnj.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
-8420d83968692d80af990d5acbb49b7a711de92ec41b09b6dbfafaee43fdb009  ./BOOTSTRAP.md
-57737b64ca073363b255e6ddb248dd2cee94169bab5e773dace9deaa967762b7  ./ENTREGA.md
+4082965737ceb93c6b7422f6f672d885af391a2d93b298bf42de3229700c2c22  ./BOOTSTRAP.md
+24eecd1e2bb5f002b688ab5727c70d25b6b99e1feaac2c55872768f562b60071  ./ENTREGA.md
 0e4e1891354e193ff084ad8ce428d3b87de0c13fb0446b9cec08e0e4a6938f8a  ./Makefile
-1c3ca266155f7e356a1306141c995a1f07aa0cbb00b17a2af772c63af891e86f  ./README.md
+8f3e9ccd6093f7b4b8566295877865701557e5e7d7bec0349cf258fa1bbf298b  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
 5e8befc6e2434cb27c1404693dc775f7de8056893bcc94712e61644e40ddbc3f  ./docs/02-receitas-curl-tjpe.md
-0857da3577e9bda0dcfdf77963bb53b1cfcdadc45732c06204a044b3e9f162eb  ./docs/03-pipeline-gates.md
+8839410b537352f99a1fdcc300c3103de300f9e94ccaabdaf52affab2bb0ce37  ./docs/03-pipeline-gates.md
 7c75c6c9e28b98ba45eb7ffdb7ad5165b2d002338c9e32dbbe61d02986e1fd06  ./docs/exemplo-saida/agg-grau.tsv
 8d95b990767a0c8a967f45ccce11471fccb2d6f875f494213f223f7a788a05d0  ./docs/exemplo-saida/agg-orgao-nome.csv
 e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo-saida/relatorio-processo-exemplo.md
@@ -192,8 +192,8 @@ c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
 050816945908d18638af12bdf9bbaa59c4038ff5317f885004868bc3ef5e0941  ./pipeline/.gitignore
 b6dbec2ce1ffd8dbbab5e6e3af6128e3cd59e7b8e140923c0ae929610425c067  ./pipeline/backlog.json
 4c5cf6428692501b4491ad9d1d960cefaddc9c11ed8c8b830edad8103bb42590  ./pipeline/blueprint.json
-c76170fa45a5f0dd569c54da617b0c22a6e929cb8119f63e020af0bcec0b70d7  ./pipeline/factory.py
-7c0d68212116ef06ef6c554804fb19a7508086fd93ce4e6a95a712143640fc86  ./pipeline/gate.py
+240c6334e26706a736ade794b4d4db80970a987093b982c7713ce0e623204071  ./pipeline/factory.py
+94dda7de1f5784804710612cd3b830aeaa0e03d4bfcdc5401e60cc954e381bb6  ./pipeline/gate.py
 b0e13746b042c5388aee48c3b3b8d5dc69cd213d90654b853fc84c0534c200aa  ./pipeline/verificar_cnj.py
 dd78d8b6469b06e5ab67d11137eaac3891ac16b2856064bce8be6a801e67dea0  ./scripts/datajud.sh
 b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_apis.py
@@ -201,9 +201,9 @@ b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_a
 3d917cdf5b4b7732d17ccf0f542987e8daded8b62f03c0e5c055a4988f329daa  ./tests/rodar-testes.sh
 18184cbf5b7f03f294f136fb6b68d5ed98e6fc9cd7de9c9ab3b6e38d5bf7703e  ./tests/testar_bootstrap.sh
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
-1097cf932ac8579afc4f3fd17b5530d8a572e0f853eed4f4b8d43d524038cd0e  ./tests/testar_fabrica.py
+5e23cd6ef858535304a4bf4c72d992c828e3fafea4bf4f855dd98ae19c3378a5  ./tests/testar_fabrica.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
-8c4cf1ebe288c7684c5b1593d466002b9568b3ca2e7777e2c49b37f4c5f2a853  ./tests/testar_pipeline.py
+a30d2e8b5da43bd50d010b13682282208c5d70da8d626fe0fcec521f8cd9e5d9  ./tests/testar_pipeline.py
 5487c11416c3535f8486c07bd8bd65ec781eb24198ba6d7dc86c534f4d412cd3  ./tools/gerar_bootstrap.py
 MANIFESTO
 if [[ "$falhas_hash" == "0" ]]; then
@@ -1211,7 +1211,7 @@ advogados: **MNI** do PJe, com certificado digital.
 
 ## 6. Códigos de teste: o que cada suíte cobre e o resultado esperado
 
-Rode tudo de uma vez com `make testes`: são **6 suítes** e **228 verificações**, todas offline,
+Rode tudo de uma vez com `make testes`: são **6 suítes** e **229 verificações**, todas offline,
 contra mocks locais (nenhuma requisição real ao CNJ).
 
 | Suíte | Arquivo | Testes | Cobre | Saída esperada |
@@ -1400,14 +1400,14 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
 | 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
 
-### 2.4 Testado (6 suítes, 228 verificações, tudo offline)
+### 2.4 Testado (6 suítes, 229 verificações, tudo offline)
 
 | Suíte | Verificações | O que cobre |
 | --- | --- | --- |
 | `tests/testar_conformidade.py` | 29 | conformidade com a doc oficial do CNJ: URL/rota/headers, aliases de tribunal, 15 campos do glossário, `search_after`, teto de 10.000, agregações com `.keyword`, 120 req/min, LGPD |
 | `tests/testar_main.py` | 29 | `main.py`: DV do número CNJ (`% 97 == 1`), montagem do número de 20 dígitos, DataJud + DJEN com mocks, relatório Markdown, anexos, exit codes |
 | `tests/rodar-testes.sh` | 32 | `scripts/datajud.sh`: chave pública, consulta, contagem, agregação, relatório, paginação, erros |
-| `tests/testar_pipeline.py` | 70 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
+| `tests/testar_pipeline.py` | 71 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
 | `tests/testar_fabrica.py` | 41 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
 | `tests/testar_bootstrap.sh` | 27 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 5 suítes rodando **dentro** do projeto recriado, gates (fabrica/blueprint/continuidade) no projeto recriado, `--verificar`, proteção contra sobrescrita |
 
@@ -1420,7 +1420,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Planta BPMN × implementação | `python3 pipeline/gate.py blueprint` | `status "0"` — *5 gates, 15 transições* |
 | Gatilho de continuidade | `python3 pipeline/gate.py continuidade` | `status "1"` (há issue aberta) — **continuidade**, como manda a regra |
 | CI/CD | `python3 pipeline/gate.py cicd` | `status "0"` — 5 execuções, nenhuma com erro |
-| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 228 verificações aprovadas |
+| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 229 verificações aprovadas |
 | Fábrica de issues | `python3 pipeline/gate.py fabrica` | `status "0"` — 8 classes, tabelas `eventos`/`issues`/`schema_info`, round-trip SQLite ⇄ `backlog.json` ok, nenhuma issue sem instrução de desenvolvimento |
 | Eventos event-driven | `python3 pipeline/factory.py --evento "ci_falhou\|run=42"` | `continuar` na MESMA issue, com a direção `depurar` (CI) / `corrigir` (teste) — a fila não incha |
 | Construção da N+1 | `python3 pipeline/factory.py --concluir ISSUE-006 --proxima` | cria a `ISSUE-008` dependendo da última concluída e recusa (status 1) enquanto houver issue pendente |
@@ -1439,7 +1439,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli
 
-make testes        # 6 suítes, 228 verificações, offline
+make testes        # 6 suítes, 229 verificações, offline
 make gates         # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
 make fabrica       # estado da fábrica de issues (SQLite): pendências, eventos e próximo passo
 make consultar NUMERO=0001234-43.2024.8.17.2001   # relatório Markdown do processo (rede real)
@@ -1470,7 +1470,7 @@ tools/gerar_bootstrap.py    gerador/verificador do bootstrap (--conferir)
 BOOTSTRAP.md                manual do bootstrap
 ENTREGA.md                  este relatório
 
-tests/                      6 suítes, 228 verificações (offline, com mocks)
+tests/                      6 suítes, 229 verificações (offline, com mocks)
 ```
 
 ---
@@ -1619,7 +1619,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 - [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
 - [x] **Realizado** — 8 marcos de commit + 11 arquivos novos, tudo versionado no branch (seção 2.3)
 - [x] **Fábrica de issues (pedido 5)** — event-driven, POO + SQLite, padrão declarado no blueprint, instrução de desenvolvimento em todas as issues e construção automática da próxima indexada após o sucesso testado (seção 4.4)
-- [x] **Testado** — 6 suítes, **228 verificações**, todas offline e reprodutíveis (seção 2.4)
+- [x] **Testado** — 6 suítes, **229 verificações**, todas offline e reprodutíveis (seção 2.4)
 - [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero, **os 6 jobs do workflow verdes** e a **validação ao vivo rodando no runner** (seção 2.5)
 - [x] **Automático até o fim (pedido 6)** — a validação ao vivo é event-driven e o laço **fechou no runner**: `HTTP 200` ⇒ a fábrica concluiu a ISSUE-006, construiu a ISSUE-008 e versionou o backlog sem intervenção; a conclusão é dirigida pela pendência real (`--pendencia-ao-vivo`), então repetir o push não cria issue nova (seção 5-bis de `docs/03`)
 - [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
@@ -1946,7 +1946,7 @@ evento → teste → conclusão → próxima issue **fechou no runner**.
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 6 suítes (228 verificações)
+make testes                          # todas as 6 suítes (229 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
@@ -2736,12 +2736,15 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (70 testes) e `tests/testar_fabrica.py` (41 testes), offline, verificam:
+`tests/testar_pipeline.py` (71 testes) e `tests/testar_fabrica.py` (41 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
   existindo no disco, `--json-saida`;
 - **issues**: com pendência ⇒ `1`/continuidade; vazio ⇒ `0`; sem fonte ⇒ `2`;
+- **issue (gate 6)**: executa a próxima **executável** (`gate.proxima_executavel`) — uma issue
+  `bloqueada` (decisão humana) **não** congela o fluxo, igual à fábrica; só quando não há
+  nenhuma `pendente` a bloqueada é escolhida (aí falta mesmo decisão de gente, tipo 2);
 - **cicd**: `failure`, `timed_out`, `startup_failure`, `action_required`, `cancelled` ⇒ `1`;
   sucesso e `in_progress` ⇒ `0`;
 - **testes**: comando OK ⇒ `0`; comando falho ⇒ `1` com o log anexado;
@@ -5403,7 +5406,9 @@ def main(argv=None) -> int:
                               "--proxima/--instruir/--exportar (veja --help)")
 
         backlog = fabrica.backlog()
-        proxima = backlog.proxima_pendente()
+        # a pendência do contrato é a EXECUTÁVEL ('pendente'); uma 'bloqueada' (decisão
+        # humana) não é a próxima ação — ela segue visível nos resumos por status.
+        proxima = fabrica.em_desenvolvimento() or backlog.proxima_pendente()
         resultado = {"direcao": "continuar"}
         objeto = fabrica.objeto(
             resultado, status="0",
@@ -5740,6 +5745,26 @@ def proxima_pendente(backlog: dict, excluir=None) -> dict | None:
     return None
 
 
+def proxima_executavel(backlog: dict, excluir=None) -> dict | None:
+    """A próxima issue EXECUTÁVEL (status `pendente`), não a bloqueada.
+
+    `bloqueada` é uma issue estacionada por **decisão humana** e não congela o fluxo
+    (a mesma regra da fábrica em `Fabrica.em_desenvolvimento`): o gate 6 executa a
+    pendente seguinte enquanto o veredito de continuidade segue reportando a bloqueada.
+    Só quando **não há nenhuma pendente** é que a bloqueada é devolvida — aí sim ela é
+    a resposta honesta: falta decisão de gente para destravar.
+    """
+    ignorar = set(excluir or ())
+    abertas = [i for i in ordenar(backlog.get("issues", []))
+               if i.get("id") not in ignorar
+               and str(i.get("status", "")).lower() not in ("concluida", "concluída",
+                                                            "completada", "done")]
+    for item in abertas:
+        if str(item.get("status", "")).lower() == "pendente":
+            return item
+    return abertas[0] if abertas else None
+
+
 def achar_issue(backlog: dict, identificador: str) -> dict | None:
     for item in backlog["issues"]:
         if item.get("id") == identificador:
@@ -6032,7 +6057,7 @@ def gate_issue(args, saida_dir: str) -> dict:
     """
     inicio = time.time()
     backlog = ler_backlog(args.backlog)
-    identificador = args.id or (proxima_pendente(backlog) or {}).get("id")
+    identificador = args.id or (proxima_executavel(backlog) or {}).get("id")
     if not identificador:
         raise ErroGate("não há issue pendente no backlog e nenhuma foi informada em --id")
 
@@ -6066,7 +6091,7 @@ def gate_issue(args, saida_dir: str) -> dict:
                 json.dump(backlog, fh, ensure_ascii=False, indent=2)
                 fh.write("\n")
         # a issue recém-validada não entra como "próxima" (mesmo sem --marcar)
-        proxima = proxima_pendente(backlog, excluir=[identificador])
+        proxima = proxima_executavel(backlog, excluir=[identificador])
         if proxima:
             guia = [
                 f"# Próxima issue: {proxima.get('id')} — {proxima.get('titulo')}", "",
@@ -8177,10 +8202,12 @@ GATE_CLI = os.path.join(RAIZ, "pipeline", "gate.py")
 
 
 def primeira_aberta(issues):
-    """A primeira issue não concluída (o que o contrato expõe como next_issue)."""
+    """A pendência EXECUTÁVEL (status 'pendente'); 'bloqueada' não é próxima ação."""
     abertas = [i for i in sorted(issues, key=lambda x: x["indice"])
                if str(i["status"]).lower() not in ("concluida", "completada", "done")]
-    return abertas[0]["id"] if abertas else None
+    pendentes = [i for i in abertas if str(i["status"]).lower() == "pendente"]
+    alvo = pendentes or abertas
+    return alvo[0]["id"] if alvo else None
 
 
 def rodar(script, *argumentos):
@@ -9203,6 +9230,22 @@ class TesteGateIssue(CasoBase):
         antes = open(caminho, encoding="utf-8").read()
         rodar("issue", "--backlog", caminho, saida_dir=self.saida)
         self.assertEqual(antes, open(caminho, encoding="utf-8").read())
+
+    def test_bloqueada_nao_congela_o_gate_issue(self):
+        # 007 bloqueada (decisão humana) + 008 pendente: o gate executa a EXECUTÁVEL
+        itens = [{"id": "ISSUE-007", "indice": 7, "status": "bloqueada", "titulo": "decisão"},
+                 {"id": "ISSUE-008", "indice": 8, "status": "pendente", "titulo": "executável",
+                  "instrucao_teste": "true"}]
+        backlog = {"issues": itens}
+        codigo, obj, bruto = rodar("issue", "--backlog", self._backlog(itens),
+                                   "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "0", bruto[:200])
+        self.assertEqual(obj["dados"]["issue"], "ISSUE-008",
+                         "a bloqueada não é a próxima ação do gate")
+        self.assertEqual(gate.proxima_executavel(backlog)["id"], "ISSUE-008")
+        # sem nenhuma pendente, a bloqueada volta a ser a resposta (falta gente)
+        self.assertEqual(gate.proxima_executavel({"issues": itens[:1]})["id"], "ISSUE-007")
+        self.assertIsNone(gate.proxima_executavel({"issues": []}))
 
     def test_escolhe_a_proxima_pendente_sem_id(self):
         caminho = self._backlog([

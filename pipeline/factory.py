@@ -865,7 +865,9 @@ def main(argv=None) -> int:
                               "--proxima/--instruir/--exportar (veja --help)")
 
         backlog = fabrica.backlog()
-        proxima = backlog.proxima_pendente()
+        # a pendência do contrato é a EXECUTÁVEL ('pendente'); uma 'bloqueada' (decisão
+        # humana) não é a próxima ação — ela segue visível nos resumos por status.
+        proxima = fabrica.em_desenvolvimento() or backlog.proxima_pendente()
         resultado = {"direcao": "continuar"}
         objeto = fabrica.objeto(
             resultado, status="0",

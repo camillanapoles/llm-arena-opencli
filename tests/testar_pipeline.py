@@ -324,6 +324,22 @@ class TesteGateIssue(CasoBase):
         rodar("issue", "--backlog", caminho, saida_dir=self.saida)
         self.assertEqual(antes, open(caminho, encoding="utf-8").read())
 
+    def test_bloqueada_nao_congela_o_gate_issue(self):
+        # 007 bloqueada (decisão humana) + 008 pendente: o gate executa a EXECUTÁVEL
+        itens = [{"id": "ISSUE-007", "indice": 7, "status": "bloqueada", "titulo": "decisão"},
+                 {"id": "ISSUE-008", "indice": 8, "status": "pendente", "titulo": "executável",
+                  "instrucao_teste": "true"}]
+        backlog = {"issues": itens}
+        codigo, obj, bruto = rodar("issue", "--backlog", self._backlog(itens),
+                                   "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "0", bruto[:200])
+        self.assertEqual(obj["dados"]["issue"], "ISSUE-008",
+                         "a bloqueada não é a próxima ação do gate")
+        self.assertEqual(gate.proxima_executavel(backlog)["id"], "ISSUE-008")
+        # sem nenhuma pendente, a bloqueada volta a ser a resposta (falta gente)
+        self.assertEqual(gate.proxima_executavel({"issues": itens[:1]})["id"], "ISSUE-007")
+        self.assertIsNone(gate.proxima_executavel({"issues": []}))
+
     def test_escolhe_a_proxima_pendente_sem_id(self):
         caminho = self._backlog([
             {"id": "ISSUE-001", "titulo": "feita", "instrucao_teste": "true", "status": "concluida"},

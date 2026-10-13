@@ -220,7 +220,7 @@ evento → teste → conclusão → próxima issue **fechou no runner**.
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 6 suítes (228 verificações)
+make testes                          # todas as 6 suítes (229 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)

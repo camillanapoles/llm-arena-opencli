@@ -292,12 +292,15 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (70 testes) e `tests/testar_fabrica.py` (41 testes), offline, verificam:
+`tests/testar_pipeline.py` (71 testes) e `tests/testar_fabrica.py` (41 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
   existindo no disco, `--json-saida`;
 - **issues**: com pendência ⇒ `1`/continuidade; vazio ⇒ `0`; sem fonte ⇒ `2`;
+- **issue (gate 6)**: executa a próxima **executável** (`gate.proxima_executavel`) — uma issue
+  `bloqueada` (decisão humana) **não** congela o fluxo, igual à fábrica; só quando não há
+  nenhuma `pendente` a bloqueada é escolhida (aí falta mesmo decisão de gente, tipo 2);
 - **cicd**: `failure`, `timed_out`, `startup_failure`, `action_required`, `cancelled` ⇒ `1`;
   sucesso e `in_progress` ⇒ `0`;
 - **testes**: comando OK ⇒ `0`; comando falho ⇒ `1` com o log anexado;

@@ -42,3 +42,7 @@ absoluta via `.session/`.
 
 - Deploy público do backend (URL real de payload) — depende de infra do usuário.
 - `OPENCLI_TOKEN` dispatch tests no terminal do usuário; merge do PR #1 (ação humana).
+
+## M6 (v2.1) — skips NUNCA são silenciosos
+- **Únicos skips da suíte Python** (`make testes`, `testar_pipeline`): `mock_sinc_desabilitado` e `mock_sinc_habilitado` **pulam com `pytest.skip` quando PyYAML não está instalado** (2 casos, ~120ms). Motivo: PyYAML não é dependência do kit (bootstrap Python puro); os mocks de sincronização YAML exigem o módulo. Não afetam gates reais — os casos restantes cobrem o contrato. Registrado aqui conforme M6; se PyYAML entrar no kit, os skips deixam de existir.
+- **Desvio A2'** (branch fixa da Arena atuando como linhagem designada) declarado em `CONTEXT.md` e registrado no registry/profile.

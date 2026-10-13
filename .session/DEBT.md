@@ -47,3 +47,17 @@
 - **Gatilho de retomada:** operador rodar do seu terminal (ou workflow com
   `issues: write`):
   `gh issue comment 3 --body-file .session/emissoes/issue-3-comentario.md`
+
+## D6 (IGC Art. 7 / D2) — registry só alcança o default branch no merge
+**O que é:** `.igc-registry.yml` e `.session/` vivem na linhagem `arena/d917b13b-llm-arena-opencli`; o Art. 7 pede o registry **no default branch** (main). Até o PR #1 ser mesclado (ação do usuário), a descoberta por default branch está incompleta — a descoberta atual é via branch + esta entrada.
+**Gatilho / retorno para fix (E5):** no primeiro CI verde após o merge, `igc-checkpoint` commita `igc(ci)` em main e o registry passa a valer no default branch; até lá, `scan-orphans` corre na linhagem. Se o merge gerar conflito em `.session/WAL.md`, resolver por append (M1: nunca sobrescrever entradas).
+**Prioridade:** baixa · **Quando:** próxima janela de merge (decisão do usuário).
+
+## D7 (EV-5/T8) — transporte bundle sem artefatos npm offline
+**O que é:** o round-trip de transporte (T8) valida `tar → commit → bundle → clone frio → make testes` 100% offline. O equivalente TS (`npm run ci`) exige `node_modules` (não versionáveis); o fallback do perfil (§5) é bootstrap 100% Python + `make testes`, que é o que o clone frio executa.
+**Gatilho / retorno para fix:** se um runtime com rede executar `npm run ci` no clone do bundle, marcar a dívida como verificada e encerrar. Aceitação do HANDOFF continua: clone frio verde na suíte offline (validada em T8).
+**Prioridade:** baixa · **Quando:** quando houver runner com rede disponível para verificação extra.
+
+## M1 — correção de âncora (registro de correção, não edição)
+**O que é:** a entrada do WAL sobre a contração E5 do PR (#12) cita "WAL#10" como âncora da emissão PR; a entrada correta do EMIT do PR é **WAL#7** (o #10 é o EMIT do webhook/ISSUE-2). A memória é append-only: a correção vale por esta entrada.
+**Gatilho:** n/a (correção registrada) · **Prioridade:** baixa.

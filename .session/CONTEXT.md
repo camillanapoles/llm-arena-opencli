@@ -57,3 +57,10 @@ Toolchain exigido: `node >= 22` (`node:sqlite`), `npm`, `python3` (stdlib),
 
 - `node_modules/`, `wasm/dist/`, `data/*.db` são regeneráveis (gitignored).
 - Resincronização após reset do worktree: `git fetch origin arena/d917b13b-llm-arena-opencli:refs/remotes/origin/arena/d917b13b-llm-arena-opencli && git reset --hard origin/arena/d917b13b-llm-arena-opencli` (e `npm install`).
+
+## RETIFICAÇÃO — igc-continuity **v2.1.0** (RECON→PLAN→AMENDA em 2026-10-13)
+Contrato retificado pelo usuário; o texto completo versiona em `docs/IGC-v2.1.md`. Itens aplicados:
+- **A2' (linhagem-designação):** runtimes que **proíbem** branch nova (como esta sessão Arena, fixada em `arena/d917b13b-llm-arena-opencli`) podem atuar como `sessao/d917b13b/llm-arena-opencli` desde que **declarado aqui + registrado em `.igc-registry.yml` + protocolo de isolamento abaixo**. Isolamento: a sessão é descartável e não escreve memória fora do repositório; tudo passa por commits nesta linhagem (A3); a sessão paralela `arena/ed79bd77` teve linhagem própria (`sessao/ed79bd77`) e as duas convergiram por contrato (UNIFY), sem escrita cruzada de `.session/`.
+- **3 canais obrigatórios de descoberta:** `CONTEXT.md` (declaração A2') + `.igc-registry.yml` (Art. 7) + `.igc-profile.yml` (Art. 10).
+- **Mapeamento de termos (retificação de nomenclatura):** o que o protocolo v1.0 chamava `sha_commit` passa a se chamar **`id_conteúdo`** — mesmo campo: o SHA curto do commit de trabalho verificado que o evento observa. Âncoras de emissão = `WAL#n` (n = enésima entrada de dados, base 1).
+- **Extras v2.1:** emit_guard E4 (idempotência por `(event_id, checkpoint_id)`), contração E5 (EMIT só com efeito verificado + `evento=EMIT | resultado=<ref>` no WAL), M6 (nada é pulado em silêncio), M7 (sanity de base), W1' (base SHA-pinned no WAL), W7 (transporte tar/bundle), Art. 8 (WAL no CI via job `igc-checkpoint` em `ci.yml`/`gates.yml`, commit `igc(ci): run <id> [igc-checkpoint] [skip ci]` sem re-trigger), Art. 9 (garantias T1–T8 em `tests/igc.test.ts`), Art. 12 (close-gate: nota < 9.5 não fecha).

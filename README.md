@@ -178,10 +178,17 @@ npm run pipeline -- validate
 npm run pipeline -- pending                                          # pendentes COM instrução
 npm run pipeline -- cycle --id ISSUE-1 --log-file ci.log             # ciclo determinístico
 npm run pipeline -- event --type issue.completed --issue ISSUE-1 --result 0
-npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 84 --tests-passed 84
+npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 92 --tests-passed 92
 npm run pipeline -- step --id ISSUE-1 --result 0
 npm run pipeline -- next --after ISSUE-1
+npm run pipeline -- registry --cnj-backlog pipeline/backlog-cnj.json   # registro unificado (2 sessões)
+npm run pipeline -- interop --from arquivo-cnj.json                  # dialeto CNJ -> canônico
 ```
+
+**Integração entre sessões paralelas** (d917b13b × ed79bd77): contrato único
+`pipeline/contract.schema.json`, adaptador `src/pipeline/interop.ts`, registro
+unificado e workflow `integration.yml` — ver [`docs/INTEGRATION.md`](docs/INTEGRATION.md) e a
+decisão registrada em [`docs/04-decisao-unificacao.md`](docs/04-decisao-unificacao.md).
 
 ## WebAssembly (best practices para a web)
 
@@ -205,7 +212,7 @@ congelada, sem `eval`.
 
 ## Testes
 
-`npm test` roda `node:test` sobre nove suítes (**84 testes**): `db`, `cache`,
+`npm test` roda `node:test` sobre dez suítes (**92 testes**): `db`, `cache`,
 `factory` (pattern factory + builtins), `gate-driver` (triggers, blocking vs
 advisory, dispatch OpenCLI via mock transport), `server` (CRUD HTTP, webhooks,
 CORS), `session` (continuidade: checkpoints, briefing, handoff), `pipeline`

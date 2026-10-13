@@ -56,6 +56,8 @@ export interface ActionEnvelope {
   direction: Direction;
   at: string;
   continuity: ContinuityInfo;
+  /** Detalhes estruturados opcionais (usado pela interop entre sessões). */
+  data?: Record<string, unknown> | undefined;
 }
 
 export interface EnvelopeInput {
@@ -68,6 +70,7 @@ export interface EnvelopeInput {
   direction?: Direction | undefined;
   continuity?: ContinuityInfo | undefined;
   at?: string | undefined;
+  data?: Record<string, unknown> | undefined;
 }
 
 /** Direção da continuidade a partir do exitCode e da existência de próxima issue. */
@@ -88,6 +91,7 @@ export function makeEnvelope(input: EnvelopeInput): ActionEnvelope {
     direction: input.direction ?? "hold",
     at: input.at ?? new Date().toISOString(),
     continuity: input.continuity ?? { required: false, reason: "" },
+    data: input.data,
   };
 }
 

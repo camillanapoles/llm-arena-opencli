@@ -23,6 +23,7 @@
 | **T2** — continuidade | "Se eu mesclar, a sessão encerra — crie actions que garantam **continuidade** com contexto, por CI/CD, criação de branch no mesmo repo, gatilhos via GH ou webhook; garantir continuidade completa sem sessão" | Commits `dd5416c` + `78f42c0` — `session/CONTEXT.md` + `session/state.json` (contexto durável), `src/session/store.ts` + `session-cli`, `continuity.yml` (handoff no merge → `arena/continuity-<ts>` + draft PR; heartbeat 6/6h; `/session ...` via issue #3; `gh`/webhook) |
 | **T3** — relatório + pipeline | "Documente (solicitado/incrementado/timeline/realizado/testado/validado → produção); gatilho que verifica **não existência de issues abertas ou CI com erros ou sem testes** → enquanto não positivo = **continuidade**; a cada issue completada **testar a entrega e construir a seguinte indexada**; erro retorna erro + continuidade; **todo action retorna JSON** `{id, message, addenda, status, nextIssue, exitCode 0/1/2}` — fluxo gate-driven tipo BPMN via Actions" | Commits `91faadb` — `src/pipeline/` (envelope, gate, chain) + `pipeline-cli` + `pipeline/blueprint.json` + `blueprint.yml` (workflow BPMN-like) |
 | **T4** — OO + event-driven + direção | "Instrução para **cada issue pendente** do desenvolvimento; funções **event-driven da factory** que criam issues conforme o pattern gate-driven BPMN → **backend + SQLite + orientado a objetos (OOM)**; automação de **ciclos determinísticos** de testes com **validação de sucesso COMPLETADA**; testar entrega com a instrução da issue seguinte; se aprovado → **norteando a direção da continuidade [fix/debt/continue…]**; relatório com **stack utilizado**; **auditar e validar o que falta**" | Domínio OO (`PipelineIssue`, `IssueRepository` SQLite, `IssueFactory` event-driven, `PipelineEngine`), `pipeline-cli cycle/pending/event`, campo `direction` no envelope, 17 novos testes — **84/84 verdes** |
+| **T5** — integração das sessões paralelas | "sabendo que há uma sessão paralela, **como integrar ambas, pra que a outra siga conforme ambas?**" | **Contrato único** `pipeline/contract.schema.json` + adaptador bidirecional `src/pipeline/interop.ts` (camelCase ⇄ dialeto CNJ) + **registro unificado** (`pipeline-cli registry`: backlog d917 + backlog ed79 com namespace) + workflow `integration.yml` (duas suítes + envelope mesclado + ponte nos PRs #1/#2) + **decisão registrada** `docs/04-decisao-unificacao.md` (desbloqueia ISSUE-007/008 da outra sessão) + `docs/INTEGRATION.md` — 8 novos testes |
 
 ## 3. STACK UTILIZADO
 
@@ -112,7 +113,7 @@ SQLite** (`PipelineIssue` + `IssueRepository` + `IssueFactory` event-driven +
 
 ## 4. TESTADO
 
-`npm run ci` = typecheck (tsc) + build WASM + **84 testes** (`node:test`):
+`npm run ci` = typecheck (tsc) + build WASM + **92 testes** (`node:test`):
 
 | Suíte | O que valida | Testes |
 | --- | --- | --- |
@@ -124,6 +125,7 @@ SQLite** (`PipelineIssue` + `IssueRepository` + `IssueFactory` event-driven +
 | `session.test.ts` | continuidade: round-trip, cap de checkpoints, corrupção tolerada, briefing, nomes de branch | 8 |
 | `pipeline.test.ts` | **envelope JSON** (contrato 0/1/2 + direction), **continuity gate** (issues/CI/sem testes), **chain executor** (sucesso→próxima, erro→mesma), blueprint íntegro | 13 |
 | `domain.test.ts` | **modelo OO**: máquina de estados, repositório SQLite, **factory event-driven**, **ciclos determinísticos** com validação de sucesso COMPLETA, direções fix/debt/continue/complete | 17 |
+| `interop.test.ts` | **integração entre sessões**: mapeamento camelCase⇄CNJ nos dois sentidos, round-trip, registro unificado com namespace, backlog real da sessão paralela | 8 |
 | `wasm.test.ts` | vetores FNV-1a, paridade com a lógica TS de triggers | 7 |
 
 Além dos testes automatizados: smoke real do CLI (`seed`, `receive` com exit code
@@ -134,7 +136,7 @@ workflows e smoke do loader WASM (vetores FNV-1a).
 
 ## 5. VALIDADO
 
-- ✅ `npm run ci` verde — **84/84 testes**
+- ✅ `npm run ci` verde — **92/92 testes** (inclui suíte de integração entre sessões)
 - ✅ `pipeline-cli gate/step/next/validate/cycle/pending/event` — envelopes JSON (contrato 0/1/2 + direction)
 - ✅ Exit codes reais do processo: **0** sucesso · **1** erro tipo 1 · **2** erro tipo 2
 - ✅ Ciclo determinístico real: `cycle --id ISSUE-1` (acceptance `npm run ci`) → `delivered`, `nextIssue=ISSUE-2`, `direction=continue`
@@ -180,7 +182,7 @@ workflows e smoke do loader WASM (vetores FNV-1a).
 ## 7. PRODUÇÃO — ENTREGUE PRONTO PARA USO PELO USUÁRIO
 
 ```sh
-npm install && npm run ci          # valida tudo (84 testes)
+npm install && npm run ci          # valida tudo (92 testes)
 npm start                          # backend REST em :8787
 npm run seed && npm run gate -- --event push --ref refs/heads/main
 npm run session -- resume          # briefing de continuidade
@@ -188,7 +190,8 @@ npm run pipeline -- validate       # integridade do blueprint
 npm run pipeline -- pending        # issues pendentes COM instrução (factory OO)
 npm run pipeline -- cycle --id ISSUE-1 --log-file ci.log   # ciclo determinístico
 npm run pipeline -- event --type issue.completed --issue ISSUE-1 --result 0
-npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 84 --tests-passed 84
+npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 92 --tests-passed 92
+npm run pipeline -- registry --cnj-backlog pipeline/backlog-cnj.json   # backlog unificado das 2 sessões
 ```
 
 | Superfície | Como usar |

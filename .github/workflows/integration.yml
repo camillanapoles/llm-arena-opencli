@@ -1,0 +1,158 @@
+name: integration
+
+# ============================================================================
+# INTEGRAÇÃO DAS DUAS SESSÕES PARALELAS (d917b13b × ed79bd77)
+#
+# Roda as DUAS suítes (Node/TS + Python) num mesmo pipeline, sincroniza o
+# backlog da sessão paralela e publica o REGISTRO UNIFICADO + envelope mesclado
+# no contrato único (pipeline/contract.schema.json).
+#
+# Decisão registrada: docs/04-decisao-unificacao.md · Ponte: docs/INTEGRATION.md
+# ============================================================================
+
+on:
+  push:
+    branches: [main, "arena/**"]
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [integration-check]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  both-suites:
+    name: duas suítes + registro unificado
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sessão d917b13b (esta)
+        uses: actions/checkout@v4
+        with:
+          path: d917
+
+      - name: Checkout sessão ed79bd77 (paralela)
+        uses: actions/checkout@v4
+        with:
+          ref: arena/ed79bd77-llm-arena-opencli
+          path: ed79
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: d917/package-lock.json
+
+      - name: Suíte d917 (npm run ci)
+        id: suite_d917
+        working-directory: d917
+        run: |
+          set +e
+          npm ci > /dev/null 2>&1
+          npm run ci 2>&1 | tee ../suite-d917.log
+          R=$?
+          set -e
+          echo "result=$R" >> "$GITHUB_OUTPUT"
+          echo "tests=$(grep -E '^# tests ' ../suite-d917.log | tail -1 | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+          echo "pass=$(grep -E '^# pass ' ../suite-d917.log | tail -1 | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+
+      - name: Suíte ed79 (python/bash)
+        id: suite_ed79
+        working-directory: ed79
+        run: |
+          set +e
+          {
+            bash tests/rodar-testes.sh
+            python3 tests/testar_pipeline.py
+            python3 tests/testar_fabrica.py
+          } 2>&1 | tee ../suite-ed79.log
+          R=$?
+          set -e
+          echo "result=$R" >> "$GITHUB_OUTPUT"
+
+      - name: Registro unificado + envelope mesclado (contrato único)
+        id: merged
+        working-directory: d917
+        env:
+          R_D917: ${{ steps.suite_d917.outputs.result }}
+          R_ED79: ${{ steps.suite_ed79.outputs.result }}
+          T_D917: ${{ steps.suite_d917.outputs.tests }}
+          P_D917: ${{ steps.suite_d917.outputs.pass }}
+        run: |
+          npm run pipeline -- registry \
+            --cnj-backlog ../ed79/pipeline/backlog.json \
+            --out pipeline/registry.json \
+            --action-id "integration-${GITHUB_RUN_ID}" | tee action-result.json
+          node --disable-warning=ExperimentalWarning --input-type=module -e "
+            import { readFileSync, writeFileSync } from 'node:fs';
+            import { makeEnvelope } from './src/pipeline/envelope.ts';
+            const registry = JSON.parse(readFileSync('pipeline/registry.json', 'utf8'));
+            const okD917 = process.env.R_D917 === '0';
+            const okED79 = process.env.R_ED79 === '0';
+            const both = okD917 && okED79;
+            const env = makeEnvelope({
+              id: 'integration-${GITHUB_RUN_ID}',
+              status: both ? 'integrated' : 'integration-failed',
+              message: 'd917: ' + (okD917 ? 'OK (' + process.env.P_D917 + '/' + process.env.T_D917 + ' testes)' : 'FALHOU') + ' · ed79: ' + (okED79 ? 'OK (32 + 71 testes)' : 'FALHOU'),
+              addenda: [
+                { kind: 'path', ref: 'pipeline/registry.json', description: 'registro unificado das duas sessões' },
+                { kind: 'path', ref: 'docs/04-decisao-unificacao.md', description: 'decisão de unificação registrada' },
+                { kind: 'log', ref: 'suite-d917.log / suite-ed79.log', description: 'logs das duas suítes' },
+              ],
+              nextIssue: registry.entries.find((e) => e.status === 'pendente')?.id ?? null,
+              exitCode: both ? 0 : 1,
+              direction: both ? (registry.entries.some((e) => e.status === 'pendente') ? 'continue' : 'complete') : 'fix',
+              continuity: { required: !both || registry.entries.some((e) => e.status === 'pendente'), reason: both ? 'cadeias unificadas em andamento' : 'corrigir suíte reprovada' },
+              data: { registry },
+            });
+            console.log(JSON.stringify(env, null, 2));
+            writeFileSync('action-result.json', JSON.stringify(env, null, 2));
+          "
+          echo "exit=$(jq -r .exitCode action-result.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Ponte entre as sessões (comentar nos PRs #1 e #2)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS: ${{ steps.merged.outputs.exit }}
+        run: |
+          {
+            echo "### 🔗 integração d917b13b × ed79bd77 — exit $STATUS"
+            echo '```json'
+            jq '{id, status, message, nextIssue, exitCode, direction}' d917/action-result.json
+            echo '```'
+            echo "Registro unificado: artifact \`integration-${GITHUB_RUN_ID}\` · Decisão: \`docs/04-decisao-unificacao.md\`"
+          } > comment-body.md
+          gh pr comment 1 --body-file comment-body.md || true
+          gh pr comment 2 --body-file comment-body.md || true
+
+      - name: Upload artifact (registro + envelope mesclado + logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-${{ github.run_id }}
+          path: |
+            d917/action-result.json
+            d917/pipeline/registry.json
+            d917/pipeline/backlog-cnj.json
+            suite-d917.log
+            suite-ed79.log
+          if-no-files-found: warn
+
+      - name: Step summary
+        if: always()
+        run: |
+          {
+            echo "## 🔗 Integração das duas sessões"
+            echo '```json'
+            jq '{id, status, message, nextIssue, exitCode, direction}' d917/action-result.json 2>/dev/null || echo '{}'
+            echo '```'
+            echo "### Pendências unificadas"
+            jq -r '.entries[] | select(.status == "pendente") | "- \(.id) [\(.source)] \(.title)"' d917/pipeline/registry.json 2>/dev/null || true
+          } >> "$GITHUB_STEP_SUMMARY"

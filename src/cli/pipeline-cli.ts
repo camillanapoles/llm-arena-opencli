@@ -16,6 +16,10 @@
  *   node src/cli/pipeline-cli.ts event --type issue.completed|issue.failed|gate.checked \
  *     [--issue ISSUE-2] [--result 0|1|2] [--action-id id]
  *   node src/cli/pipeline-cli.ts pending [--action-id id]
+ *   node src/cli/pipeline-cli.ts interop --from FILE | --to FILE
+ *     # converte envelopes entre os dialetos das duas sessões (docs/INTEGRATION.md)
+ *   node src/cli/pipeline-cli.ts registry [--cnj-backlog FILE] [--out FILE]
+ *     # registra unificado das duas sessões (blueprint nosso + backlog CNJ)
  *   node src/cli/pipeline-cli.ts next [--after ISSUE-1]
  *   node src/cli/pipeline-cli.ts validate
  */
@@ -41,7 +45,16 @@ import {
   IssueRepository,
   PipelineEngine,
 } from "../pipeline/domain.ts";
+import {
+  fromCnjEnvelope,
+  loadCnjBacklog,
+  mergeRegistry,
+  toCnjEnvelope,
+  writeRegistry,
+  type CnjEnvelope,
+} from "../pipeline/interop.ts";
 import { Database } from "../db/database.ts";
+import { readFileSync } from "node:fs";
 
 interface Args {
   command: string;
@@ -263,6 +276,107 @@ function main(): void {
           },
         }),
       );
+      return;
+    }
+
+    case "interop": {
+      const fromPath = flags["from"];
+      const toPath = flags["to"];
+      if (fromPath !== undefined && fromPath !== "true") {
+        const cnj = JSON.parse(readFileSync(fromPath, "utf8")) as CnjEnvelope;
+        const converted = fromCnjEnvelope(cnj);
+        emit(
+          makeEnvelope({
+            id: actionId,
+            status: "converted",
+            message: `envelope CNJ -> ActionEnvelope (${fromPath})`,
+            addenda: [{ kind: "path", ref: fromPath, description: "envelope de origem (dialeto CNJ)" }],
+            nextIssue: converted.nextIssue,
+            exitCode: converted.exitCode,
+            direction: converted.direction,
+            data: { converted },
+          }),
+        );
+        return;
+      }
+      if (toPath !== undefined && toPath !== "true") {
+        const ours = JSON.parse(readFileSync(toPath, "utf8")) as ActionEnvelope;
+        const converted = toCnjEnvelope(ours);
+        emit(
+          makeEnvelope({
+            id: actionId,
+            status: "converted",
+            message: `ActionEnvelope -> envelope CNJ (${toPath})`,
+            addenda: [{ kind: "path", ref: toPath, description: "envelope de origem (dialeto d917)" }],
+            nextIssue: ours.nextIssue,
+            exitCode: ours.exitCode,
+            direction: ours.direction,
+            data: { converted },
+          }),
+        );
+        return;
+      }
+      emit(
+        makeEnvelope({
+          id: actionId,
+          status: "error",
+          message: "interop requer --from FILE (CNJ->nosso) ou --to FILE (nosso->CNJ)",
+          addenda: [],
+          nextIssue: null,
+          exitCode: 2,
+          direction: "hold",
+          continuity: { required: true, reason: "uso inválido do interop" },
+        }),
+      );
+      return;
+    }
+
+    case "registry": {
+      const bp = loadBlueprint(blueprintPath(flags));
+      const backlogPath = flags["cnj-backlog"] ?? "pipeline/backlog-cnj.json";
+      const outPath = flags["out"] ?? "pipeline/registry.json";
+      try {
+        const backlog = loadCnjBacklog(backlogPath);
+        const registry = mergeRegistry(bp, backlog, {
+          ourBranch: flags["our-branch"] ?? "arena/d917b13b-llm-arena-opencli",
+          ourPr: Number(flags["our-pr"] ?? 1),
+          theirBranch: flags["their-branch"] ?? "arena/ed79bd77-llm-arena-opencli",
+          theirPr: Number(flags["their-pr"] ?? 2),
+        });
+        writeRegistry(registry, outPath);
+        emit(
+          makeEnvelope({
+            id: actionId,
+            status: "merged",
+            message: `registro unificado: ${registry.entries.length} issues de ${registry.sessions.length} sessões (${registry.sessions.map((s) => `${s.source}:${s.pending} pendentes`).join(" · ")})`,
+            addenda: [
+              { kind: "path", ref: outPath, description: "registro unificado das duas sessões" },
+              { kind: "path", ref: backlogPath, description: "backlog CNJ (sessão paralela)" },
+              { kind: "path", ref: blueprintPath(flags), description: "blueprint d917 (esta sessão)" },
+            ],
+            nextIssue: registry.entries.find((e) => e.status === "pendente")?.id ?? null,
+            exitCode: 0,
+            direction: registry.entries.some((e) => e.status === "pendente") ? "continue" : "complete",
+            data: { registry },
+          }),
+        );
+      } catch (err) {
+        emit(
+          makeEnvelope({
+            id: actionId,
+            status: "error",
+            message: err instanceof Error ? err.message : String(err),
+            addenda: [{ kind: "path", ref: backlogPath, description: "backlog CNJ esperado" }],
+            nextIssue: null,
+            exitCode: 2,
+            direction: "hold",
+            continuity: {
+              required: true,
+              reason: "não foi possível mesclar os backlogs — exporte o backlog da sessão paralela (ver docs/INTEGRATION.md)",
+            },
+          }),
+        );
+      }
       return;
     }
 

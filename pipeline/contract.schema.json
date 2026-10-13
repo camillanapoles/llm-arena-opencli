@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/camillanapoles/llm-arena-opencli/pipeline/contract.schema.json",
+  "title": "Envelope de Action do pipeline gate-driven (contrato compartilhado)",
+  "description": "Contrato NEUTRO de linguagem que AMBAS as sessões seguem (arena/d917b13b Node/TS e arena/ed79bd77 Python). TODO action devolve UM objeto JSON com estes campos. Nomes em camelCase (canônico); o dialeto snake_case da sessão CNJ é mapeado por src/pipeline/interop.ts (ver docs/INTEGRATION.md).",
+  "type": "object",
+  "required": ["id", "message", "addenda", "status", "nextIssue", "exitCode", "direction"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "description": "identificador único do action" },
+    "message": { "type": "string", "description": "mensagem/log (pode ser string vazia)" },
+    "addenda": {
+      "type": "array",
+      "description": "anexos gerados (paths, filenames, artefatos, logs)",
+      "items": {
+        "type": "object",
+        "required": ["kind", "ref", "description"],
+        "properties": {
+          "kind": { "enum": ["attachment", "path", "filename", "log", "url"] },
+          "ref": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "estado do action (success | delivered | error | continuity | production-ready | created | chain-complete | human-required | …)"
+    },
+    "nextIssue": {
+      "type": ["string", "null"],
+      "description": "MESMA issue em erro · PRÓXIMA indexada em sucesso testado · null se encerrado"
+    },
+    "exitCode": {
+      "type": "integer",
+      "enum": [0, 1, 2],
+      "description": "0 sucesso · 1 erro tipo 1 (tratável/continuidade) · 2 erro tipo 2 (não avaliável/pré-condição)"
+    },
+    "direction": {
+      "enum": ["continue", "fix", "debt", "complete", "hold"],
+      "description": "direção da continuidade (vocabulário CNJ equivalente: proxima|corrigir|depurar|encerrar|humano)"
+    },
+    "continuity": {
+      "type": "object",
+      "required": ["required", "reason"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "reason": { "type": "string" }
+      }
+    },
+    "at": { "type": "string", "format": "date-time" },
+    "data": { "type": "object", "description": "detalhes estruturados opcionais do action" }
+  }
+}

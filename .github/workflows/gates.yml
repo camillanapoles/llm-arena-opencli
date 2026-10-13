@@ -385,3 +385,49 @@ jobs:
             pipeline/saida/*-proxima-issue.md
             pipeline/saida/gate-issue-*.json
           if-no-files-found: warn
+
+  # ------------------------------------------------- IGC Art. 8 · WAL no CI (C1/C2/C3)
+  # Toda pipeline de gate termina com append à WAL + recompute do CHECKPOINT +
+  # commit do bot `igc(ci): run <id> [igc-checkpoint] [skip ci]` que NÃO re-triggera (C2).
+  # Falha do passo de WAL = falha do job (C3). Linhagem sem .session/ → bootstrap (C4).
+  igc-checkpoint:
+    name: "IGC · checkpoint WAL (Art. 8)"
+    runs-on: ubuntu-latest
+    needs: [gate-continuidade, executa-issue]
+    if: always() && needs.gate-continuidade.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: WAL + CHECKPOINT + commit do bot (C1/C2/C3)
+        run: |
+          node src/cli/igc-cli.ts checkpoint \
+            --id-conteudo "$(git rev-parse --short HEAD)" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --slug d917b13b \
+            --resultado "pipeline gates verde (run ${GITHUB_RUN_ID})"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f .igc-registry.yml ]; then git add .igc-registry.yml; fi
+          git add -A -- .session
+          if git diff --cached --quiet; then
+            echo "WAL sem alterações — nada a persistir"
+            exit 0
+          fi
+          git commit -m "igc(ci): run ${GITHUB_RUN_ID} [igc-checkpoint] [skip ci]"
+          alvo="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          for tentativa in 1 2 3; do
+            if git push origin "HEAD:${alvo}"; then
+              exit 0
+            fi
+            echo "::notice::checkpoint: push rejeitado (corrida com outro job?) — rebasando ($tentativa/3)"
+            git pull --rebase --autostash origin "${alvo}" || true
+            sleep 3
+          done
+          echo "::error::IGC Art. 8: não consegui persistir o checkpoint (C1) — débito de erro aberto (retorno para fix)"
+          exit 1

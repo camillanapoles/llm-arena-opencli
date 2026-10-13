@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 10251 linhas, 493 KiB.
+#  Conteúdo embutido: 32 arquivos, 10297 linhas, 495 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -174,7 +174,7 @@ while read -r esperado caminho; do
     FALHA "hash diferente: $caminho"; falhas_hash=$((falhas_hash+1))
   fi
 done <<'MANIFESTO'
-a2fe6a7e2518e2d70c8492d93442044445638352327115b403f580df87fc20d3  ./.github/workflows/gates.yml
+9702aaa6069f4af831f2606fcc91e0248f1cadfb980f9b8c1becacb4c0ef5bf0  ./.github/workflows/gates.yml
 1ebe7247a079ef496b1ec457199469572a4b9c2b34656d92aa038c1d4254347c  ./.github/workflows/validacao-cnj.yml
 2caa341b92fddacfa3cdf6933cbbba6fbc338517152dd7ea7c7314f100f2d8f8  ./.gitignore
 4f7fb71e540cfafb00af75008e7949ac6c5a2431e7b991d9aac34bba22e77e03  ./BOOTSTRAP.md
@@ -731,6 +731,52 @@ jobs:
             pipeline/saida/*-proxima-issue.md
             pipeline/saida/gate-issue-*.json
           if-no-files-found: warn
+
+  # ------------------------------------------------- IGC Art. 8 · WAL no CI (C1/C2/C3)
+  # Toda pipeline de gate termina com append à WAL + recompute do CHECKPOINT +
+  # commit do bot `igc(ci): run <id> [igc-checkpoint] [skip ci]` que NÃO re-triggera (C2).
+  # Falha do passo de WAL = falha do job (C3). Linhagem sem .session/ → bootstrap (C4).
+  igc-checkpoint:
+    name: "IGC · checkpoint WAL (Art. 8)"
+    runs-on: ubuntu-latest
+    needs: [gate-continuidade, executa-issue]
+    if: always() && needs.gate-continuidade.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: WAL + CHECKPOINT + commit do bot (C1/C2/C3)
+        run: |
+          node src/cli/igc-cli.ts checkpoint \
+            --id-conteudo "$(git rev-parse --short HEAD)" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --slug d917b13b \
+            --resultado "pipeline gates verde (run ${GITHUB_RUN_ID})"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f .igc-registry.yml ]; then git add .igc-registry.yml; fi
+          git add -A -- .session
+          if git diff --cached --quiet; then
+            echo "WAL sem alterações — nada a persistir"
+            exit 0
+          fi
+          git commit -m "igc(ci): run ${GITHUB_RUN_ID} [igc-checkpoint] [skip ci]"
+          alvo="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          for tentativa in 1 2 3; do
+            if git push origin "HEAD:${alvo}"; then
+              exit 0
+            fi
+            echo "::notice::checkpoint: push rejeitado (corrida com outro job?) — rebasando ($tentativa/3)"
+            git pull --rebase --autostash origin "${alvo}" || true
+            sleep 3
+          done
+          echo "::error::IGC Art. 8: não consegui persistir o checkpoint (C1) — débito de erro aberto (retorno para fix)"
+          exit 1
 __ARQ_EOF__
 __ARQ__ .github/workflows/validacao-cnj.yml
 # ==============================================================================

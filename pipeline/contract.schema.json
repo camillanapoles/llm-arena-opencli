@@ -105,6 +105,10 @@
       "type": "object",
       "description": "detalhes estruturados opcionais do action"
     },
+    "checkpointRef": {
+      "type": "string",
+      "description": "E3 (IGC v2.1): checkpoint de referência da emissão (id_conteúdo) — âncora da memória no envelope"
+    },
     "debts": {
       "type": "array",
       "description": "Débitos de erro abertos por este action (prioridade + retorno para fix). Vazio quando exitCode 0.",

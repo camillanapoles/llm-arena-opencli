@@ -1,0 +1,7 @@
+# artefatos gerados pelas consultas
+saida/
+*.jsonl
+processos-*.jsonl
+.datajud-key
+__pycache__/
+*.pyc

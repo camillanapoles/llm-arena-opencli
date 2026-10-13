@@ -1,0 +1,342 @@
+# ==============================================================================
+#  validacao-cnj.yml — validação AO VIVO contra o CNJ, event-driven, no runner
+# ==============================================================================
+#  Por que este workflow existe:
+#     o sandbox de desenvolvimento não alcança api-publica.datajud.cnj.jus.br
+#     (egress restrito). O runner do GitHub tem internet de verdade — então a
+#     validação ao vivo (ISSUE-006) roda AQUI, disparada por EVENTO:
+#         push (arquivos do pipeline) · pull_request · agenda diária · manual
+#
+#  Fluxo (gate-driven, mesmo contrato JSON de pipeline/gate.py):
+#
+#     [push | pull_request | schedule | workflow_dispatch]
+#                        │
+#                        ▼
+#     ┌──────────────────────────────────────────────┐
+#     │ validacao-cnj                                │
+#     │  1. diagnóstico de rede (DNS · TLS · HTTP)   │
+#     │  2. pipeline/verificar_cnj.py (a instrução da│
+#     │     pendência ao vivo) com N tentativas      │
+#     │  3. validação complementar ao vivo:          │
+#     │     scripts/datajud.sh contar --tribunal tjpe│
+#     └──────────────────────────────────────────────┘
+#        │ status 0            │ status 1              │ status 2
+#        ▼                     ▼                       ▼
+#   concluir-pendencia     ::warning::             ::error::
+#   (a fábrica conclui     a validação não         chave recusada
+#    a pendência que       passou nesta            pelo CNJ — exige
+#    ESTA execução         execução (429/rede) —   humano (job falha)
+#    provou e constrói     continuidade na MESMA
+#    a N+1, commita)       issue
+#
+#  Idempotência: a conclusão é dirigida pela pendência REAL do backlog, e só
+#  quando a instrução de teste dela é a que roda aqui (verificar_cnj/datajud.sh).
+#  Pendência de desenvolvimento (ex.: escrever docs/04-…) ⇒ o job apenas registra
+#  o evento de continuidade — repetir o push não inventa issue nova.
+#
+#  Exit code = status (0/1/2), como em todo o pipeline. A validação mostra o
+#  número real de processos do tribunal quando funciona — é evidência, não promessa.
+# ==============================================================================
+name: validacao-cnj
+
+on:
+  push:
+    paths:
+      - "pipeline/verificar_cnj.py"
+      - "pipeline/gate.py"
+      - "pipeline/factory.py"
+      - "pipeline/backlog.json"
+      - "pipeline/blueprint.json"
+      - "scripts/datajud.sh"
+      - "main.py"
+      - ".github/workflows/validacao-cnj.yml"
+  pull_request:
+    paths:
+      - "pipeline/verificar_cnj.py"
+      - "pipeline/gate.py"
+      - "pipeline/factory.py"
+      - "pipeline/backlog.json"
+      - ".github/workflows/validacao-cnj.yml"
+  schedule:
+    - cron: "0 11 * * 1-5"        # dias úteis, 08:00 em Brasília (11:00 UTC)
+  workflow_dispatch:
+    inputs:
+      tentativas:
+        description: "Tentativas da consulta ao CNJ (a taxa é limitada a 120 req/min)"
+        required: false
+        default: "3"
+      concluir_no_sucesso:
+        description: "Marcar a pendência provada por esta execução como COMPLETADA e construir a próxima se funcionar"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: write
+  issues: read
+  actions: read
+
+concurrency:
+  group: validacao-cnj-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # --------------------------------------------------------------------------- #
+  # validação ao vivo
+  # --------------------------------------------------------------------------- #
+  validacao-cnj:
+    name: "validação ao vivo do CNJ (DataJud)"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.verificar.outputs.status }}
+      http: ${{ steps.diagnostico.outputs.http }}
+      mensagem: ${{ steps.verificar.outputs.mensagem }}
+    env:
+      TENTATIVAS: ${{ inputs.tentativas || '3' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: "Diagnóstico de rede (DNS · TLS · HTTP)"
+        id: diagnostico
+        run: |
+          set +e
+          host=api-publica.datajud.cnj.jus.br
+          ip=$(getent hosts "$host" | awk '{print $1}' | head -1 || true)
+          echo "DNS: ${ip:-não resolveu}"
+          # mesmo caminho de rede do validador (urllib), para diagnóstico e validação concordarem
+          diagnostico=$(python3 - <<'PY'
+          import json, urllib.error, urllib.request
+          from pipeline.verificar_cnj import CHAVE_PADRAO, BASE
+          url = f"{BASE.rstrip('/')}/api_publica_tjpe/_search"
+          corpo = json.dumps({"query": {"match_all": {}}, "size": 0,
+                              "track_total_hits": True}).encode()
+          req = urllib.request.Request(url, data=corpo, method="POST", headers={
+              "Authorization": f"APIKey {CHAVE_PADRAO}", "Content-Type": "application/json",
+              "Accept": "application/json", "User-Agent": "pipeline-gates/1.0"})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  d = json.loads(r.read().decode("utf-8", "replace"))
+              print(json.dumps({"http": r.status, "took": d.get("took"),
+                                "total": ((d.get("hits") or {}).get("total") or {}).get("value")},
+                               ensure_ascii=False))
+          except urllib.error.HTTPError as e:
+              print(json.dumps({"http": e.code, "retry_after": e.headers.get("Retry-After"),
+                                "erro": str(e)[:120]}, ensure_ascii=False))
+          except Exception as e:
+              print(json.dumps({"http": None, "erro": f"{e.__class__.__name__}: {str(e)[:120]}"},
+                               ensure_ascii=False))
+          PY
+          )
+          echo "urllib (mesmo caminho da validação): $diagnostico"
+          curl_code=$(curl -sS -o /tmp/diagnostico.json -w '%{http_code}' --max-time 25 \
+            -X POST "https://$host/api_publica_tjpe/_search" \
+            -H "Authorization: APIKey $(python3 -c "import sys; sys.path.insert(0, 'pipeline'); import verificar_cnj as v; print(v.CHAVE_PADRAO)")" \
+            -H "Content-Type: application/json" \
+            -d '{"query":{"match_all":{}},"size":0,"track_total_hits":true}' 2>/tmp/diagnostico.err)
+          curl_code=${curl_code:-000}
+          echo "curl: HTTP=$curl_code · erro=$(head -c 200 /tmp/diagnostico.err 2>/dev/null || true)"
+          http=$(echo "$diagnostico" | python3 -c "import json,sys;print(json.load(sys.stdin).get('http') or '')")
+          echo "http=$http" >> "$GITHUB_OUTPUT"
+          set -e
+          {
+            echo "### diagnóstico de rede"
+            echo
+            echo "- host: \`$host\` · DNS: \`${ip:-falhou}\`"
+            echo "- urllib (caminho do validador): \`$diagnostico\`"
+            echo "- curl: \`HTTP=$curl_code\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · http=${http:-—} · curl=$curl_code"
+
+      - name: "Instrução da pendência ao vivo (com retentativas)"
+        id: verificar
+        run: |
+          set +e
+          codigo=1
+          for tentativa in $(seq 1 "${TENTATIVAS:-3}"); do
+            echo "--- tentativa $tentativa de ${TENTATIVAS:-3}"
+            python3 pipeline/verificar_cnj.py --timeout 45 \
+              --json-saida /tmp/validacao-cnj.json > /tmp/validacao-cnj.out 2>&1
+            codigo=$?
+            echo "código da tentativa: $codigo"
+            [ "$codigo" = "0" ] && break
+            [ "$tentativa" = "${TENTATIVAS:-3}" ] && break
+            # respeita o Retry-After do CNJ (429) e usa backoff crescente (30s, 60s, 90s…)
+            espera=$(python3 -c "import json, os; c = '/tmp/validacao-cnj.json'; d = json.load(open(c)) if os.path.exists(c) else {}; ra = str((d.get('dados') or {}).get('retry_after') or ''); print(int(ra) if ra.isdigit() else 30 * $tentativa)" 2>/dev/null || echo 30)
+            [ "$espera" -gt 150 ] && espera=150
+            echo "aguardando ${espera}s antes da próxima tentativa"
+            sleep "$espera"
+          done
+          set -e
+          cat /tmp/validacao-cnj.out
+          if [ ! -s /tmp/validacao-cnj.json ]; then
+            echo "::error::a verificação não produziu JSON (erro tipo 2)"
+            python3 -c "import json; json.dump({'id': 'verificar-cnj-sem-json', 'gate': 'verificar-cnj', 'status': '2', 'codigo_saida': 2, 'mensagem': 'a verificação não produziu JSON de saída', 'continuidade': False, 'next_issue': 'ISSUE-006', 'direcao': 'humano', 'proximo_passo': 'revisar o ambiente de execução', 'anexos': [], 'dados': {}, 'versao': '1.0.0'}, open('/tmp/validacao-cnj.json', 'w'), ensure_ascii=False, indent=2)"
+          fi
+          status=$(python3 -c "import json;print(json.load(open('/tmp/validacao-cnj.json'))['status'])")
+          mensagem=$(python3 -c "import json;print(json.load(open('/tmp/validacao-cnj.json'))['mensagem'].replace(chr(10),' ')[:200])")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "mensagem=$mensagem" >> "$GITHUB_OUTPUT"
+          {
+            echo "### validação ao vivo do CNJ — status \`$status\` (exit=$codigo)"
+            echo
+            echo "$mensagem"
+            echo
+            echo '```json'
+            cat /tmp/validacao-cnj.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::validação CNJ — status=$status · $mensagem"
+          if [ "$status" = "2" ]; then
+            echo "::error::o CNJ recusou a chave pública (erro tipo 2) — exige decisão humana"
+            exit 1
+          fi
+          if [ "$status" = "1" ]; then
+            echo "::warning::a validação ao vivo não passou nesta execução — continuidade: a pendência permanece na MESMA issue (a causa real está no ::notice:: acima: 429/taxa, rede ou chave)"
+          fi
+
+      - name: "Validação complementar ao vivo (kit curl)"
+        if: steps.verificar.outputs.status == '0'
+        run: |
+          set +e
+          saida=$(bash scripts/datajud.sh contar --tribunal tjpe 2>&1)
+          codigo=$?
+          set -e
+          echo "$saida" | tail -5
+          resumo=$(echo "$saida" | tr '\n' ' ' | tail -c 200)
+          echo "::notice::kit curl ao vivo — código=$codigo · $resumo"
+          {
+            echo "### validação complementar · \`scripts/datajud.sh contar --tribunal tjpe\`"
+            echo
+            echo "\`\`\`"
+            echo "$saida" | tail -8
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$codigo" != "0" ]; then
+            echo "::warning::o kit curl falhou ($codigo) embora a verificação principal tenha passado"
+          fi
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: validacao-cnj
+          path: |
+            /tmp/validacao-cnj.json
+            /tmp/validacao-cnj.out
+            /tmp/diagnostico.json
+          if-no-files-found: warn
+
+  # --------------------------------------------------------------------------- #
+  # sucesso ⇒ a fábrica conclui a pendência que ESTA execução provou e constrói a
+  # PRÓXIMA indexada. Se a pendência atual for de desenvolvimento (a validação ao
+  # vivo não a prova), o job só registra o evento de continuidade — nunca inventa
+  # issue nova (idempotência: o mesmo push roda de novo sem efeito colateral).
+  # --------------------------------------------------------------------------- #
+  concluir-pendencia:
+    name: "Sucesso testado ⇒ pendência COMPLETADA + próxima indexada (fábrica)"
+    runs-on: ubuntu-latest
+    needs: [validacao-cnj]
+    if: >-
+      needs.validacao-cnj.outputs.status == '0'
+      && github.event_name != 'pull_request'
+      && (github.event_name != 'workflow_dispatch' || inputs.concluir_no_sucesso)
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: "Fábrica · qual é a pendência e esta execução a prova?"
+        id: pendencia
+        run: |
+          python3 pipeline/factory.py --sincronizar -q \
+            --pendencia-ao-vivo --json-saida /tmp/pendencia.json \
+            --saida-dir pipeline/saida
+          # .lower(): o `if:` do GitHub compara com a string 'true' (o Python imprime True)
+          prova=$(python3 -c "import json;print(str(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['prova_ao_vivo']).lower())")
+          issue=$(python3 -c "import json;print(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['issue'] or '')")
+          motivo=$(python3 -c "import json;print(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['motivo'])")
+          {
+            echo "prova_ao_vivo=$prova"
+            echo "issue=$issue"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice::fábrica — pendência: ${issue:-—} · provada por esta execução: $prova · $motivo"
+
+      - name: "Fábrica · concluir a pendência provada, construir a próxima e versionar"
+        id: concluir
+        if: steps.pendencia.outputs.prova_ao_vivo == 'true'
+        run: |
+          url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          issue="${{ steps.pendencia.outputs.issue }}"
+          extra=()
+          if [ "$issue" = "ISSUE-006" ]; then
+            # a frente da validação ao vivo entrega, na sequência, a decisão da ISSUE-007
+            extra=(--titulo "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?"
+                   --entregavel "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)"
+                   --instrucao-teste "test -s docs/04-decisao-unificacao.md")
+          fi
+          set +e
+          python3 pipeline/factory.py --sincronizar \
+            --concluir "$issue" \
+            --evidencia "validacao_ao_vivo=$url" \
+            --evidencia "http=${{ needs.validacao-cnj.outputs.http }}" \
+            --proxima "${extra[@]}" \
+            --exportar pipeline/backlog.json \
+            --saida-dir pipeline/saida > /tmp/fabrica.out
+          codigo=$?
+          set -e
+          cat /tmp/fabrica.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/fabrica.out'))['status'])" 2>/dev/null || echo 2)
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ "$status" = "2" ]; then
+            echo "::error::a fábrica devolveu erro tipo 2 (banco/arquivo inacessível) — exige humano"
+            exit 1
+          fi
+          if [ "$status" = "1" ]; then
+            # continuidade: nada a concluir agora — a próxima indexada só nasce depois do
+            # sucesso testado. Não é erro: o job não fica vermelho e o backlog não muda.
+            echo "::warning::a fábrica manteve a continuidade (status 1) — a próxima indexada só nasce depois do sucesso testado"
+            exit 0
+          fi
+          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
+          echo "::notice::$issue COMPLETADA — a fábrica construiu a próxima indexada: $nova"
+          {
+            echo "### fábrica · $issue COMPLETADA e próxima indexada construída ($nova)"
+            echo
+            echo '```json'
+            tail -40 /tmp/fabrica.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- pipeline/backlog.json; then
+            echo "backlog sem alterações"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pipeline/backlog.json
+          git commit -m "pipeline: $issue validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
+          git push
+
+      - name: "Continuidade · a pendência atual não é provada por esta validação"
+        if: steps.pendencia.outputs.prova_ao_vivo != 'true'
+        run: |
+          url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          issue="${{ steps.pendencia.outputs.issue }}"
+          python3 pipeline/factory.py --sincronizar -q \
+            --evento "checkpoint|fase=validacao_ao_vivo|run=$url" \
+            --saida-dir pipeline/saida
+          echo "::notice::continuidade — ${issue:-sem pendência}: a validação ao vivo passou (HTTP ${{ needs.validacao-cnj.outputs.http }}) e a pendência segue na MESMA issue, com a instrução de desenvolvimento dela"
+          {
+            echo "### continuidade"
+            echo
+            echo "- validação ao vivo: OK (HTTP ${{ needs.validacao-cnj.outputs.http }})"
+            echo "- pendência: \`${issue:-—}\` — a instrução de teste dela é outra; a fábrica não cria issue nova"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: fabrica-pendencia
+          path: |
+            pipeline/backlog.json
+            pipeline/saida/fabrica-*.md
+            pipeline/saida/gate-fabrica-*.json
+          if-no-files-found: warn

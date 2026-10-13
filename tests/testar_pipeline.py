@@ -46,6 +46,26 @@ def rodar(*argumentos, saida_dir=None):
     return proc.returncode, obj, proc.stdout + proc.stderr
 
 
+def blocos_run(texto: str) -> list:
+    """Extrai os blocos `run: |` de um workflow (para validar o bash embutido)."""
+    linhas, blocos, i = texto.splitlines(), [], 0
+    while i < len(linhas):
+        m = re.match(r"^(\s+)run: \|\s*$", linhas[i])
+        if m:
+            indent = len(m.group(1))
+            corpo, j = [], i + 1
+            while j < len(linhas) and (not linhas[j].strip()
+                                       or len(linhas[j]) - len(linhas[j].lstrip()) > indent):
+                corpo.append(linhas[j])
+                j += 1
+            base = min((len(l) - len(l.lstrip()) for l in corpo if l.strip()), default=0)
+            blocos.append("\n".join(l[base:] for l in corpo))
+            i = j
+        else:
+            i += 1
+    return blocos
+
+
 def fixture(pasta, nome, conteudo):
     caminho = os.path.join(pasta, nome)
     with open(caminho, "w", encoding="utf-8") as fh:
@@ -413,6 +433,76 @@ class TesteGateFabricaNoFluxo(CasoBase):
         self.assertRegex(texto, r"(?m)^\s{2}gate-fabrica:")
 
 
+class TesteWorkflowValidacaoCNJ(unittest.TestCase):
+    """O workflow event-driven da validação AO VIVO (ISSUE-006) no runner do GitHub."""
+
+    def setUp(self):
+        caminho = os.path.join(RAIZ, ".github", "workflows", "validacao-cnj.yml")
+        with open(caminho, encoding="utf-8") as fh:
+            self.texto = fh.read()
+
+    def test_disparado_por_evento(self):
+        for gatilho in ("push:", "pull_request:", "schedule:", "workflow_dispatch:"):
+            self.assertIn(gatilho, self.texto, f"falta o gatilho {gatilho}")
+        self.assertRegex(self.texto, r"cron: \"0 11 \* \* 1-5\"")
+
+    def test_roda_a_instrucao_da_issue_006_com_retentativas(self):
+        self.assertIn("pipeline/verificar_cnj.py", self.texto)
+        self.assertIn("TENTATIVAS", self.texto)
+        self.assertIn("for tentativa in", self.texto)
+        self.assertIn("sleep 20", self.texto)
+
+    def test_mapeia_status_0_1_2_para_acao(self):
+        self.assertIn('if [ "$status" = "2" ]', self.texto)
+        self.assertIn("::error::", self.texto)
+        self.assertIn('if [ "$status" = "1" ]', self.texto)
+        self.assertIn("::warning::", self.texto)
+        self.assertIn("::notice::", self.texto)
+
+    def test_sucesso_conclui_a_issue_e_constroi_a_proxima(self):
+        self.assertIn("--concluir ISSUE-006", self.texto)
+        self.assertIn("--proxima", self.texto)
+        self.assertIn("--exportar pipeline/backlog.json", self.texto)
+        self.assertIn('git commit -m "pipeline: ISSUE-006', self.texto)
+        self.assertIn("[skip ci]", self.texto)
+
+    def test_nao_commita_em_pull_request(self):
+        self.assertIn("github.event_name != 'pull_request'", self.texto)
+
+    def test_job_de_conclusao_depende_da_validacao(self):
+        self.assertRegex(self.texto, r"(?m)^\s{2}concluir-issue-006:")
+        self.assertIn("needs: [validacao-cnj]", self.texto)
+
+    def test_evidencia_aponta_para_a_execucao(self):
+        self.assertIn("github.run_id", self.texto)
+        self.assertIn("--evidencia", self.texto)
+
+    def test_guarda_de_json_invalido(self):
+        self.assertIn("[ ! -s /tmp/validacao-cnj.json ]", self.texto)
+
+    def test_blocos_run_sao_bash_valido(self):
+        blocos = blocos_run(self.texto)
+        self.assertGreaterEqual(len(blocos), 4)
+        for numero, corpo in enumerate(blocos, 1):
+            seguro = re.sub(r"\$\{\{[^}]*\}\}", "VALOR", corpo)
+            with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as fh:
+                fh.write(seguro)
+                caminho = fh.name
+            try:
+                proc = subprocess.run(["bash", "-n", caminho], capture_output=True, text=True)
+            finally:
+                os.unlink(caminho)
+            self.assertEqual(proc.returncode, 0,
+                             f"bloco run #{numero} inválido: {proc.stderr[:200]}")
+
+    def test_yaml_estrutural(self):
+        self.assertNotIn("\t", self.texto)
+        for linha in self.texto.splitlines():
+            if re.match(r'^\s*[A-Za-z0-9_.\-\$\{\}/" ]+\s*:', linha) and not linha.lstrip().startswith("#"):
+                indent = len(linha) - len(linha.lstrip(" "))
+                self.assertEqual(indent % 2, 0, f"indentação ímpar: {linha!r}")
+
+
 class TesteSituacao(CasoBase):
     def test_situacao_resume_o_historico(self):
         rodar("blueprint", saida_dir=self.saida)
@@ -454,22 +544,7 @@ class TesteWorkflow(unittest.TestCase):
 
     def test_blocos_run_sao_bash_valido(self):
         """Valida de verdade o shell embutido no YAML (sem depender de PyYAML)."""
-        linhas = self.texto.splitlines()
-        blocos, i = [], 0
-        while i < len(linhas):
-            m = re.match(r"^(\s+)run: \|\s*$", linhas[i])
-            if m:
-                indent = len(m.group(1))
-                corpo, j = [], i + 1
-                while j < len(linhas) and (not linhas[j].strip()
-                                           or len(linhas[j]) - len(linhas[j].lstrip()) > indent):
-                    corpo.append(linhas[j])
-                    j += 1
-                base = min((len(l) - len(l.lstrip()) for l in corpo if l.strip()), default=0)
-                blocos.append("\n".join(l[base:] for l in corpo))
-                i = j
-            else:
-                i += 1
+        blocos = blocos_run(self.texto)
         self.assertGreaterEqual(len(blocos), 6, "esperado um bloco run: por job")
         for numero, corpo in enumerate(blocos, 1):
             seguro = re.sub(r"\$\{\{[^}]*\}\}", "VALOR", corpo)  # expressões do Actions

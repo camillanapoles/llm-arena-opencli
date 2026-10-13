@@ -341,6 +341,31 @@ class TesteCLIFabrica(CasoBase):
         self.assertEqual(nova["depende_de"], ["ISSUE-006"])
         self.assertEqual(nova["origem"], "fábrica (próxima indexada)")
 
+    def test_proxima_com_instrucao_de_teste_e_evidencia(self):
+        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
+              "--saida-dir", self.saida)
+        codigo, obj, bruto = rodar(
+            FACTORY_CLI, "--banco", self.banco, "--concluir", "ISSUE-006",
+            "--evidencia", "validacao_ao_vivo=https://exemplo/runs/1",
+            "--proxima", "--titulo", "decisão da 007", "--entregavel", "docs/04.md",
+            "--instrucao-teste", "test -s docs/04.md",
+            "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "0", bruto[:200])
+        nova = obj["dados"]["nova_issue"]
+        self.assertEqual(nova["id"], "ISSUE-008")
+        self.assertEqual(nova["instrucao_teste"], "test -s docs/04.md")
+        self.assertEqual(nova["entregavel"], "docs/04.md")
+        self.assertIn("instrucao_desenvolvimento", nova)
+        # a evidência ficou registrada na issue concluída
+        exportado = os.path.join(self.dir, "export.json")
+        rodar(FACTORY_CLI, "--banco", self.banco, "--exportar", exportado,
+              "--saida-dir", self.saida, "-q")
+        with open(exportado, encoding="utf-8") as fh:
+            dados = json.load(fh)
+        seis = [i for i in dados["issues"] if i["id"] == "ISSUE-006"][0]
+        self.assertEqual(seis["status"], "concluida")
+        self.assertTrue(any("validacao_ao_vivo" in str(e) for e in seis["evidencias"]))
+
     def test_construir_com_pendencia_devolve_status_1(self):
         rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
               "--saida-dir", self.saida)

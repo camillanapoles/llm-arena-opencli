@@ -78,15 +78,15 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
 | 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
 
-### 2.4 Testado (6 suítes, 202 verificações, tudo offline)
+### 2.4 Testado (6 suítes, 213 verificações, tudo offline)
 
 | Suíte | Verificações | O que cobre |
 | --- | --- | --- |
 | `tests/testar_conformidade.py` | 29 | conformidade com a doc oficial do CNJ: URL/rota/headers, aliases de tribunal, 15 campos do glossário, `search_after`, teto de 10.000, agregações com `.keyword`, 120 req/min, LGPD |
 | `tests/testar_main.py` | 29 | `main.py`: DV do número CNJ (`% 97 == 1`), montagem do número de 20 dígitos, DataJud + DJEN com mocks, relatório Markdown, anexos, exit codes |
 | `tests/rodar-testes.sh` | 32 | `scripts/datajud.sh`: chave pública, consulta, contagem, agregação, relatório, paginação, erros |
-| `tests/testar_pipeline.py` | 49 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
-| `tests/testar_fabrica.py` | 36 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
+| `tests/testar_pipeline.py` | 59 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
+| `tests/testar_fabrica.py` | 37 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
 | `tests/testar_bootstrap.sh` | 27 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 5 suítes rodando **dentro** do projeto recriado, gates (fabrica/blueprint/continuidade) no projeto recriado, `--verificar`, proteção contra sobrescrita |
 
 ### 2.5 Validado (como cada promessa foi conferida)
@@ -98,7 +98,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Planta BPMN × implementação | `python3 pipeline/gate.py blueprint` | `status "0"` — *5 gates, 15 transições* |
 | Gatilho de continuidade | `python3 pipeline/gate.py continuidade` | `status "1"` (há issue aberta) — **continuidade**, como manda a regra |
 | CI/CD | `python3 pipeline/gate.py cicd` | `status "0"` — 5 execuções, nenhuma com erro |
-| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 202 verificações aprovadas |
+| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 213 verificações aprovadas |
 | Fábrica de issues | `python3 pipeline/gate.py fabrica` | `status "0"` — 8 classes, tabelas `eventos`/`issues`/`schema_info`, round-trip SQLite ⇄ `backlog.json` ok, nenhuma issue sem instrução de desenvolvimento |
 | Eventos event-driven | `python3 pipeline/factory.py --evento "ci_falhou\|run=42"` | `continuar` na MESMA issue, com a direção `depurar` (CI) / `corrigir` (teste) — a fila não incha |
 | Construção da N+1 | `python3 pipeline/factory.py --concluir ISSUE-006 --proxima` | cria a `ISSUE-008` dependendo da última concluída e recusa (status 1) enquanto houver issue pendente |
@@ -114,7 +114,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli
 
-make testes        # 6 suítes, 202 verificações, offline
+make testes        # 6 suítes, 213 verificações, offline
 make gates         # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
 make fabrica       # estado da fábrica de issues (SQLite): pendências, eventos e próximo passo
 make consultar NUMERO=0001234-43.2024.8.17.2001   # relatório Markdown do processo (rede real)
@@ -145,7 +145,7 @@ tools/gerar_bootstrap.py    gerador/verificador do bootstrap (--conferir)
 BOOTSTRAP.md                manual do bootstrap
 ENTREGA.md                  este relatório
 
-tests/                      6 suítes, 202 verificações (offline, com mocks)
+tests/                      6 suítes, 213 verificações (offline, com mocks)
 ```
 
 ---
@@ -293,7 +293,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 - [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
 - [x] **Realizado** — 8 marcos de commit + 11 arquivos novos, tudo versionado no branch (seção 2.3)
 - [x] **Fábrica de issues (pedido 5)** — event-driven, POO + SQLite, padrão declarado no blueprint, instrução de desenvolvimento em todas as issues e construção automática da próxima indexada após o sucesso testado (seção 4.4)
-- [x] **Testado** — 6 suítes, **202 verificações**, todas offline e reprodutíveis (seção 2.4)
+- [x] **Testado** — 6 suítes, **213 verificações**, todas offline e reprodutíveis (seção 2.4)
 - [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero e **os 5 jobs do workflow verdes no GitHub Actions** (seção 2.5)
 - [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
 - [x] **Documentado** — `README.md` (visão geral), `BOOTSTRAP.md` (instalação), `docs/01-03` (API, receitas, pipeline) e esta `ENTREGA.md`

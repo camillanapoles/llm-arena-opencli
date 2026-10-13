@@ -1,0 +1,251 @@
+# ==============================================================================
+#  validacao-cnj.yml — validação AO VIVO contra o CNJ, event-driven, no runner
+# ==============================================================================
+#  Por que este workflow existe:
+#     o sandbox de desenvolvimento não alcança api-publica.datajud.cnj.jus.br
+#     (egress restrito). O runner do GitHub tem internet de verdade — então a
+#     validação ao vivo (ISSUE-006) roda AQUI, disparada por EVENTO:
+#         push (arquivos do pipeline) · pull_request · agenda diária · manual
+#
+#  Fluxo (gate-driven, mesmo contrato JSON de pipeline/gate.py):
+#
+#     [push | pull_request | schedule | workflow_dispatch]
+#                        │
+#                        ▼
+#     ┌──────────────────────────────────────────────┐
+#     │ validacao-cnj                                │
+#     │  1. diagnóstico de rede (DNS · TLS · HTTP)   │
+#     │  2. pipeline/verificar_cnj.py (instrução da  │
+#     │     ISSUE-006) com N tentativas              │
+#     │  3. validação complementar ao vivo:          │
+#     │     scripts/datajud.sh contar --tribunal tjpe│
+#     └──────────────────────────────────────────────┘
+#        │ status 0            │ status 1              │ status 2
+#        ▼                     ▼                       ▼
+#   concluir-issue-006     ::warning::             ::error::
+#   (fábrica marca         rede não alcançou        chave recusada
+#    COMPLETADA e          o CNJ — continuidade,    pelo CNJ — exige
+#    constrói a N+1,       mantém a ISSUE-006)      humano (job falha)
+#    commita o backlog)
+#
+#  Exit code = status (0/1/2), como em todo o pipeline. A validação mostra o
+#  número real de processos do tribunal quando funciona — é evidência, não promessa.
+# ==============================================================================
+name: validacao-cnj
+
+on:
+  push:
+    paths:
+      - "pipeline/verificar_cnj.py"
+      - "pipeline/gate.py"
+      - "pipeline/factory.py"
+      - "pipeline/backlog.json"
+      - "pipeline/blueprint.json"
+      - "scripts/datajud.sh"
+      - "main.py"
+      - ".github/workflows/validacao-cnj.yml"
+  pull_request:
+    paths:
+      - "pipeline/verificar_cnj.py"
+      - "pipeline/gate.py"
+      - "pipeline/factory.py"
+      - "pipeline/backlog.json"
+      - ".github/workflows/validacao-cnj.yml"
+  schedule:
+    - cron: "0 11 * * 1-5"        # dias úteis, 08:00 em Brasília (11:00 UTC)
+  workflow_dispatch:
+    inputs:
+      tentativas:
+        description: "Tentativas da consulta ao CNJ (rede instável)"
+        required: false
+        default: "3"
+      concluir_no_sucesso:
+        description: "Marcar ISSUE-006 como COMPLETADA e construir a próxima se funcionar"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: write
+  issues: read
+  actions: read
+
+concurrency:
+  group: validacao-cnj-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # --------------------------------------------------------------------------- #
+  # validação ao vivo
+  # --------------------------------------------------------------------------- #
+  validacao-cnj:
+    name: "validação ao vivo do CNJ (DataJud)"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.verificar.outputs.status }}
+      http: ${{ steps.diagnostico.outputs.http }}
+      mensagem: ${{ steps.verificar.outputs.mensagem }}
+    env:
+      TENTATIVAS: ${{ inputs.tentativas || '3' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: "Diagnóstico de rede (DNS · TLS · HTTP)"
+        id: diagnostico
+        run: |
+          host=api-publica.datajud.cnj.jus.br
+          chave=$(python3 -c "import sys; sys.path.insert(0, 'pipeline'); import verificar_cnj as v; print(v.CHAVE_PADRAO)")
+          echo "### diagnóstico · $host"
+          ip=$(getent hosts "$host" | awk '{print $1}' | head -1 || true)
+          echo "DNS: ${ip:-não resolveu}"
+          http=$(curl -sS -o /tmp/diagnostico.json -w '%{http_code}' --max-time 25 \
+            -X POST "https://$host/api_publica_tjpe/_search" \
+            -H "Authorization: APIKey $chave" \
+            -H "Content-Type: application/json" \
+            -d '{"query":{"match_all":{}},"size":0,"track_total_hits":true}' 2>/tmp/diagnostico.err || echo "000")
+          echo "HTTP: $http"
+          echo "corpo (300 bytes): $(head -c 300 /tmp/diagnostico.json 2>/dev/null || true)"
+          echo "erro do curl (300 bytes): $(head -c 300 /tmp/diagnostico.err 2>/dev/null || true)"
+          echo "http=$http" >> "$GITHUB_OUTPUT"
+          {
+            echo "### diagnóstico de rede"
+            echo
+            echo "- host: \`$host\`"
+            echo "- DNS: \`${ip:-falhou}\`"
+            echo "- HTTP: \`$http\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · HTTP=$http"
+
+      - name: "Instrução da ISSUE-006 (com retentativas)"
+        id: verificar
+        run: |
+          set +e
+          codigo=1
+          for tentativa in $(seq 1 "${TENTATIVAS:-3}"); do
+            echo "--- tentativa $tentativa de ${TENTATIVAS:-3}"
+            python3 pipeline/verificar_cnj.py --timeout 45 \
+              --json-saida /tmp/validacao-cnj.json > /tmp/validacao-cnj.out 2>&1
+            codigo=$?
+            echo "código da tentativa: $codigo"
+            [ "$codigo" = "0" ] && break
+            [ "$tentativa" != "${TENTATIVAS:-3}" ] && sleep 20
+          done
+          set -e
+          cat /tmp/validacao-cnj.out
+          if [ ! -s /tmp/validacao-cnj.json ]; then
+            echo "::error::a verificação não produziu JSON (erro tipo 2)"
+            python3 -c "import json; json.dump({'id': 'verificar-cnj-sem-json', 'gate': 'verificar-cnj', 'status': '2', 'codigo_saida': 2, 'mensagem': 'a verificação não produziu JSON de saída', 'continuidade': False, 'next_issue': 'ISSUE-006', 'direcao': 'humano', 'proximo_passo': 'revisar o ambiente de execução', 'anexos': [], 'dados': {}, 'versao': '1.0.0'}, open('/tmp/validacao-cnj.json', 'w'), ensure_ascii=False, indent=2)"
+          fi
+          status=$(python3 -c "import json;print(json.load(open('/tmp/validacao-cnj.json'))['status'])")
+          mensagem=$(python3 -c "import json;print(json.load(open('/tmp/validacao-cnj.json'))['mensagem'].replace(chr(10),' ')[:200])")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "mensagem=$mensagem" >> "$GITHUB_OUTPUT"
+          {
+            echo "### validação ao vivo do CNJ — status \`$status\` (exit=$codigo)"
+            echo
+            echo "$mensagem"
+            echo
+            echo '```json'
+            cat /tmp/validacao-cnj.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::validação CNJ — status=$status · $mensagem"
+          if [ "$status" = "2" ]; then
+            echo "::error::o CNJ recusou a chave pública (erro tipo 2) — exige decisão humana"
+            exit 1
+          fi
+          if [ "$status" = "1" ]; then
+            echo "::warning::a rede do runner não alcançou o CNJ — continuidade: a ISSUE-006 permanece pendente"
+          fi
+
+      - name: "Validação complementar ao vivo (kit curl)"
+        if: steps.verificar.outputs.status == '0'
+        run: |
+          set +e
+          saida=$(bash scripts/datajud.sh contar --tribunal tjpe 2>&1)
+          codigo=$?
+          set -e
+          echo "$saida" | tail -5
+          resumo=$(echo "$saida" | tr '\n' ' ' | tail -c 200)
+          echo "::notice::kit curl ao vivo — código=$codigo · $resumo"
+          {
+            echo "### validação complementar · \`scripts/datajud.sh contar --tribunal tjpe\`"
+            echo
+            echo "\`\`\`"
+            echo "$saida" | tail -8
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$codigo" != "0" ]; then
+            echo "::warning::o kit curl falhou ($codigo) embora a verificação principal tenha passado"
+          fi
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: validacao-cnj
+          path: |
+            /tmp/validacao-cnj.json
+            /tmp/validacao-cnj.out
+            /tmp/diagnostico.json
+          if-no-files-found: warn
+
+  # --------------------------------------------------------------------------- #
+  # sucesso ⇒ a fábrica conclui a ISSUE-006 e constrói a PRÓXIMA indexada
+  # --------------------------------------------------------------------------- #
+  concluir-issue-006:
+    name: "ISSUE-006 validada ⇒ COMPLETADA + próxima indexada (fábrica)"
+    runs-on: ubuntu-latest
+    needs: [validacao-cnj]
+    if: >-
+      needs.validacao-cnj.outputs.status == '0'
+      && github.event_name != 'pull_request'
+      && (github.event_name != 'workflow_dispatch' || inputs.concluir_no_sucesso)
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: "Fábrica · concluir a ISSUE-006 (com a evidência da execução)"
+        run: |
+          url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          python3 pipeline/factory.py --sincronizar \
+            --concluir ISSUE-006 \
+            --evidencia "validacao_ao_vivo=$url" \
+            --evidencia "http=${{ needs.validacao-cnj.outputs.http }}" \
+            --proxima \
+            --titulo "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?" \
+            --entregavel "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)" \
+            --instrucao-teste "test -s docs/04-decisao-unificacao.md" \
+            --exportar pipeline/backlog.json \
+            --saida-dir pipeline/saida | tee /tmp/fabrica-006.out
+
+      - name: "Resumo e versionamento do backlog"
+        run: |
+          {
+            echo "### fábrica · ISSUE-006 completa e próxima indexada construída"
+            echo
+            echo '```json'
+            tail -40 /tmp/fabrica-006.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica-006.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
+          echo "::notice::ISSUE-006 COMPLETADA — a fábrica construiu a próxima indexada: $nova"
+          if git diff --quiet -- pipeline/backlog.json; then
+            echo "backlog sem alterações"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pipeline/backlog.json
+          git commit -m "pipeline: ISSUE-006 validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
+          git push
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: fabrica-issue-006
+          path: |
+            pipeline/backlog.json
+            pipeline/saida/fabrica-*.md
+            pipeline/saida/gate-fabrica-*.json
+          if-no-files-found: warn

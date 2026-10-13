@@ -731,6 +731,14 @@ def montar_parser() -> argparse.ArgumentParser:
                    help="cria a instrução de desenvolvimento de toda issue que não tem uma")
     p.add_argument("--listar", action="store_true", help="lista issues e eventos")
     p.add_argument("--titulo", default=None, help="(--proxima) título da issue a construir")
+    p.add_argument("--entregavel", default="",
+                   help="(--proxima) entregável esperado da issue a construir")
+    p.add_argument("--instrucao-teste", default=None,
+                   help="(--proxima) comando executável que prova a issue (o gate roda isso)")
+    p.add_argument("--instrucao-desenvolvimento", default="",
+                   help="(--proxima) o que fazer para concluir (padrão: as instruções do blueprint)")
+    p.add_argument("--evidencia", action="append", default=[],
+                   help='(--concluir) evidência "chave=valor" (ex.: validacao=https://…/runs/123)')
     p.add_argument("--banco", default=os.environ.get("FABRICA_BANCO") or BANCO_PADRAO)
     p.add_argument("--backlog", default=BACKLOG_PADRAO)
     p.add_argument("--blueprint", default=BLUEPRINT_PADRAO)
@@ -776,16 +784,28 @@ def main(argv=None) -> int:
                 pass  # a exportação acontece logo abaixo, já com as instruções
 
         if args.concluir:
-            issue = fabrica.marcar_concluida(args.concluir,
-                                             {"sucesso": "COMPLETADA", "quando": agora()})
-            resultados.append(f"{issue.id} COMPLETADA")
+            evidencias = {"sucesso": "COMPLETADA", "quando": agora()}
+            for bruta in args.evidencia:
+                if "=" in bruta:
+                    chave, valor = bruta.split("=", 1)
+                    evidencias[chave.strip()] = valor.strip()
+                else:
+                    evidencias.setdefault("notas", []).append(bruta)
+            issue = fabrica.marcar_concluida(args.concluir, evidencias)
+            resultados.append(f"{issue.id} COMPLETADA"
+                              + (f" (evidências: {', '.join(sorted(evidencias))})"
+                                 if len(evidencias) > 2 else ""))
 
         if args.proxima:
             concluidas = [i for i in fabrica.backlog().ordenadas() if i.concluida()]
             anterior = concluidas[-1] if concluidas else None
-            contruida = fabrica.construir_proxima(anterior=anterior, titulo=args.titulo)
+            contruida = fabrica.construir_proxima(
+                anterior=anterior, titulo=args.titulo, entregavel=args.entregavel,
+                instrucao_teste=args.instrucao_teste,
+                instrucao_desenvolvimento=args.instrucao_desenvolvimento)
             resultados.append(f"construída {contruida.id}: {contruida.titulo} "
-                              f"(depende de {', '.join(contruida.depende_de) or '—'})")
+                              f"(depende de {', '.join(contruida.depende_de) or '—'}; "
+                              f"teste: {contruida.instrucao_teste or '—'})")
 
         if args.exportar:
             caminho = repositorio.exportar_backlog(args.exportar)

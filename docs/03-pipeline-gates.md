@@ -9,8 +9,10 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 - Planta (BPMN-like): [`pipeline/blueprint.json`](../pipeline/blueprint.json)
 - Fila indexada de issues: [`pipeline/backlog.json`](../pipeline/backlog.json)
 - Gatilho no GitHub Actions: [`.github/workflows/gates.yml`](../.github/workflows/gates.yml)
-- Testes: [`tests/testar_pipeline.py`](../tests/testar_pipeline.py) (49 testes) e
-  [`tests/testar_fabrica.py`](../tests/testar_fabrica.py) (36 testes) — 100% offline
+- **Validação ao vivo (event-driven, no runner):**
+  [`.github/workflows/validacao-cnj.yml`](../.github/workflows/validacao-cnj.yml)
+- Testes: [`tests/testar_pipeline.py`](../tests/testar_pipeline.py) (59 testes) e
+  [`tests/testar_fabrica.py`](../tests/testar_fabrica.py) (37 testes) — 100% offline
 
 ---
 
@@ -232,9 +234,46 @@ gh run list --workflow=gates.yml
 
 ---
 
+## 5-bis. Validação ao vivo, event-driven (`validacao-cnj.yml`)
+
+O sandbox de desenvolvimento **não alcança** `api-publica.datajud.cnj.jus.br`. O runner do
+GitHub alcança (ou não — e o pipeline diz qual dos dois). Por isso a ISSUE-006 tem um
+workflow **próprio, disparado por evento**, no [`.github/workflows/validacao-cnj.yml`](../.github/workflows/validacao-cnj.yml):
+
+| Gatilho | Quando |
+| --- | --- |
+| `push` (paths) | mudou `verificar_cnj.py`, `gate.py`, `factory.py`, `backlog.json`, `blueprint.json`, `datajud.sh`, `main.py` ou o próprio workflow |
+| `pull_request` (paths) | idem, nos arquivos do pipeline |
+| `schedule` | dias úteis, 11:00 UTC (08:00 em Brasília) — nova tentativa automática |
+| `workflow_dispatch` | manual, com `tentativas` e `concluir_no_sucesso` |
+
+O job `validacao-cnj` faz três coisas e **mapeia o `status` na ação certa** (mesmo contrato
+JSON do resto do pipeline):
+
+1. **diagnóstico de rede** — DNS, `HTTP` e corpo/erro do curl, publicados como anotação
+   (`::notice::`) e no job summary;
+2. **instrução da ISSUE-006** — `python3 pipeline/verificar_cnj.py --timeout 45`, com até
+   `TENTATIVAS` (padrão 3) e espera de 20 s entre elas; se o script não gerar JSON, o job
+   monta um objeto de **erro tipo 2** em vez de estourar;
+3. **validação complementar** (só quando o status é `0`) — `scripts/datajud.sh contar
+   --tribunal tjpe`, mostrando o **número real de processos** do índice.
+
+| status | significado | o que o workflow faz |
+| --- | --- | --- |
+| `"0"` | o CNJ respondeu 200 | job `concluir-issue-006`: `factory.py --concluir ISSUE-006 --evidencia validacao_ao_vivo=<URL da execução> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
+| `"1"` | a rede do runner não alcançou o CNJ | `::warning::` — continuidade: a ISSUE-006 permanece pendente e a próxima tentativa é o próximo evento/agenda |
+| `"2"` | chave recusada / ilegível | `::error::` e o job **falha** (exige humano) |
+
+A evidência de sucesso fica na própria issue: o `backlog.json` guarda
+`evidencias: [{sucesso: COMPLETADA, validacao_ao_vivo: <URL do run>, http: 200, …}]`.
+Quando o workflow só é acionável na branch padrão (`schedule` e `workflow_dispatch`),
+vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch.
+
+---
+
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (49 testes) e `tests/testar_fabrica.py` (36 testes), offline, verificam:
+`tests/testar_pipeline.py` (59 testes) e `tests/testar_fabrica.py` (37 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
@@ -257,11 +296,14 @@ gh run list --workflow=gates.yml
 - **workflow**: gatilhos exigidos, os 6 jobs, chamadas ao executor e à fábrica, publicação de
   JSON/summary/artifacts, `status 2` derrubando o job, checagem estrutural do YAML e
   **`bash -n` em cada bloco `run:`** — a validação definitiva do YAML é a execução real no
-  Actions.
+  Actions;
+- **validação ao vivo** (`validacao-cnj.yml`): os 4 gatilhos, as retentativas, o mapeamento
+  `0/1/2 → ação`, a conclusão automática com `--evidencia`/`--proxima`, o commit `[skip ci]`
+  fora de PR, a guarda de JSON inválido e `bash -n` nos blocos.
 
 ```bash
 python3 tests/testar_pipeline.py         # 49 testes
-python3 tests/testar_fabrica.py          # 36 testes
+python3 tests/testar_fabrica.py          # 37 testes
 make gates                               # veredito de continuidade de verdade
 make fabrica                             # estado da fábrica (SQLite)
 ```

@@ -25,6 +25,7 @@ python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
 | `tests/` | mock local das APIs + 6 suítes de teste offline (**200 verificações**) |
 | **`bootstrap.sh`** + `BOOTSTRAP.md` | recriam/configuram o projeto inteiro (arquivos, permissões, hashes) e validam tudo |
 | `.github/workflows/gates.yml` | roda os gates no GitHub Actions (push, PR, issue, agenda, manual) |
+| `.github/workflows/validacao-cnj.yml` | **validação ao vivo** contra o CNJ no runner (event-driven): 3 tentativas, diagnóstico de rede e, em caso de sucesso, conclui a ISSUE-006 e constrói a próxima |
 | **`ENTREGA.md`** | relatório de entrega do branch: solicitado → incrementado → realizado → testado → validado → produção |
 
 Requisitos: **Python 3.8+** (só biblioteca padrão) para o `main.py`; `bash`, `curl` e `jq` para o `scripts/datajud.sh`.
@@ -196,15 +197,24 @@ O **gatilho só é positivo** quando não há issue aberta **e** o CI não tem e
 **próxima indexada**. Detalhes, diagrama BPMN e contrato completo:
 [`docs/03-pipeline-gates.md`](docs/03-pipeline-gates.md). Entrega documentada: [`ENTREGA.md`](ENTREGA.md).
 
+### Validação ao vivo no runner (event-driven)
+
+A consulta real ao CNJ não roda no sandbox de desenvolvimento (sem rota), mas roda no
+**runner do GitHub**: o workflow `validacao-cnj` dispara em `push`, `pull_request`, agenda
+(dias úteis, 08:00 BRT) e manualmente, tenta até 3 vezes, publica o diagnóstico de rede
+(DNS/HTTP) e, se o CNJ responder **200**, marca a ISSUE-006 como **COMPLETADA** e a
+**fábrica constrói a próxima issue indexada** — commit `[skip ci]`, com a URL da execução
+gravada como evidência. Se a rede falhar, fica em **continuidade** (warning), sem sucesso falso.
+
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 6 suítes (202 verificações)
+make testes                          # todas as 6 suítes (213 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
-python3 tests/testar_pipeline.py     # 49 — contrato JSON, 0/1/2, direção, blueprint, workflow
-python3 tests/testar_fabrica.py      # 36 — fábrica de issues (SQLite, eventos, padrão BPMN)
+python3 tests/testar_pipeline.py     # 59 — contrato JSON, 0/1/2, direção, blueprint, workflow
+python3 tests/testar_fabrica.py      # 37 — fábrica de issues (SQLite, eventos, padrão BPMN)
 ./tests/testar_bootstrap.sh          # 27 — recria o projeto e compara byte a byte
 ```
 

@@ -29,6 +29,7 @@ MARCADOR = "__ARQ_EOF__"
 ARQUIVOS = {
     ".gitignore": False,
     ".github/workflows/gates.yml": False,
+    ".github/workflows/validacao-cnj.yml": False,
     "Makefile": False,
     "README.md": False,
     "BOOTSTRAP.md": False,

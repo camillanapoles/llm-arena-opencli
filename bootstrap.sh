@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 9374 linhas, 442 KiB.
+#  Conteúdo embutido: 32 arquivos, 9634 linhas, 458 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -175,24 +175,24 @@ while read -r esperado caminho; do
   fi
 done <<'MANIFESTO'
 c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/workflows/gates.yml
-7f0b7d42363f140cb0309088c9907ab27b859a943e00f10207739f43f7b6f112  ./.github/workflows/validacao-cnj.yml
+38aa726b3053301344b1d34280abc5fcc99e94fe9375276a83573efa890d978c  ./.github/workflows/validacao-cnj.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
-26c3dd05188b60e514932f20bdbc59d2e9382fef636b4fb949c5b1928ca475d0  ./BOOTSTRAP.md
-b0c5a5ed9e6bd34bd927fb89c6518e1a69fd3ac08b786d6c8dfa84ffa98bd39c  ./ENTREGA.md
+8420d83968692d80af990d5acbb49b7a711de92ec41b09b6dbfafaee43fdb009  ./BOOTSTRAP.md
+57737b64ca073363b255e6ddb248dd2cee94169bab5e773dace9deaa967762b7  ./ENTREGA.md
 0e4e1891354e193ff084ad8ce428d3b87de0c13fb0446b9cec08e0e4a6938f8a  ./Makefile
-2f6895ed662b0d605c056b6c9720899c7185590f8915db080ee733b8dcaac8a7  ./README.md
+1c3ca266155f7e356a1306141c995a1f07aa0cbb00b17a2af772c63af891e86f  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
 5e8befc6e2434cb27c1404693dc775f7de8056893bcc94712e61644e40ddbc3f  ./docs/02-receitas-curl-tjpe.md
-f7e275b18821ce8660b686eaddcd26116b1b93a46138159d82fcfcc5095964a4  ./docs/03-pipeline-gates.md
+0857da3577e9bda0dcfdf77963bb53b1cfcdadc45732c06204a044b3e9f162eb  ./docs/03-pipeline-gates.md
 7c75c6c9e28b98ba45eb7ffdb7ad5165b2d002338c9e32dbbe61d02986e1fd06  ./docs/exemplo-saida/agg-grau.tsv
 8d95b990767a0c8a967f45ccce11471fccb2d6f875f494213f223f7a788a05d0  ./docs/exemplo-saida/agg-orgao-nome.csv
 e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo-saida/relatorio-processo-exemplo.md
 0988a9fe28376cca40c84bbbe73172203e1f4740695026e2f9408f1fd88bea0a  ./docs/exemplo-saida/relatorio-tjpe-exemplo.md
 c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
 050816945908d18638af12bdf9bbaa59c4038ff5317f885004868bc3ef5e0941  ./pipeline/.gitignore
-864c5bfce72e4ac569c5fb4b198989b2a5180075f184de64d9ac21ef343e907d  ./pipeline/backlog.json
+b6dbec2ce1ffd8dbbab5e6e3af6128e3cd59e7b8e140923c0ae929610425c067  ./pipeline/backlog.json
 4c5cf6428692501b4491ad9d1d960cefaddc9c11ed8c8b830edad8103bb42590  ./pipeline/blueprint.json
-e8d5b0c816bbac5c3f95f172ee5f498d8276900a3d6e65ffe6a0c579885d13e5  ./pipeline/factory.py
+c76170fa45a5f0dd569c54da617b0c22a6e929cb8119f63e020af0bcec0b70d7  ./pipeline/factory.py
 7c0d68212116ef06ef6c554804fb19a7508086fd93ce4e6a95a712143640fc86  ./pipeline/gate.py
 b0e13746b042c5388aee48c3b3b8d5dc69cd213d90654b853fc84c0534c200aa  ./pipeline/verificar_cnj.py
 dd78d8b6469b06e5ab67d11137eaac3891ac16b2856064bce8be6a801e67dea0  ./scripts/datajud.sh
@@ -201,9 +201,9 @@ b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_a
 3d917cdf5b4b7732d17ccf0f542987e8daded8b62f03c0e5c055a4988f329daa  ./tests/rodar-testes.sh
 18184cbf5b7f03f294f136fb6b68d5ed98e6fc9cd7de9c9ab3b6e38d5bf7703e  ./tests/testar_bootstrap.sh
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
-2da4b79eab5e5ab83abd1064219ded2ef94a9f7e4d9d380b3b6f5bf80f022ca1  ./tests/testar_fabrica.py
+1097cf932ac8579afc4f3fd17b5530d8a572e0f853eed4f4b8d43d524038cd0e  ./tests/testar_fabrica.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
-dc74cd1dc5d98af83da1556e99c49c58342141f22a7c204639ae1991d8f658ad  ./tests/testar_pipeline.py
+8c4cf1ebe288c7684c5b1593d466002b9568b3ca2e7777e2c49b37f4c5f2a853  ./tests/testar_pipeline.py
 5487c11416c3535f8486c07bd8bd65ec781eb24198ba6d7dc86c534f4d412cd3  ./tools/gerar_bootstrap.py
 MANIFESTO
 if [[ "$falhas_hash" == "0" ]]; then
@@ -737,18 +737,24 @@ __ARQ__ .github/workflows/validacao-cnj.yml
 #     ┌──────────────────────────────────────────────┐
 #     │ validacao-cnj                                │
 #     │  1. diagnóstico de rede (DNS · TLS · HTTP)   │
-#     │  2. pipeline/verificar_cnj.py (instrução da  │
-#     │     ISSUE-006) com N tentativas              │
+#     │  2. pipeline/verificar_cnj.py (a instrução da│
+#     │     pendência ao vivo) com N tentativas      │
 #     │  3. validação complementar ao vivo:          │
 #     │     scripts/datajud.sh contar --tribunal tjpe│
 #     └──────────────────────────────────────────────┘
 #        │ status 0            │ status 1              │ status 2
 #        ▼                     ▼                       ▼
-#   concluir-issue-006     ::warning::             ::error::
-#   (fábrica marca         rede não alcançou        chave recusada
-#    COMPLETADA e          o CNJ — continuidade,    pelo CNJ — exige
-#    constrói a N+1,       mantém a ISSUE-006)      humano (job falha)
-#    commita o backlog)
+#   concluir-pendencia     ::warning::             ::error::
+#   (a fábrica conclui     a validação não         chave recusada
+#    a pendência que       passou nesta            pelo CNJ — exige
+#    ESTA execução         execução (429/rede) —   humano (job falha)
+#    provou e constrói     continuidade na MESMA
+#    a N+1, commita)       issue
+#
+#  Idempotência: a conclusão é dirigida pela pendência REAL do backlog, e só
+#  quando a instrução de teste dela é a que roda aqui (verificar_cnj/datajud.sh).
+#  Pendência de desenvolvimento (ex.: escrever docs/04-…) ⇒ o job apenas registra
+#  o evento de continuidade — repetir o push não inventa issue nova.
 #
 #  Exit code = status (0/1/2), como em todo o pipeline. A validação mostra o
 #  número real de processos do tribunal quando funciona — é evidência, não promessa.
@@ -782,7 +788,7 @@ on:
         required: false
         default: "3"
       concluir_no_sucesso:
-        description: "Marcar ISSUE-006 como COMPLETADA e construir a próxima se funcionar"
+        description: "Marcar a pendência provada por esta execução como COMPLETADA e construir a próxima se funcionar"
         type: boolean
         required: false
         default: true
@@ -863,7 +869,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · http=${http:-—} · curl=$curl_code"
 
-      - name: "Instrução da ISSUE-006 (com retentativas)"
+      - name: "Instrução da pendência ao vivo (com retentativas)"
         id: verificar
         run: |
           set +e
@@ -907,7 +913,7 @@ jobs:
             exit 1
           fi
           if [ "$status" = "1" ]; then
-            echo "::warning::a rede do runner não alcançou o CNJ — continuidade: a ISSUE-006 permanece pendente"
+            echo "::warning::a validação ao vivo não passou nesta execução — continuidade: a pendência permanece na MESMA issue (a causa real está no ::notice:: acima: 429/taxa, rede ou chave)"
           fi
 
       - name: "Validação complementar ao vivo (kit curl)"
@@ -942,10 +948,13 @@ jobs:
           if-no-files-found: warn
 
   # --------------------------------------------------------------------------- #
-  # sucesso ⇒ a fábrica conclui a ISSUE-006 e constrói a PRÓXIMA indexada
+  # sucesso ⇒ a fábrica conclui a pendência que ESTA execução provou e constrói a
+  # PRÓXIMA indexada. Se a pendência atual for de desenvolvimento (a validação ao
+  # vivo não a prova), o job só registra o evento de continuidade — nunca inventa
+  # issue nova (idempotência: o mesmo push roda de novo sem efeito colateral).
   # --------------------------------------------------------------------------- #
-  concluir-issue-006:
-    name: "ISSUE-006 validada ⇒ COMPLETADA + próxima indexada (fábrica)"
+  concluir-pendencia:
+    name: "Sucesso testado ⇒ pendência COMPLETADA + próxima indexada (fábrica)"
     runs-on: ubuntu-latest
     needs: [validacao-cnj]
     if: >-
@@ -957,31 +966,85 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: "Fábrica · concluir a ISSUE-006 (com a evidência da execução)"
+      - name: "Fábrica · qual é a pendência e esta execução a prova?"
+        id: pendencia
+        run: |
+          python3 pipeline/factory.py --sincronizar -q \
+            --pendencia-ao-vivo --json-saida /tmp/pendencia.json \
+            --saida-dir pipeline/saida
+          # .lower(): o `if:` do GitHub compara com a string 'true' (o Python imprime True)
+          prova=$(python3 -c "import json;print(str(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['prova_ao_vivo']).lower())")
+          issue=$(python3 -c "import json;print(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['issue'] or '')")
+          motivo=$(python3 -c "import json;print(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['motivo'])")
+          {
+            echo "prova_ao_vivo=$prova"
+            echo "issue=$issue"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice::fábrica — pendência: ${issue:-—} · provada por esta execução: $prova · $motivo"
+
+      - name: "Fábrica · concluir a pendência provada e construir a próxima indexada"
+        id: concluir
+        if: steps.pendencia.outputs.prova_ao_vivo == 'true'
         run: |
           url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          issue="${{ steps.pendencia.outputs.issue }}"
+          extra=()
+          if [ "$issue" = "ISSUE-006" ]; then
+            # a frente da validação ao vivo entrega, na sequência, a decisão da ISSUE-007
+            extra=(--titulo "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?"
+                   --entregavel "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)"
+                   --instrucao-teste "test -s docs/04-decisao-unificacao.md")
+          fi
+          set +e
           python3 pipeline/factory.py --sincronizar \
-            --concluir ISSUE-006 \
+            --concluir "$issue" \
             --evidencia "validacao_ao_vivo=$url" \
             --evidencia "http=${{ needs.validacao-cnj.outputs.http }}" \
-            --proxima \
-            --titulo "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?" \
-            --entregavel "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)" \
-            --instrucao-teste "test -s docs/04-decisao-unificacao.md" \
+            --proxima "${extra[@]}" \
             --exportar pipeline/backlog.json \
-            --saida-dir pipeline/saida | tee /tmp/fabrica-006.out
+            --saida-dir pipeline/saida > /tmp/fabrica.out
+          codigo=$?
+          set -e
+          cat /tmp/fabrica.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/fabrica.out'))['status'])" 2>/dev/null || echo 2)
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          # 1 = continuidade (nada a concluir agora): não é erro, o job não fica vermelho.
+          if [ "$status" = "1" ]; then
+            echo "::warning::a fábrica manteve a continuidade (status 1) — a próxima indexada só nasce depois do sucesso testado"
+          fi
+          if [ "$status" = "2" ]; then
+            echo "::error::a fábrica devolveu erro tipo 2 (banco/arquivo inacessível) — exige humano"
+            exit 1
+          fi
+
+      - name: "Continuidade · a pendência atual não é provada por esta validação"
+        if: steps.pendencia.outputs.prova_ao_vivo != 'true'
+        run: |
+          url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          issue="${{ steps.pendencia.outputs.issue }}"
+          python3 pipeline/factory.py --sincronizar -q \
+            --evento "checkpoint|fase=validacao_ao_vivo|run=$url" \
+            --saida-dir pipeline/saida
+          echo "::notice::continuidade — ${issue:-sem pendência}: a validação ao vivo passou (HTTP ${{ needs.validacao-cnj.outputs.http }}) e a pendência segue na MESMA issue, com a instrução de desenvolvimento dela"
+          {
+            echo "### continuidade"
+            echo
+            echo "- validação ao vivo: OK (HTTP ${{ needs.validacao-cnj.outputs.http }})"
+            echo "- pendência: \`${issue:-—}\` — a instrução de teste dela é outra; a fábrica não cria issue nova"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: "Resumo e versionamento do backlog"
+        if: steps.concluir.outputs.status == '0'
         run: |
           {
-            echo "### fábrica · ISSUE-006 completa e próxima indexada construída"
+            echo "### fábrica · pendência COMPLETADA e próxima indexada construída"
             echo
             echo '```json'
-            tail -40 /tmp/fabrica-006.out
+            tail -40 /tmp/fabrica.out
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica-006.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
-          echo "::notice::ISSUE-006 COMPLETADA — a fábrica construiu a próxima indexada: $nova"
+          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
+          echo "::notice::${{ steps.pendencia.outputs.issue }} COMPLETADA — a fábrica construiu a próxima indexada: $nova"
           if git diff --quiet -- pipeline/backlog.json; then
             echo "backlog sem alterações"
             exit 0
@@ -989,13 +1052,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add pipeline/backlog.json
-          git commit -m "pipeline: ISSUE-006 validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
+          git commit -m "pipeline: ${{ steps.pendencia.outputs.issue }} validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
           git push
 
       - uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: fabrica-issue-006
+          name: fabrica-pendencia
           path: |
             pipeline/backlog.json
             pipeline/saida/fabrica-*.md
@@ -1148,7 +1211,7 @@ advogados: **MNI** do PJe, com certificado digital.
 
 ## 6. Códigos de teste: o que cada suíte cobre e o resultado esperado
 
-Rode tudo de uma vez com `make testes`: são **6 suítes** e **221 verificações**, todas offline,
+Rode tudo de uma vez com `make testes`: são **6 suítes** e **228 verificações**, todas offline,
 contra mocks locais (nenhuma requisição real ao CNJ).
 
 | Suíte | Arquivo | Testes | Cobre | Saída esperada |
@@ -1330,20 +1393,22 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 13/10 14:3x | `e864c53` corrige o job 5 em `pull_request` (`github.ref_name` = `NNN/merge` quebrava o checkout; commit do backlog agora só fora de PR) e atualiza as actions para v5 → **runs de `push` e `pull_request` verdes, 5/5 jobs** |
 | 13/10 15:1x | `cd3a80d` — pedido 4 publicado: ENTREGA.md + validação real do workflow no Actions (runs de push e PR verdes) |
 | 13/10 18:5x | `b9873a4/c422628` — **validação ao vivo event-driven**: `.github/workflows/validacao-cnj.yml` dispara no runner por push/PR/agenda/dispatch; na primeira execução, o runner **resolveu o DNS (`201.49.152.99`) e recebeu `HTTP 429`** do CNJ (taxa compartilhada) ⇒ `status "1"`, continuidade, **sem sucesso falso** |
-| 13/10 19:0x | O incidente virou robustez: `verificar_cnj.py` passou a tratar **429 com `Retry-After`** e a expor `direcao`/`proximo_passo`; o workflow ganhou **backoff 30/60/90 s** (teto 150 s), diagnóstico pelo mesmo caminho de rede do validador (urllib) e 10 testes novos |
+| 13/10 19:0x | O incidente virou robustez (`28d4499`): `verificar_cnj.py` passou a tratar **429 com `Retry-After`** e a expor `direcao`/`proximo_passo`; o workflow ganhou **backoff 30/60/90 s** (teto 150 s), diagnóstico pelo mesmo caminho de rede do validador (urllib) e testes novos |
+| 13/10 19:07 | **O laço fechou no runner** ([run 38451978473](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473)): `HTTP 200` do CNJ com `hits.total = 6852614`, kit curl confirmando `Total: 6852614` ⇒ a fábrica marcou a **ISSUE-006 COMPLETADA** (evidência = URL do run), **construiu a ISSUE-008** e o bot commitou o `backlog.json` (`34fc224`, marcador de skip do commit-bot) |
+| 13/10 19:2x | **Idempotência + correção de contrato**: o job de conclusão passou a ser dirigido pela pendência REAL (`--pendencia-ao-vivo`) em vez de fixar a ISSUE-006 — pendência de desenvolvimento não é provada pela consulta ao CNJ, então o job só registra a continuidade (sem `ISSUE-009`, `ISSUE-010`… a cada push); achado na emulação: o Python imprime `True` e o `if:` do GitHub compara com `'true'` — o output agora é normalizado em minúsculas |
 | 13/10 18:4x | Lição de CI registrada: um commit com o literal do marcador de skip na mensagem **não dispara workflows** — o workflow novo nem foi registrado até o segundo push |
 | 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
 | 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
 
-### 2.4 Testado (6 suítes, 221 verificações, tudo offline)
+### 2.4 Testado (6 suítes, 228 verificações, tudo offline)
 
 | Suíte | Verificações | O que cobre |
 | --- | --- | --- |
 | `tests/testar_conformidade.py` | 29 | conformidade com a doc oficial do CNJ: URL/rota/headers, aliases de tribunal, 15 campos do glossário, `search_after`, teto de 10.000, agregações com `.keyword`, 120 req/min, LGPD |
 | `tests/testar_main.py` | 29 | `main.py`: DV do número CNJ (`% 97 == 1`), montagem do número de 20 dígitos, DataJud + DJEN com mocks, relatório Markdown, anexos, exit codes |
 | `tests/rodar-testes.sh` | 32 | `scripts/datajud.sh`: chave pública, consulta, contagem, agregação, relatório, paginação, erros |
-| `tests/testar_pipeline.py` | 67 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
-| `tests/testar_fabrica.py` | 37 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
+| `tests/testar_pipeline.py` | 70 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
+| `tests/testar_fabrica.py` | 41 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
 | `tests/testar_bootstrap.sh` | 27 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 5 suítes rodando **dentro** do projeto recriado, gates (fabrica/blueprint/continuidade) no projeto recriado, `--verificar`, proteção contra sobrescrita |
 
 ### 2.5 Validado (como cada promessa foi conferida)
@@ -1355,14 +1420,16 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Planta BPMN × implementação | `python3 pipeline/gate.py blueprint` | `status "0"` — *5 gates, 15 transições* |
 | Gatilho de continuidade | `python3 pipeline/gate.py continuidade` | `status "1"` (há issue aberta) — **continuidade**, como manda a regra |
 | CI/CD | `python3 pipeline/gate.py cicd` | `status "0"` — 5 execuções, nenhuma com erro |
-| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 221 verificações aprovadas |
+| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 228 verificações aprovadas |
 | Fábrica de issues | `python3 pipeline/gate.py fabrica` | `status "0"` — 8 classes, tabelas `eventos`/`issues`/`schema_info`, round-trip SQLite ⇄ `backlog.json` ok, nenhuma issue sem instrução de desenvolvimento |
 | Eventos event-driven | `python3 pipeline/factory.py --evento "ci_falhou\|run=42"` | `continuar` na MESMA issue, com a direção `depurar` (CI) / `corrigir` (teste) — a fila não incha |
 | Construção da N+1 | `python3 pipeline/factory.py --concluir ISSUE-006 --proxima` | cria a `ISSUE-008` dependendo da última concluída e recusa (status 1) enquanto houver issue pendente |
 | Shell do workflow | teste `test_blocos_run_sao_bash_valido` | os 8 blocos `run:` são `bash -n` válidos |
 | Sem fonte de dados (`gh` ausente) | `python3 pipeline/gate.py issues --sem-gh` | `status "2"` (erro tipo 2) — não inventa sucesso |
 | Projeto reconstruído funciona | `bash bootstrap.sh --destino /tmp/x` | 7/7 etapas ✔, exit 0 |
-| **Validação ao vivo event-driven** | [run de `validacao-cnj` (push)](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451236091) | job verde com **diagnóstico real**: DNS `201.49.152.99`, `HTTP 429` do CNJ ⇒ `status "1"`, `::warning::` de continuidade e a ISSUE-006 mantida — o gate **não inventou sucesso** |
+| **Validação ao vivo event-driven — 1ª medição** | [run 38451236091](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451236091) | job verde com **diagnóstico real**: DNS `201.49.152.99`, `HTTP 429` do CNJ ⇒ `status "1"`, `::warning::` de continuidade e a ISSUE-006 mantida — o gate **não inventou sucesso** |
+| **Validação ao vivo — laço FECHADO** | [run 38451978473](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473) | **`HTTP 200`** do CNJ (`api_publica_tjpe`, `hits.total = 6852614`) e kit curl com `Total: 6852614` ⇒ a fábrica marcou a **ISSUE-006 COMPLETADA** (evidência = URL do run), **construiu a ISSUE-008** e o bot commitou o `backlog.json` — evento → teste → conclusão → próxima issue, sem intervenção |
+| **Idempotência do job de conclusão** | `python3 pipeline/factory.py --pendencia-ao-vivo` | devolve a pendência REAL do backlog e se **esta execução** a prova; pendência de desenvolvimento ⇒ continuidade na MESMA issue, **sem** criar `ISSUE-009` a cada push (emulado nos dois cenários antes do push) |
 | **Workflow no GitHub Actions** | [run de `push`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444008073) e [run de `pull_request`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444012416) | **os dois verdes**, com os **6 jobs** passando (`gate 1·issues`, `gate 2·cicd`, `gate 3·testes`, `gate 4·fábrica`, `gate 5·continuidade`, `gate 6·issue`) e 6 artifacts publicados — é a validação real do YAML |
 | **Fábrica no CI** | job `gate 4 · fábrica de issues (padrão + SQLite)` | verde em 5–8 s; o passo de eventos registra `issue_aberta`/`ci_falhou`/`teste_falhou` conforme os gates anteriores |
 | **Continuidade honesta no runner** | anotação do job 6: *"a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"* | o runner do GitHub **também não alcançou o CNJ** naquele momento: em vez de marcar sucesso falso, o gate manteve a `ISSUE-006` e a direção `corrigir` (exatamente o comportamento pedido) |
@@ -1372,7 +1439,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli
 
-make testes        # 6 suítes, 221 verificações, offline
+make testes        # 6 suítes, 228 verificações, offline
 make gates         # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
 make fabrica       # estado da fábrica de issues (SQLite): pendências, eventos e próximo passo
 make consultar NUMERO=0001234-43.2024.8.17.2001   # relatório Markdown do processo (rede real)
@@ -1403,7 +1470,7 @@ tools/gerar_bootstrap.py    gerador/verificador do bootstrap (--conferir)
 BOOTSTRAP.md                manual do bootstrap
 ENTREGA.md                  este relatório
 
-tests/                      6 suítes, 221 verificações (offline, com mocks)
+tests/                      6 suítes, 228 verificações (offline, com mocks)
 ```
 
 ---
@@ -1527,7 +1594,8 @@ Backlog do projeto (`pipeline/backlog.json`):
 | ISSUE-003 | Bootstrap auto-criador do projeto | concluída |
 | ISSUE-004 | Validação de conformidade com a documentação do CNJ | concluída |
 | ISSUE-005 | Pipeline de gates (contrato JSON, 0/1/2) | concluída |
-| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente, agora automática**: o runner alcança o CNJ (DNS ok) e a API respondeu `429` (taxa compartilhada) ⇒ continuidade. O workflow `validacao-cnj` tenta de novo a cada evento/agenda e, quando a taxa liberar, **conclui a ISSUE-006 e constrói a próxima sozinho** |
+| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **COMPLETADA no runner** (run 38451978473): `HTTP 200`, `hits.total = 6852614`; a fábrica concluiu a issue com a URL do run como evidência e construiu a próxima indexada |
+| ISSUE-008 | Decisão da ISSUE-007: unificar com o fluxo da sessão `d917b13b`? (`docs/04-decisao-unificacao.md`) | **construída automaticamente** pela fábrica no sucesso da 006; pendente de desenvolvimento — a instrução de teste dela (`test -s docs/04-…`) é o que a fecha |
 | ISSUE-007 | Decidir unificação com o fluxo da issue #3 (outra sessão) | bloqueada (decisão humana) |
 
 ---
@@ -1551,9 +1619,9 @@ Backlog do projeto (`pipeline/backlog.json`):
 - [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
 - [x] **Realizado** — 8 marcos de commit + 11 arquivos novos, tudo versionado no branch (seção 2.3)
 - [x] **Fábrica de issues (pedido 5)** — event-driven, POO + SQLite, padrão declarado no blueprint, instrução de desenvolvimento em todas as issues e construção automática da próxima indexada após o sucesso testado (seção 4.4)
-- [x] **Testado** — 6 suítes, **221 verificações**, todas offline e reprodutíveis (seção 2.4)
+- [x] **Testado** — 6 suítes, **228 verificações**, todas offline e reprodutíveis (seção 2.4)
 - [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero, **os 6 jobs do workflow verdes** e a **validação ao vivo rodando no runner** (seção 2.5)
-- [x] **Automático até o fim (pedido 6)** — a validação ao vivo é event-driven: no sucesso, a fábrica conclui a ISSUE-006, constrói a próxima indexada e versiona o backlog sem intervenção (seção 5-bis de `docs/03`)
+- [x] **Automático até o fim (pedido 6)** — a validação ao vivo é event-driven e o laço **fechou no runner**: `HTTP 200` ⇒ a fábrica concluiu a ISSUE-006, construiu a ISSUE-008 e versionou o backlog sem intervenção; a conclusão é dirigida pela pendência real (`--pendencia-ao-vivo`), então repetir o push não cria issue nova (seção 5-bis de `docs/03`)
 - [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
 - [x] **Documentado** — `README.md` (visão geral), `BOOTSTRAP.md` (instalação), `docs/01-03` (API, receitas, pipeline) e esta `ENTREGA.md`
 - [ ] **Pendente do usuário** — rodar a validação ao vivo do CNJ (ISSUE-006) num ambiente com internet e decidir a ISSUE-007
@@ -1683,7 +1751,7 @@ python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
 | `tests/` | mock local das APIs + 6 suítes de teste offline (**200 verificações**) |
 | **`bootstrap.sh`** + `BOOTSTRAP.md` | recriam/configuram o projeto inteiro (arquivos, permissões, hashes) e validam tudo |
 | `.github/workflows/gates.yml` | roda os gates no GitHub Actions (push, PR, issue, agenda, manual) |
-| `.github/workflows/validacao-cnj.yml` | **validação ao vivo** contra o CNJ no runner (event-driven): 3 tentativas, diagnóstico de rede e, em caso de sucesso, conclui a ISSUE-006 e constrói a próxima |
+| `.github/workflows/validacao-cnj.yml` | **validação ao vivo** contra o CNJ no runner (event-driven): 3 tentativas, diagnóstico de rede e, em caso de sucesso, conclui a **pendência que a execução provou** e constrói a próxima indexada |
 | **`ENTREGA.md`** | relatório de entrega do branch: solicitado → incrementado → realizado → testado → validado → produção |
 
 Requisitos: **Python 3.8+** (só biblioteca padrão) para o `main.py`; `bash`, `curl` e `jq` para o `scripts/datajud.sh`.
@@ -1860,16 +1928,25 @@ O **gatilho só é positivo** quando não há issue aberta **e** o CI não tem e
 A consulta real ao CNJ não roda no sandbox de desenvolvimento (sem rota), mas roda no
 **runner do GitHub**: o workflow `validacao-cnj` dispara em `push`, `pull_request`, agenda
 (dias úteis, 08:00 BRT) e manualmente, tenta até 3 vezes com backoff (respeitando o `Retry-After`), publica o diagnóstico de rede
-(DNS/HTTP) e, se o CNJ responder **200**, marca a ISSUE-006 como **COMPLETADA** e a
-**fábrica constrói a próxima issue indexada** — com a URL da execução gravada como evidência.
+(DNS/HTTP) e, se o CNJ responder **200**, pergunta à fábrica **qual é a pendência que essa
+execução prova** (`--pendencia-ao-vivo`), marca-a como **COMPLETADA** e constrói a **próxima
+issue indexada** — com a URL da execução gravada como evidência. Pendência de
+*desenvolvimento* não é concluída por aqui: nesse caso o job registra a continuidade e **não
+cria issue nova** (idempotente).
 Se a rede falhar ou o CNJ responder **429** (taxa compartilhada de 120 req/min), fica em
-**continuidade** (warning), sem sucesso falso. Medido em 13/10: DNS `201.49.152.99` e
-`HTTP 429` — o runner alcança o CNJ; a validação fica esperando a janela de taxa.
+**continuidade** (warning), sem sucesso falso.
+
+**Medido em 13/10 (runner do GitHub, sem mock):** a primeira execução levou `HTTP 429`
+(taxa) e o pipeline respondeu com continuidade; a [segunda](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473)
+obteve **`HTTP 200` — índice `api_publica_tjpe`, `hits.total = 6852614`** e o kit curl
+confirmou `Total: 6852614`. Então a fábrica marcou a `ISSUE-006` **COMPLETADA** (evidência =
+URL do run) e construiu a `ISSUE-008` sozinha, com commit do bot no backlog: o laço
+evento → teste → conclusão → próxima issue **fechou no runner**.
 
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 6 suítes (221 verificações)
+make testes                          # todas as 6 suítes (228 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
@@ -2379,7 +2456,7 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 - **Validação ao vivo (event-driven, no runner):**
   [`.github/workflows/validacao-cnj.yml`](../.github/workflows/validacao-cnj.yml)
 - Testes: [`tests/testar_pipeline.py`](../tests/testar_pipeline.py) (59 testes) e
-  [`tests/testar_fabrica.py`](../tests/testar_fabrica.py) (37 testes) — 100% offline
+  [`tests/testar_fabrica.py`](../tests/testar_fabrica.py) (41 testes) — 100% offline
 
 ---
 
@@ -2604,7 +2681,7 @@ gh run list --workflow=gates.yml
 ## 5-bis. Validação ao vivo, event-driven (`validacao-cnj.yml`)
 
 O sandbox de desenvolvimento **não alcança** `api-publica.datajud.cnj.jus.br`. O runner do
-GitHub alcança (ou não — e o pipeline diz qual dos dois). Por isso a ISSUE-006 tem um
+GitHub alcança (e o pipeline diz em que estado). Por isso a ISSUE-006 tem um
 workflow **próprio, disparado por evento**, no [`.github/workflows/validacao-cnj.yml`](../.github/workflows/validacao-cnj.yml):
 
 | Gatilho | Quando |
@@ -2619,22 +2696,36 @@ JSON do resto do pipeline):
 
 1. **diagnóstico de rede** — DNS, `HTTP` e corpo/erro do curl, publicados como anotação
    (`::notice::`) e no job summary;
-2. **instrução da ISSUE-006** — `python3 pipeline/verificar_cnj.py --timeout 45`, com até
-   `TENTATIVAS` (padrão 3) e espera de 20 s entre elas; se o script não gerar JSON, o job
-   monta um objeto de **erro tipo 2** em vez de estourar;
+2. **instrução da pendência ao vivo** — `python3 pipeline/verificar_cnj.py --timeout 45`, com
+   até `TENTATIVAS` (padrão 3) e espera do `Retry-After` (ou 30 s × tentativa, teto 150 s);
+   se o script não gerar JSON, o job monta um objeto de **erro tipo 2** em vez de estourar;
 3. **validação complementar** (só quando o status é `0`) — `scripts/datajud.sh contar
    --tribunal tjpe`, mostrando o **número real de processos** do índice.
 
 | status | significado | o que o workflow faz |
 | --- | --- | --- |
-| `"0"` | o CNJ respondeu **200** | job `concluir-issue-006`: `factory.py --concluir ISSUE-006 --evidencia validacao_ao_vivo=<URL da execução> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
-| `"1"` | rede indisponível **ou** `HTTP 429` (taxa compartilhada de 120 req/min) | `::warning::` — continuidade: a ISSUE-006 permanece pendente; o job espera `Retry-After` (ou 30 s × tentativa, teto 150 s) e tenta de novo; a próxima tentativa também vem do próximo evento/agenda |
+| `"0"` | o CNJ respondeu **200** | job `concluir-pendencia`: a fábrica pergunta **qual é a pendência** (`--pendencia-ao-vivo`) e só conclui a que **esta execução provou** — `--concluir "$issue" --evidencia validacao_ao_vivo=<URL do run> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
+| `"1"` | rede indisponível **ou** `HTTP 429` (taxa compartilhada de 120 req/min) | `::warning::` — continuidade: a pendência permanece na **mesma** issue; o job espera `Retry-After` (ou 30 s × tentativa, teto 150 s) e tenta de novo; a próxima tentativa vem do próximo evento/agenda |
 | `"2"` | chave recusada / ilegível | `::error::` e o job **falha** (exige humano) |
 
-**Evidência medida no runner** (execução de 13/10): DNS resolveu `201.49.152.99`, a API
-respondeu **HTTP 429** (limite de taxa compartilhado do IP de saída) e o pipeline tratou como
-**continuidade** (`status "1"`) em vez de sucesso falso — foi o que motivou o backoff e o
-`Retry-After`. Quando a janela de taxa abre, a conclusão é automática.
+**Idempotência (o detalhe que evita lixo no backlog).** Uma pendência de *desenvolvimento*
+(ex.: escrever `docs/04-…`) **não** é provada pela consulta ao CNJ. Quando é esse o caso, o
+job registra o evento de continuidade e **não** cria issue nova — assim o mesmo `push` pode
+rodar dez vezes sem inventar `ISSUE-009`, `ISSUE-010`… A conclusão automática vale só para a
+pendência cujo `instrucao_teste` é o que roda aqui (`verificar_cnj.py` / `datajud.sh`).
+
+**Evidência medida no runner** (duas execuções de 13/10, ambas citadas aqui como número real,
+não promessa):
+
+| execução | o que mediu | desfecho |
+| --- | --- | --- |
+| [run 38451236091](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451236091) | DNS resolveu `201.49.152.99`; a API respondeu **HTTP 429** (limite de 120 req/min, IP de saída compartilhado) | **continuidade** (`status "1"`), sem sucesso falso — motivou o backoff e o `Retry-After` |
+| [run 38451978473](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473) | **HTTP 200**, índice `api_publica_tjpe`, `hits.total = 6852614`; o kit curl confirmou `Total: 6852614` | **`status "0"`** ⇒ a fábrica marcou a **ISSUE-006 COMPLETADA** (evidência = URL do run), construiu a **ISSUE-008** e commitou o backlog pelo bot |
+
+Essa segunda execução fechou o laço pedido no pedido 6: o evento no GitHub Actions executou a
+instrução de teste da issue pendente, provou-a ao vivo contra o CNJ e devolveu a **direção de
+continuidade** — `COMPLETADA` + próxima indexada (`ISSUE-008`, o registro da decisão da
+ISSUE-007 em `docs/04-decisao-unificacao.md`).
 
 A evidência de sucesso fica na própria issue: o `backlog.json` guarda
 `evidencias: [{sucesso: COMPLETADA, validacao_ao_vivo: <URL do run>, http: 200, …}]`.
@@ -2645,7 +2736,7 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (67 testes) e `tests/testar_fabrica.py` (37 testes), offline, verificam:
+`tests/testar_pipeline.py` (70 testes) e `tests/testar_fabrica.py` (41 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
@@ -2675,7 +2766,7 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ```bash
 python3 tests/testar_pipeline.py         # 49 testes
-python3 tests/testar_fabrica.py          # 37 testes
+python3 tests/testar_fabrica.py          # 41 testes
 make gates                               # veredito de continuidade de verdade
 make fabrica                             # estado da fábrica (SQLite)
 ```
@@ -3959,129 +4050,153 @@ __ARQ_EOF__
 __ARQ__ pipeline/backlog.json
 {
   "nome": "backlog do projeto — consulta processual DataJud/DJEN",
-  "descricao": "Fila indexada de issues. Cada item traz a instrução de teste executável do entregável; o gate `issue` roda essa instrução e, quando ela passa, marca o item como concluída e entrega a instrução da ISSUE SEGUINTE.",
-  "como_usar": [
-    "python3 pipeline/gate.py issue                 # roda a próxima pendente (sem marcar)",
-    "python3 pipeline/gate.py issue --marcar        # roda e marca concluída se passar",
-    "python3 pipeline/gate.py issue --id ISSUE-007  # roda uma issue específica",
-    "python3 pipeline/gate.py fabrica                 # verifica a fábrica (padrão + SQLite + instruções)",
-    "python3 pipeline/factory.py --sincronizar        # traz o backlog.json para o SQLite",
-    "python3 pipeline/factory.py --instruir --exportar backlog.json   # cria instrução onde faltar",
-    "python3 pipeline/factory.py --evento \"ci_falhou|run=123\" --listar  # evento → issue (event-driven)"
-  ],
-  "status_possiveis": [
-    "concluida (COMPLETADA — sucesso testado; sinônimos: completada/done)",
-    "pendente",
-    "bloqueada (exige humano)",
-    "cancelada"
-  ],
+  "gerado_por": "pipeline/factory.py 1.0.0 (SQLite ⇄ backlog.json)",
+  "gerado_em": "2026-10-13T19:07:28Z",
   "issues": [
     {
       "id": "ISSUE-001",
+      "indice": 1,
       "titulo": "Kit curl para a API Pública do DataJud (TJPE)",
       "entregavel": "scripts/datajud.sh + docs/01-api-datajud.md + docs/02-receitas-curl-tjpe.md",
       "instrucao_teste": "bash tests/rodar-testes.sh",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao alterar o kit curl, rodar `bash tests/rodar-testes.sh` (32 verificações) e conferir as receitas em docs/02; qualquer rota/param novo entra na doc antes do código.",
       "status": "concluida",
-      "concluida_em": "2026-10-13T00:00:00Z",
       "depende_de": [],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
       "evidencias": [
         "32 verificações offline passando"
-      ],
-      "instrucao_desenvolvimento": "MANUTENÇÃO: ao alterar o kit curl, rodar `bash tests/rodar-testes.sh` (32 verificações) e conferir as receitas em docs/02; qualquer rota/param novo entra na doc antes do código.",
-      "origem": "sessão arena/ed79bd77 (pedido 4)"
+      ]
     },
     {
       "id": "ISSUE-002",
+      "indice": 2,
       "titulo": "main.py — consulta um processo e gera relatório Markdown",
       "entregavel": "main.py + tests/testar_main.py + tests/mock_apis.py",
       "instrucao_teste": "python3 tests/testar_main.py",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mexer no relatório, rodar `python3 tests/testar_main.py` (29) e regerar um exemplo em docs/exemplo-saida/ com `python3 main.py 0001234-43.2024.8.17.2001 -o docs/exemplo-saida/relatorio-processo-exemplo.md`.",
       "status": "concluida",
-      "concluida_em": "2026-10-13T00:00:00Z",
       "depende_de": [
         "ISSUE-001"
       ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
       "evidencias": [
         "29 testes: NUP/DV, seções do relatório, DJEN, erros 400/401/404/429"
-      ],
-      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mexer no relatório, rodar `python3 tests/testar_main.py` (29) e regerar um exemplo em docs/exemplo-saida/ com `python3 main.py 0001234-43.2024.8.17.2001 -o docs/exemplo-saida/relatorio-processo-exemplo.md`.",
-      "origem": "sessão arena/ed79bd77 (pedido 4)"
+      ]
     },
     {
       "id": "ISSUE-003",
+      "indice": 3,
       "titulo": "Bootstrap auto-criador (estrutura, arquivos, permissões, hashes)",
       "entregavel": "bootstrap.sh + BOOTSTRAP.md + tools/gerar_bootstrap.py",
       "instrucao_teste": "bash tests/testar_bootstrap.sh",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: depois de criar/renomear arquivo, incluir no ARQUIVOS de tools/gerar_bootstrap.py, rodar `python3 tools/gerar_bootstrap.py` e `bash tests/testar_bootstrap.sh` (25 verificações; o diff -r precisa voltar vazio).",
       "status": "concluida",
-      "concluida_em": "2026-10-13T00:00:00Z",
       "depende_de": [
         "ISSUE-002"
       ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
       "evidencias": [
         "22 verificações: recriação byte a byte (diff -r), permissões, SHA-256, --verificar"
-      ],
-      "instrucao_desenvolvimento": "MANUTENÇÃO: depois de criar/renomear arquivo, incluir no ARQUIVOS de tools/gerar_bootstrap.py, rodar `python3 tools/gerar_bootstrap.py` e `bash tests/testar_bootstrap.sh` (25 verificações; o diff -r precisa voltar vazio).",
-      "origem": "sessão arena/ed79bd77 (pedido 4)"
+      ]
     },
     {
       "id": "ISSUE-004",
+      "indice": 4,
       "titulo": "Validação de conformidade com a documentação oficial do CNJ",
       "entregavel": "tests/testar_conformidade.py + tabela de conformidade no BOOTSTRAP.md",
       "instrucao_teste": "python3 tests/testar_conformidade.py",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar contrato/limite da API, atualizar docs/01 e `python3 tests/testar_conformidade.py` (29) no mesmo commit — a conformidade é o teste que quebra primeiro.",
       "status": "concluida",
-      "concluida_em": "2026-10-13T00:00:00Z",
       "depende_de": [
         "ISSUE-001"
       ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
       "evidencias": [
         "29 testes contra a wiki do DataJud e o Termo de Uso v1.2"
-      ],
-      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar contrato/limite da API, atualizar docs/01 e `python3 tests/testar_conformidade.py` (29) no mesmo commit — a conformidade é o teste que quebra primeiro.",
-      "origem": "sessão arena/ed79bd77 (pedido 4)"
+      ]
     },
     {
       "id": "ISSUE-005",
+      "indice": 5,
       "titulo": "Pipeline orientado a gates (JSON) + workflow do GitHub Actions",
       "entregavel": "pipeline/gate.py + pipeline/blueprint.json + pipeline/backlog.json + .github/workflows/gates.yml",
       "instrucao_teste": "python3 tests/testar_pipeline.py",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar o contrato JSON, atualizar `pipeline/blueprint.json` (contrato + transições) e `python3 tests/testar_pipeline.py` (36); rodar `python3 pipeline/gate.py blueprint` antes de commitar.",
       "status": "concluida",
-      "concluida_em": "2026-10-13T00:00:00Z",
       "depende_de": [
         "ISSUE-003"
       ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
       "evidencias": [
         "contrato JSON, status 0/1/2, continuidade, next_issue, anexos, blueprint e workflow validados"
-      ],
-      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar o contrato JSON, atualizar `pipeline/blueprint.json` (contrato + transições) e `python3 tests/testar_pipeline.py` (36); rodar `python3 pipeline/gate.py blueprint` antes de commitar.",
-      "origem": "sessão arena/ed79bd77 (pedido 4)"
+      ]
     },
     {
       "id": "ISSUE-006",
+      "indice": 6,
       "titulo": "Validar as consultas AO VIVO contra as APIs do CNJ (DataJud + DJEN)",
       "entregavel": "relatório real de um processo do TJPE (a execução exige internet para api-publica.datajud.cnj.jus.br)",
       "instrucao_teste": "python3 pipeline/verificar_cnj.py --timeout 20",
-      "status": "pendente",
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO: 1) rodar `python3 pipeline/verificar_cnj.py --timeout 20` numa máquina com internet; 2) se devolver status 0 (HTTP 200), executar `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` e commitar o backlog; 3) se devolver 1, é a rede (continuidade — repetir em outro ambiente); 4) se devolver 2 (HTTP 401/403), trocar a chave com `python3 main.py --chave-publica`, atualizar docs/01 e revalidar.",
+      "status": "concluida",
       "depende_de": [
         "ISSUE-002"
       ],
-      "observacao": "Instrução executável: consulta real e mínima ao DataJud (size=0). Devolve 0 se o CNJ responder 200, 1 se a rede não alcançar a API (continuidade — é o caso do ambiente de desenvolvimento atual) e 2 se a chave for recusada.",
-      "instrucao_desenvolvimento": "DESENVOLVIMENTO: 1) rodar `python3 pipeline/verificar_cnj.py --timeout 20` numa máquina com internet; 2) se devolver status 0 (HTTP 200), executar `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` e commitar o backlog; 3) se devolver 1, é a rede (continuidade — repetir em outro ambiente); 4) se devolver 2 (HTTP 401/403), trocar a chave com `python3 main.py --chave-publica`, atualizar docs/01 e revalidar.",
-      "origem": "sessão arena/ed79bd77 (pedido 4)"
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T19:07:28Z",
+      "evidencias": [
+        {
+          "sucesso": "COMPLETADA",
+          "quando": "2026-10-13T19:07:28Z",
+          "validacao_ao_vivo": "https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473",
+          "http": ""
+        }
+      ]
     },
     {
       "id": "ISSUE-007",
+      "indice": 7,
       "titulo": "Integrar o gate ao painel de continuidade da sessão (issue #3) e decidir sobre o fluxo da outra sessão",
       "entregavel": "decisão do usuário: unificar os dois fluxos (npm/continuity da sessão d917b13b × python/pipeline desta sessão)",
       "instrucao_teste": null,
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO (decisão humana): 1) ler a issue #3 (SESSION CONTINUITY CONTROL) e o fluxo da outra sessão (`arena/d917b13b-llm-arena-opencli`); 2) escolher explicitamente (a) unificar no pipeline de gates desta sessão, (b) manter os dois fluxos separados, ou (c) portar os gates para o fluxo da outra sessão; 3) registrar a decisão aqui e, se for (a)/(c), abrir a issue de implementação com instrução de teste executável; 4) enquanto não houver decisão, o gate devolve status 2 de propósito.",
       "status": "bloqueada",
       "depende_de": [
         "ISSUE-005"
       ],
-      "observacao": "Sem instrução de teste executável de propósito: o gate devolve status 2 (erro tipo 2) e exige decisão humana.",
-      "instrucao_desenvolvimento": "DESENVOLVIMENTO (decisão humana): 1) ler a issue #3 (SESSION CONTINUITY CONTROL) e o fluxo da outra sessão (`arena/d917b13b-llm-arena-opencli`); 2) escolher explicitamente (a) unificar no pipeline de gates desta sessão, (b) manter os dois fluxos separados, ou (c) portar os gates para o fluxo da outra sessão; 3) registrar a decisão aqui e, se for (a)/(c), abrir a issue de implementação com instrução de teste executável; 4) enquanto não houver decisão, o gate devolve status 2 de propósito.",
-      "origem": "sessão arena/ed79bd77 (pedido 4)"
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": null,
+      "evidencias": []
+    },
+    {
+      "id": "ISSUE-008",
+      "indice": 8,
+      "titulo": "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?",
+      "entregavel": "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)",
+      "instrucao_teste": "test -s docs/04-decisao-unificacao.md",
+      "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
+      "status": "pendente",
+      "depende_de": [
+        "ISSUE-006"
+      ],
+      "origem": "fábrica (próxima indexada)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": null,
+      "evidencias": []
     }
-  ],
-  "modelo": "Padrão: pipeline/blueprint.json → modelo_issue. A fábrica (pipeline/factory.py) é quem constrói a próxima indexada a partir de eventos, em SQLite, e mantém este arquivo como espelho."
+  ]
 }
 __ARQ_EOF__
 __ARQ__ pipeline/blueprint.json
@@ -5048,6 +5163,32 @@ class Fabrica:
             atualizadas.append(issue.id)
         return atualizadas
 
+    # -- pendência provada por uma validação ao vivo ------------------------- #
+    # Uma execução de CI só conclui a issue cuja instrução de teste ela MESMA
+    # executou. O workflow da validação ao vivo do CNJ roda `verificar_cnj.py`;
+    # uma pendência de desenvolvimento (ex.: escrever uma decisão em docs/) não é
+    # provada por ele — o job ENTÃO não mexe no backlog (idempotência: o mesmo
+    # push roda de novo e a fábrica não pode "inventar" issue nova).
+    TESTES_AO_VIVO = ("verificar_cnj", "datajud.sh")
+
+    def pendencia_ao_vivo(self) -> dict:
+        """Diz se a pendência atual é provada pela validação ao vivo (CNJ)."""
+        pendente = self.em_desenvolvimento()
+        if pendente is None:
+            return {"issue": None, "prova_ao_vivo": False, "instrucao_teste": None,
+                    "motivo": "não há issue pendente: nada a concluir nesta execução"}
+        teste = pendente.instrucao_teste or ""
+        prova = any(marca in teste for marca in self.TESTES_AO_VIVO)
+        return {
+            "issue": pendente.id, "titulo": pendente.titulo,
+            "instrucao_teste": teste, "prova_ao_vivo": prova,
+            "motivo": ("a instrução de teste da pendência é executada por esta "
+                       "validação (CNJ ao vivo) ⇒ pode ser COMPLETADA"
+                       if prova else
+                       "a pendência é de DESENVOLVIMENTO: a validação ao vivo do CNJ "
+                       "não a prova — continuidade na MESMA issue"),
+        }
+
     def marcar_concluida(self, identificador: str, evidencias: dict) -> Issue:
         issue = self.backlog().achar(identificador)
         if issue is None:
@@ -5153,6 +5294,8 @@ def montar_parser() -> argparse.ArgumentParser:
     p.add_argument("--instruir", action="store_true",
                    help="cria a instrução de desenvolvimento de toda issue que não tem uma")
     p.add_argument("--listar", action="store_true", help="lista issues e eventos")
+    p.add_argument("--pendencia-ao-vivo", action="store_true",
+                   help="diz se a pendência atual é provada pela validação ao vivo do CNJ")
     p.add_argument("--titulo", default=None, help="(--proxima) título da issue a construir")
     p.add_argument("--entregavel", default="",
                    help="(--proxima) entregável esperado da issue a construir")
@@ -5205,6 +5348,12 @@ def main(argv=None) -> int:
                               f"{len(atualizadas)} issue(s): {', '.join(atualizadas) or '—'}")
             if args.exportar:
                 pass  # a exportação acontece logo abaixo, já com as instruções
+
+        ao_vivo = None
+        if args.pendencia_ao_vivo:
+            ao_vivo = fabrica.pendencia_ao_vivo()
+            resultados.append(f"pendência ao vivo — {ao_vivo['issue'] or '—'}: "
+                              f"{ao_vivo['motivo']}")
 
         if args.concluir:
             evidencias = {"sucesso": "COMPLETADA", "quando": agora()}
@@ -5266,6 +5415,7 @@ def main(argv=None) -> int:
                    "issues": len(backlog), "status": backlog.resumo_por_status(),
                    "eventos": len(repositorio.listar_eventos()),
                    "nova_issue": contruida.para_dict() if contruida else None,
+                   "pendencia_ao_vivo": ao_vivo,
                    "direcao": fabrica.instrucao_proxima(proxima),
                    "blueprint": args.blueprint},
             duracao=time.time() - inicio)
@@ -8026,6 +8176,13 @@ FACTORY_CLI = os.path.join(RAIZ, "pipeline", "factory.py")
 GATE_CLI = os.path.join(RAIZ, "pipeline", "gate.py")
 
 
+def primeira_aberta(issues):
+    """A primeira issue não concluída (o que o contrato expõe como next_issue)."""
+    abertas = [i for i in sorted(issues, key=lambda x: x["indice"])
+               if str(i["status"]).lower() not in ("concluida", "completada", "done")]
+    return abertas[0]["id"] if abertas else None
+
+
 def rodar(script, *argumentos):
     proc = subprocess.run([sys.executable, script, *argumentos],
                           capture_output=True, text=True, cwd=RAIZ)
@@ -8051,6 +8208,20 @@ class CasoBase(unittest.TestCase):
         except Exception:
             pass
         self.tmp.cleanup()
+
+    def backlog_temporario(self, *issues) -> str:
+        """Backlog em arquivo (fixture) — testes determinísticos da CLI."""
+        caminho = os.path.join(self.dir, "backlog-fixture.json")
+        with open(caminho, "w", encoding="utf-8") as fh:
+            json.dump({"issues": list(issues)}, fh)
+        return caminho
+
+    @staticmethod
+    def fixture(indice, status="pendente", instrucao_teste="true"):
+        return {"id": f"ISSUE-{indice:03d}", "indice": indice, "titulo": f"t{indice}",
+                "entregavel": "ent", "instrucao_teste": instrucao_teste,
+                "instrucao_desenvolvimento": "executar e testar", "status": status,
+                "origem": "teste"}
 
     def uma_issue(self, indice=1, status="concluida", **extra):
         dados = {"id": f"ISSUE-{indice:03d}", "indice": indice, "titulo": f"t{indice}",
@@ -8252,15 +8423,19 @@ class TesteEspelhoBacklog(CasoBase):
         self.assertEqual(outro.sincronizar_backlog(caminho), 0, "import é idempotente")
 
     def test_backlog_do_projeto_espelha_o_sqlite(self):
-        self.repo.sincronizar_backlog(BACKLOG)
-        self.assertEqual(len(self.repo.listar_issues()), 7)
         with open(BACKLOG, encoding="utf-8") as fh:
             dados = json.load(fh)
-        self.assertEqual(len(dados["issues"]), 7)
+        entraram = self.repo.sincronizar_backlog(BACKLOG)
+        self.assertEqual(entraram, len(dados["issues"]))
+        self.assertEqual(len(self.repo.listar_issues()), len(dados["issues"]),
+                         "o SQLite espelha exatamente o backlog.json do projeto")
+        self.assertEqual({i["id"]: i["status"] for i in dados["issues"]},
+                         {i.id: i.status for i in self.repo.listar_issues()})
         self.assertTrue(all(i.get("instrucao_desenvolvimento") for i in dados["issues"]),
                         "toda issue precisa da instrução de desenvolvimento (padrão)")
         self.assertTrue(all(i.get("instrucao_teste") or i["status"] == "bloqueada"
                             for i in dados["issues"]))
+        self.assertEqual(self.repo.sincronizar_backlog(BACKLOG), 0, "sync é idempotente")
 
     def test_backlog_do_projeto_aponta_para_arquivos_reais(self):
         import re
@@ -8306,14 +8481,64 @@ class TesteGateFabrica(CasoBase):
         self.assertIn("instrução de desenvolvimento", obj["mensagem"])
 
 
+class TestePendenciaAoVivo(CasoBase):
+    """A conclusão automática vale só para a pendência que a execução PROVA."""
+
+    def test_sem_pendencia(self):
+        self.uma_issue(1, status="concluida")
+        info = self.fabrica.pendencia_ao_vivo()
+        self.assertIsNone(info["issue"])
+        self.assertFalse(info["prova_ao_vivo"])
+        self.assertIn("não há issue pendente", info["motivo"])
+
+    def test_pendencia_de_desenvolvimento_nao_e_provada(self):
+        self.uma_issue(1, status="pendente",
+                       instrucao_teste="test -s docs/04-decisao-unificacao.md")
+        info = self.fabrica.pendencia_ao_vivo()
+        self.assertEqual(info["issue"], "ISSUE-001")
+        self.assertFalse(info["prova_ao_vivo"],
+                         "escrever uma decisão em docs/ não é provado pela validação do CNJ")
+        self.assertIn("DESENVOLVIMENTO", info["motivo"])
+
+    def test_pendencia_da_validacao_ao_vivo_e_provada(self):
+        self.uma_issue(1, status="pendente",
+                       instrucao_teste="python3 pipeline/verificar_cnj.py --timeout 20")
+        info = self.fabrica.pendencia_ao_vivo()
+        self.assertEqual(info["issue"], "ISSUE-001")
+        self.assertTrue(info["prova_ao_vivo"])
+        self.assertIn("COMPLETADA", info["motivo"])
+        # o complemento do kit curl também conta como prova ao vivo
+        self.uma_issue(2, status="pendente",
+                       instrucao_teste="bash scripts/datajud.sh contar --tribunal tjpe")
+        self.assertEqual(self.fabrica.pendencia_ao_vivo()["issue"], "ISSUE-001",
+                         "vale a primeira pendência da ordem indexada")
+
+    def test_cli_expoe_a_pendencia_e_a_prova(self):
+        fixture = self.backlog_temporario(
+            self.fixture(1, status="concluida"),
+            self.fixture(2, instrucao_teste="python3 pipeline/verificar_cnj.py --timeout 20"))
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture,
+                                   "--sincronizar", "--pendencia-ao-vivo",
+                                   "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "0", bruto[:200])
+        info = obj["dados"]["pendencia_ao_vivo"]
+        self.assertEqual(info["issue"], "ISSUE-002")
+        self.assertTrue(info["prova_ao_vivo"])
+        self.assertEqual(obj["next_issue"], "ISSUE-002")
+
+
 class TesteCLIFabrica(CasoBase):
     def test_sincronizar_listar_e_contrato(self):
         codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar",
                                    "--listar", "--saida-dir", self.saida)
         self.assertIsNotNone(obj, bruto[:300])
         self.assertEqual((obj["status"], codigo), ("0", 0))
-        self.assertEqual(obj["dados"]["issues"], 7)
-        self.assertEqual(obj["next_issue"], "ISSUE-006")
+        with open(BACKLOG, encoding="utf-8") as fh:
+            projeto = json.load(fh)["issues"]
+        self.assertEqual(obj["dados"]["issues"], len(projeto),
+                         "o SQLite espelha o backlog.json do projeto")
+        self.assertEqual(obj["next_issue"], primeira_aberta(projeto),
+                         "o contrato aponta a próxima issue aberta do projeto")
         self.assertIn("direcao", obj["dados"])
 
     def test_evento_pela_cli(self):
@@ -8327,29 +8552,35 @@ class TesteCLIFabrica(CasoBase):
         self.assertIn("continuar", obj["dados"]["resultados"][0])
 
     def test_concluir_e_construir_a_proxima(self):
-        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
-              "--saida-dir", self.saida)
+        fixture = self.backlog_temporario(self.fixture(1, status="concluida"),
+                                          self.fixture(2))
+        rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture, "--sincronizar",
+              "-q", "--saida-dir", self.saida)
         codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco,
-                                   "--concluir", "ISSUE-006", "--proxima",
-                                   "--titulo", "frente nova", "--saida-dir", self.saida)
+                                   "--backlog", fixture, "--concluir", "ISSUE-002",
+                                   "--proxima", "--titulo", "frente nova",
+                                   "--saida-dir", self.saida)
         self.assertEqual(obj["status"], "0", bruto[:200])
         nova = obj["dados"]["nova_issue"]
-        self.assertEqual(nova["id"], "ISSUE-008")
-        self.assertEqual(nova["depende_de"], ["ISSUE-006"])
+        self.assertEqual(nova["id"], "ISSUE-003")
+        self.assertEqual(nova["depende_de"], ["ISSUE-002"])
         self.assertEqual(nova["origem"], "fábrica (próxima indexada)")
 
     def test_proxima_com_instrucao_de_teste_e_evidencia(self):
-        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
-              "--saida-dir", self.saida)
+        fixture = self.backlog_temporario(self.fixture(1, status="concluida"),
+                                          self.fixture(2))
+        rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture, "--sincronizar",
+              "-q", "--saida-dir", self.saida)
         codigo, obj, bruto = rodar(
-            FACTORY_CLI, "--banco", self.banco, "--concluir", "ISSUE-006",
+            FACTORY_CLI, "--banco", self.banco, "--backlog", fixture,
+            "--concluir", "ISSUE-002",
             "--evidencia", "validacao_ao_vivo=https://exemplo/runs/1",
             "--proxima", "--titulo", "decisão da 007", "--entregavel", "docs/04.md",
             "--instrucao-teste", "test -s docs/04.md",
             "--saida-dir", self.saida)
         self.assertEqual(obj["status"], "0", bruto[:200])
         nova = obj["dados"]["nova_issue"]
-        self.assertEqual(nova["id"], "ISSUE-008")
+        self.assertEqual(nova["id"], "ISSUE-003")
         self.assertEqual(nova["instrucao_teste"], "test -s docs/04.md")
         self.assertEqual(nova["entregavel"], "docs/04.md")
         self.assertIn("instrucao_desenvolvimento", nova)
@@ -8359,20 +8590,23 @@ class TesteCLIFabrica(CasoBase):
               "--saida-dir", self.saida, "-q")
         with open(exportado, encoding="utf-8") as fh:
             dados = json.load(fh)
-        seis = [i for i in dados["issues"] if i["id"] == "ISSUE-006"][0]
-        self.assertEqual(seis["status"], "concluida")
-        self.assertTrue(any("validacao_ao_vivo" in str(e) for e in seis["evidencias"]))
+        dois = [i for i in dados["issues"] if i["id"] == "ISSUE-002"][0]
+        self.assertEqual(dois["status"], "concluida")
+        self.assertTrue(any("validacao_ao_vivo" in str(e) for e in dois["evidencias"]))
 
     def test_construir_com_pendencia_devolve_status_1(self):
-        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
-              "--saida-dir", self.saida)
-        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--proxima",
+        fixture = self.backlog_temporario(self.fixture(1, status="concluida"),
+                                          self.fixture(2))
+        rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture, "--sincronizar",
+              "-q", "--saida-dir", self.saida)
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco,
+                                   "--backlog", fixture, "--proxima",
                                    "--saida-dir", self.saida)
         self.assertEqual(obj["status"], "1")
         self.assertEqual(codigo, 1)
         self.assertTrue(obj["continuidade"])
         self.assertEqual(obj["direcao"], "corrigir")
-        self.assertEqual(obj["next_issue"], "ISSUE-006")
+        self.assertEqual(obj["next_issue"], "ISSUE-002")
 
     def test_banco_invalido_e_erro_tipo_2(self):
         with open(os.path.join(self.dir, "quebrado.db"), "w", encoding="utf-8") as fh:
@@ -9016,7 +9250,11 @@ class TesteBlueprintEBacklog(CasoBase):
         backlog = gate.ler_backlog(BACKLOG)
         proxima = gate.proxima_pendente(backlog)
         self.assertIsNotNone(proxima, "o backlog precisa manter a próxima pendência")
-        self.assertEqual(proxima["id"], "ISSUE-006")
+        abertas = [i for i in gate.ordenar(backlog["issues"])
+                   if str(i.get("status", "")).lower()
+                   not in ("concluida", "completada", "done")]
+        self.assertEqual(proxima["id"], abertas[0]["id"],
+                         "a próxima pendência é a primeira issue aberta na ordem indexada")
         bagunçado = [{"id": "ISSUE-010", "status": "pendente"},
                      {"id": "ISSUE-002", "status": "concluida"},
                      {"id": "ISSUE-007", "status": "pendente"}]
@@ -9194,18 +9432,40 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
         self.assertIn("::warning::", self.texto)
         self.assertIn("::notice::", self.texto)
 
-    def test_sucesso_conclui_a_issue_e_constroi_a_proxima(self):
-        self.assertIn("--concluir ISSUE-006", self.texto)
+    def test_sucesso_conclui_a_pendencia_e_constroi_a_proxima(self):
+        self.assertIn('--concluir "$issue"', self.texto)
         self.assertIn("--proxima", self.texto)
         self.assertIn("--exportar pipeline/backlog.json", self.texto)
-        self.assertIn('git commit -m "pipeline: ISSUE-006', self.texto)
-        self.assertIn("[skip ci]", self.texto)
+        self.assertIn("[skip ci]", self.texto, "o commit do bot não re-dispara o workflow")
+        self.assertNotIn("--concluir ISSUE-006", self.texto,
+                         "a issue concluída não pode ser fixa: quem decide é a pendência do backlog")
+
+    def test_conclusao_e_dirigida_pela_pendencia_real(self):
+        self.assertIn("--pendencia-ao-vivo", self.texto)
+        self.assertIn("prova_ao_vivo", self.texto)
+        self.assertIn("steps.pendencia.outputs.prova_ao_vivo == 'true'", self.texto)
+        self.assertIn(").lower())", self.texto,
+                      "o output precisa ser 'true'/'false' — o Python imprime True/False "
+                      "e o if: do GitHub compara com a string minúscula")
+
+    def test_conclusao_que_nao_acontece_nao_deixa_o_job_vermelho(self):
+        self.assertIn("steps.concluir.outputs.status == '0'", self.texto,
+                      "o commit do backlog só acontece com a conclusão concluída")
+        self.assertIn("a próxima indexada só nasce depois do sucesso testado", self.texto)
+        bloco = self.texto[self.texto.index("Fábrica · concluir a pendência provada"):]
+        bloco = bloco[:bloco.index("Continuidade ·")]
+        self.assertIn("set +e", bloco, "status 1 = continuidade, não erro")
+
+    def test_pendencia_nao_provada_nao_cria_issue(self):
+        self.assertIn("steps.pendencia.outputs.prova_ao_vivo != 'true'", self.texto)
+        self.assertIn('--evento "checkpoint|', self.texto,
+                      "registra o evento de continuidade sem construir issue nova")
 
     def test_nao_commita_em_pull_request(self):
         self.assertIn("github.event_name != 'pull_request'", self.texto)
 
     def test_job_de_conclusao_depende_da_validacao(self):
-        self.assertRegex(self.texto, r"(?m)^\s{2}concluir-issue-006:")
+        self.assertRegex(self.texto, r"(?m)^\s{2}concluir-pendencia:")
         self.assertIn("needs: [validacao-cnj]", self.texto)
 
     def test_evidencia_aponta_para_a_execucao(self):
@@ -9231,7 +9491,7 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
             self.skipTest("PyYAML indisponível — a validação definitiva é o GitHub Actions")
         dados = yaml.safe_load(self.texto)
         self.assertIn("jobs", dados)
-        self.assertEqual(set(dados["jobs"]), {"validacao-cnj", "concluir-issue-006"})
+        self.assertEqual(set(dados["jobs"]), {"validacao-cnj", "concluir-pendencia"})
 
     def test_blocos_run_sao_bash_valido(self):
         blocos = blocos_run(self.texto)

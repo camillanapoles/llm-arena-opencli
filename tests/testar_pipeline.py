@@ -370,7 +370,11 @@ class TesteBlueprintEBacklog(CasoBase):
         backlog = gate.ler_backlog(BACKLOG)
         proxima = gate.proxima_pendente(backlog)
         self.assertIsNotNone(proxima, "o backlog precisa manter a próxima pendência")
-        self.assertEqual(proxima["id"], "ISSUE-006")
+        abertas = [i for i in gate.ordenar(backlog["issues"])
+                   if str(i.get("status", "")).lower()
+                   not in ("concluida", "completada", "done")]
+        self.assertEqual(proxima["id"], abertas[0]["id"],
+                         "a próxima pendência é a primeira issue aberta na ordem indexada")
         bagunçado = [{"id": "ISSUE-010", "status": "pendente"},
                      {"id": "ISSUE-002", "status": "concluida"},
                      {"id": "ISSUE-007", "status": "pendente"}]
@@ -548,18 +552,40 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
         self.assertIn("::warning::", self.texto)
         self.assertIn("::notice::", self.texto)
 
-    def test_sucesso_conclui_a_issue_e_constroi_a_proxima(self):
-        self.assertIn("--concluir ISSUE-006", self.texto)
+    def test_sucesso_conclui_a_pendencia_e_constroi_a_proxima(self):
+        self.assertIn('--concluir "$issue"', self.texto)
         self.assertIn("--proxima", self.texto)
         self.assertIn("--exportar pipeline/backlog.json", self.texto)
-        self.assertIn('git commit -m "pipeline: ISSUE-006', self.texto)
-        self.assertIn("[skip ci]", self.texto)
+        self.assertIn("[skip ci]", self.texto, "o commit do bot não re-dispara o workflow")
+        self.assertNotIn("--concluir ISSUE-006", self.texto,
+                         "a issue concluída não pode ser fixa: quem decide é a pendência do backlog")
+
+    def test_conclusao_e_dirigida_pela_pendencia_real(self):
+        self.assertIn("--pendencia-ao-vivo", self.texto)
+        self.assertIn("prova_ao_vivo", self.texto)
+        self.assertIn("steps.pendencia.outputs.prova_ao_vivo == 'true'", self.texto)
+        self.assertIn(").lower())", self.texto,
+                      "o output precisa ser 'true'/'false' — o Python imprime True/False "
+                      "e o if: do GitHub compara com a string minúscula")
+
+    def test_conclusao_que_nao_acontece_nao_deixa_o_job_vermelho(self):
+        self.assertIn("steps.concluir.outputs.status == '0'", self.texto,
+                      "o commit do backlog só acontece com a conclusão concluída")
+        self.assertIn("a próxima indexada só nasce depois do sucesso testado", self.texto)
+        bloco = self.texto[self.texto.index("Fábrica · concluir a pendência provada"):]
+        bloco = bloco[:bloco.index("Continuidade ·")]
+        self.assertIn("set +e", bloco, "status 1 = continuidade, não erro")
+
+    def test_pendencia_nao_provada_nao_cria_issue(self):
+        self.assertIn("steps.pendencia.outputs.prova_ao_vivo != 'true'", self.texto)
+        self.assertIn('--evento "checkpoint|', self.texto,
+                      "registra o evento de continuidade sem construir issue nova")
 
     def test_nao_commita_em_pull_request(self):
         self.assertIn("github.event_name != 'pull_request'", self.texto)
 
     def test_job_de_conclusao_depende_da_validacao(self):
-        self.assertRegex(self.texto, r"(?m)^\s{2}concluir-issue-006:")
+        self.assertRegex(self.texto, r"(?m)^\s{2}concluir-pendencia:")
         self.assertIn("needs: [validacao-cnj]", self.texto)
 
     def test_evidencia_aponta_para_a_execucao(self):
@@ -585,7 +611,7 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
             self.skipTest("PyYAML indisponível — a validação definitiva é o GitHub Actions")
         dados = yaml.safe_load(self.texto)
         self.assertIn("jobs", dados)
-        self.assertEqual(set(dados["jobs"]), {"validacao-cnj", "concluir-issue-006"})
+        self.assertEqual(set(dados["jobs"]), {"validacao-cnj", "concluir-pendencia"})
 
     def test_blocos_run_sao_bash_valido(self):
         blocos = blocos_run(self.texto)

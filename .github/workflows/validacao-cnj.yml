@@ -15,18 +15,24 @@
 #     ┌──────────────────────────────────────────────┐
 #     │ validacao-cnj                                │
 #     │  1. diagnóstico de rede (DNS · TLS · HTTP)   │
-#     │  2. pipeline/verificar_cnj.py (instrução da  │
-#     │     ISSUE-006) com N tentativas              │
+#     │  2. pipeline/verificar_cnj.py (a instrução da│
+#     │     pendência ao vivo) com N tentativas      │
 #     │  3. validação complementar ao vivo:          │
 #     │     scripts/datajud.sh contar --tribunal tjpe│
 #     └──────────────────────────────────────────────┘
 #        │ status 0            │ status 1              │ status 2
 #        ▼                     ▼                       ▼
-#   concluir-issue-006     ::warning::             ::error::
-#   (fábrica marca         rede não alcançou        chave recusada
-#    COMPLETADA e          o CNJ — continuidade,    pelo CNJ — exige
-#    constrói a N+1,       mantém a ISSUE-006)      humano (job falha)
-#    commita o backlog)
+#   concluir-pendencia     ::warning::             ::error::
+#   (a fábrica conclui     a validação não         chave recusada
+#    a pendência que       passou nesta            pelo CNJ — exige
+#    ESTA execução         execução (429/rede) —   humano (job falha)
+#    provou e constrói     continuidade na MESMA
+#    a N+1, commita)       issue
+#
+#  Idempotência: a conclusão é dirigida pela pendência REAL do backlog, e só
+#  quando a instrução de teste dela é a que roda aqui (verificar_cnj/datajud.sh).
+#  Pendência de desenvolvimento (ex.: escrever docs/04-…) ⇒ o job apenas registra
+#  o evento de continuidade — repetir o push não inventa issue nova.
 #
 #  Exit code = status (0/1/2), como em todo o pipeline. A validação mostra o
 #  número real de processos do tribunal quando funciona — é evidência, não promessa.
@@ -60,7 +66,7 @@ on:
         required: false
         default: "3"
       concluir_no_sucesso:
-        description: "Marcar ISSUE-006 como COMPLETADA e construir a próxima se funcionar"
+        description: "Marcar a pendência provada por esta execução como COMPLETADA e construir a próxima se funcionar"
         type: boolean
         required: false
         default: true
@@ -141,7 +147,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::diagnóstico CNJ — DNS=${ip:-falhou} · http=${http:-—} · curl=$curl_code"
 
-      - name: "Instrução da ISSUE-006 (com retentativas)"
+      - name: "Instrução da pendência ao vivo (com retentativas)"
         id: verificar
         run: |
           set +e
@@ -185,7 +191,7 @@ jobs:
             exit 1
           fi
           if [ "$status" = "1" ]; then
-            echo "::warning::a rede do runner não alcançou o CNJ — continuidade: a ISSUE-006 permanece pendente"
+            echo "::warning::a validação ao vivo não passou nesta execução — continuidade: a pendência permanece na MESMA issue (a causa real está no ::notice:: acima: 429/taxa, rede ou chave)"
           fi
 
       - name: "Validação complementar ao vivo (kit curl)"
@@ -220,10 +226,13 @@ jobs:
           if-no-files-found: warn
 
   # --------------------------------------------------------------------------- #
-  # sucesso ⇒ a fábrica conclui a ISSUE-006 e constrói a PRÓXIMA indexada
+  # sucesso ⇒ a fábrica conclui a pendência que ESTA execução provou e constrói a
+  # PRÓXIMA indexada. Se a pendência atual for de desenvolvimento (a validação ao
+  # vivo não a prova), o job só registra o evento de continuidade — nunca inventa
+  # issue nova (idempotência: o mesmo push roda de novo sem efeito colateral).
   # --------------------------------------------------------------------------- #
-  concluir-issue-006:
-    name: "ISSUE-006 validada ⇒ COMPLETADA + próxima indexada (fábrica)"
+  concluir-pendencia:
+    name: "Sucesso testado ⇒ pendência COMPLETADA + próxima indexada (fábrica)"
     runs-on: ubuntu-latest
     needs: [validacao-cnj]
     if: >-
@@ -235,31 +244,85 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: "Fábrica · concluir a ISSUE-006 (com a evidência da execução)"
+      - name: "Fábrica · qual é a pendência e esta execução a prova?"
+        id: pendencia
+        run: |
+          python3 pipeline/factory.py --sincronizar -q \
+            --pendencia-ao-vivo --json-saida /tmp/pendencia.json \
+            --saida-dir pipeline/saida
+          # .lower(): o `if:` do GitHub compara com a string 'true' (o Python imprime True)
+          prova=$(python3 -c "import json;print(str(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['prova_ao_vivo']).lower())")
+          issue=$(python3 -c "import json;print(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['issue'] or '')")
+          motivo=$(python3 -c "import json;print(json.load(open('/tmp/pendencia.json'))['dados']['pendencia_ao_vivo']['motivo'])")
+          {
+            echo "prova_ao_vivo=$prova"
+            echo "issue=$issue"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice::fábrica — pendência: ${issue:-—} · provada por esta execução: $prova · $motivo"
+
+      - name: "Fábrica · concluir a pendência provada e construir a próxima indexada"
+        id: concluir
+        if: steps.pendencia.outputs.prova_ao_vivo == 'true'
         run: |
           url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          issue="${{ steps.pendencia.outputs.issue }}"
+          extra=()
+          if [ "$issue" = "ISSUE-006" ]; then
+            # a frente da validação ao vivo entrega, na sequência, a decisão da ISSUE-007
+            extra=(--titulo "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?"
+                   --entregavel "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)"
+                   --instrucao-teste "test -s docs/04-decisao-unificacao.md")
+          fi
+          set +e
           python3 pipeline/factory.py --sincronizar \
-            --concluir ISSUE-006 \
+            --concluir "$issue" \
             --evidencia "validacao_ao_vivo=$url" \
             --evidencia "http=${{ needs.validacao-cnj.outputs.http }}" \
-            --proxima \
-            --titulo "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?" \
-            --entregavel "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)" \
-            --instrucao-teste "test -s docs/04-decisao-unificacao.md" \
+            --proxima "${extra[@]}" \
             --exportar pipeline/backlog.json \
-            --saida-dir pipeline/saida | tee /tmp/fabrica-006.out
+            --saida-dir pipeline/saida > /tmp/fabrica.out
+          codigo=$?
+          set -e
+          cat /tmp/fabrica.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/fabrica.out'))['status'])" 2>/dev/null || echo 2)
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          # 1 = continuidade (nada a concluir agora): não é erro, o job não fica vermelho.
+          if [ "$status" = "1" ]; then
+            echo "::warning::a fábrica manteve a continuidade (status 1) — a próxima indexada só nasce depois do sucesso testado"
+          fi
+          if [ "$status" = "2" ]; then
+            echo "::error::a fábrica devolveu erro tipo 2 (banco/arquivo inacessível) — exige humano"
+            exit 1
+          fi
+
+      - name: "Continuidade · a pendência atual não é provada por esta validação"
+        if: steps.pendencia.outputs.prova_ao_vivo != 'true'
+        run: |
+          url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          issue="${{ steps.pendencia.outputs.issue }}"
+          python3 pipeline/factory.py --sincronizar -q \
+            --evento "checkpoint|fase=validacao_ao_vivo|run=$url" \
+            --saida-dir pipeline/saida
+          echo "::notice::continuidade — ${issue:-sem pendência}: a validação ao vivo passou (HTTP ${{ needs.validacao-cnj.outputs.http }}) e a pendência segue na MESMA issue, com a instrução de desenvolvimento dela"
+          {
+            echo "### continuidade"
+            echo
+            echo "- validação ao vivo: OK (HTTP ${{ needs.validacao-cnj.outputs.http }})"
+            echo "- pendência: \`${issue:-—}\` — a instrução de teste dela é outra; a fábrica não cria issue nova"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: "Resumo e versionamento do backlog"
+        if: steps.concluir.outputs.status == '0'
         run: |
           {
-            echo "### fábrica · ISSUE-006 completa e próxima indexada construída"
+            echo "### fábrica · pendência COMPLETADA e próxima indexada construída"
             echo
             echo '```json'
-            tail -40 /tmp/fabrica-006.out
+            tail -40 /tmp/fabrica.out
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica-006.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
-          echo "::notice::ISSUE-006 COMPLETADA — a fábrica construiu a próxima indexada: $nova"
+          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
+          echo "::notice::${{ steps.pendencia.outputs.issue }} COMPLETADA — a fábrica construiu a próxima indexada: $nova"
           if git diff --quiet -- pipeline/backlog.json; then
             echo "backlog sem alterações"
             exit 0
@@ -267,13 +330,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add pipeline/backlog.json
-          git commit -m "pipeline: ISSUE-006 validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
+          git commit -m "pipeline: ${{ steps.pendencia.outputs.issue }} validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
           git push
 
       - uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: fabrica-issue-006
+          name: fabrica-pendencia
           path: |
             pipeline/backlog.json
             pipeline/saida/fabrica-*.md

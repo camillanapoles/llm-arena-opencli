@@ -12,7 +12,7 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 - **Validação ao vivo (event-driven, no runner):**
   [`.github/workflows/validacao-cnj.yml`](../.github/workflows/validacao-cnj.yml)
 - Testes: [`tests/testar_pipeline.py`](../tests/testar_pipeline.py) (59 testes) e
-  [`tests/testar_fabrica.py`](../tests/testar_fabrica.py) (37 testes) — 100% offline
+  [`tests/testar_fabrica.py`](../tests/testar_fabrica.py) (41 testes) — 100% offline
 
 ---
 
@@ -237,7 +237,7 @@ gh run list --workflow=gates.yml
 ## 5-bis. Validação ao vivo, event-driven (`validacao-cnj.yml`)
 
 O sandbox de desenvolvimento **não alcança** `api-publica.datajud.cnj.jus.br`. O runner do
-GitHub alcança (ou não — e o pipeline diz qual dos dois). Por isso a ISSUE-006 tem um
+GitHub alcança (e o pipeline diz em que estado). Por isso a ISSUE-006 tem um
 workflow **próprio, disparado por evento**, no [`.github/workflows/validacao-cnj.yml`](../.github/workflows/validacao-cnj.yml):
 
 | Gatilho | Quando |
@@ -252,22 +252,36 @@ JSON do resto do pipeline):
 
 1. **diagnóstico de rede** — DNS, `HTTP` e corpo/erro do curl, publicados como anotação
    (`::notice::`) e no job summary;
-2. **instrução da ISSUE-006** — `python3 pipeline/verificar_cnj.py --timeout 45`, com até
-   `TENTATIVAS` (padrão 3) e espera de 20 s entre elas; se o script não gerar JSON, o job
-   monta um objeto de **erro tipo 2** em vez de estourar;
+2. **instrução da pendência ao vivo** — `python3 pipeline/verificar_cnj.py --timeout 45`, com
+   até `TENTATIVAS` (padrão 3) e espera do `Retry-After` (ou 30 s × tentativa, teto 150 s);
+   se o script não gerar JSON, o job monta um objeto de **erro tipo 2** em vez de estourar;
 3. **validação complementar** (só quando o status é `0`) — `scripts/datajud.sh contar
    --tribunal tjpe`, mostrando o **número real de processos** do índice.
 
 | status | significado | o que o workflow faz |
 | --- | --- | --- |
-| `"0"` | o CNJ respondeu **200** | job `concluir-issue-006`: `factory.py --concluir ISSUE-006 --evidencia validacao_ao_vivo=<URL da execução> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
-| `"1"` | rede indisponível **ou** `HTTP 429` (taxa compartilhada de 120 req/min) | `::warning::` — continuidade: a ISSUE-006 permanece pendente; o job espera `Retry-After` (ou 30 s × tentativa, teto 150 s) e tenta de novo; a próxima tentativa também vem do próximo evento/agenda |
+| `"0"` | o CNJ respondeu **200** | job `concluir-pendencia`: a fábrica pergunta **qual é a pendência** (`--pendencia-ao-vivo`) e só conclui a que **esta execução provou** — `--concluir "$issue" --evidencia validacao_ao_vivo=<URL do run> --proxima --exportar pipeline/backlog.json` ⇒ **COMPLETADA** + **próxima indexada construída** + commit `[skip ci]` (fora de `pull_request`) |
+| `"1"` | rede indisponível **ou** `HTTP 429` (taxa compartilhada de 120 req/min) | `::warning::` — continuidade: a pendência permanece na **mesma** issue; o job espera `Retry-After` (ou 30 s × tentativa, teto 150 s) e tenta de novo; a próxima tentativa vem do próximo evento/agenda |
 | `"2"` | chave recusada / ilegível | `::error::` e o job **falha** (exige humano) |
 
-**Evidência medida no runner** (execução de 13/10): DNS resolveu `201.49.152.99`, a API
-respondeu **HTTP 429** (limite de taxa compartilhado do IP de saída) e o pipeline tratou como
-**continuidade** (`status "1"`) em vez de sucesso falso — foi o que motivou o backoff e o
-`Retry-After`. Quando a janela de taxa abre, a conclusão é automática.
+**Idempotência (o detalhe que evita lixo no backlog).** Uma pendência de *desenvolvimento*
+(ex.: escrever `docs/04-…`) **não** é provada pela consulta ao CNJ. Quando é esse o caso, o
+job registra o evento de continuidade e **não** cria issue nova — assim o mesmo `push` pode
+rodar dez vezes sem inventar `ISSUE-009`, `ISSUE-010`… A conclusão automática vale só para a
+pendência cujo `instrucao_teste` é o que roda aqui (`verificar_cnj.py` / `datajud.sh`).
+
+**Evidência medida no runner** (duas execuções de 13/10, ambas citadas aqui como número real,
+não promessa):
+
+| execução | o que mediu | desfecho |
+| --- | --- | --- |
+| [run 38451236091](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451236091) | DNS resolveu `201.49.152.99`; a API respondeu **HTTP 429** (limite de 120 req/min, IP de saída compartilhado) | **continuidade** (`status "1"`), sem sucesso falso — motivou o backoff e o `Retry-After` |
+| [run 38451978473](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473) | **HTTP 200**, índice `api_publica_tjpe`, `hits.total = 6852614`; o kit curl confirmou `Total: 6852614` | **`status "0"`** ⇒ a fábrica marcou a **ISSUE-006 COMPLETADA** (evidência = URL do run), construiu a **ISSUE-008** e commitou o backlog pelo bot |
+
+Essa segunda execução fechou o laço pedido no pedido 6: o evento no GitHub Actions executou a
+instrução de teste da issue pendente, provou-a ao vivo contra o CNJ e devolveu a **direção de
+continuidade** — `COMPLETADA` + próxima indexada (`ISSUE-008`, o registro da decisão da
+ISSUE-007 em `docs/04-decisao-unificacao.md`).
 
 A evidência de sucesso fica na própria issue: o `backlog.json` guarda
 `evidencias: [{sucesso: COMPLETADA, validacao_ao_vivo: <URL do run>, http: 200, …}]`.
@@ -278,7 +292,7 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (67 testes) e `tests/testar_fabrica.py` (37 testes), offline, verificam:
+`tests/testar_pipeline.py` (70 testes) e `tests/testar_fabrica.py` (41 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
@@ -308,7 +322,7 @@ vale o merge em `main`; `push` e `pull_request` já funcionam em qualquer branch
 
 ```bash
 python3 tests/testar_pipeline.py         # 49 testes
-python3 tests/testar_fabrica.py          # 37 testes
+python3 tests/testar_fabrica.py          # 41 testes
 make gates                               # veredito de continuidade de verdade
 make fabrica                             # estado da fábrica (SQLite)
 ```

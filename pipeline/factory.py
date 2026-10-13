@@ -625,6 +625,32 @@ class Fabrica:
             atualizadas.append(issue.id)
         return atualizadas
 
+    # -- pendência provada por uma validação ao vivo ------------------------- #
+    # Uma execução de CI só conclui a issue cuja instrução de teste ela MESMA
+    # executou. O workflow da validação ao vivo do CNJ roda `verificar_cnj.py`;
+    # uma pendência de desenvolvimento (ex.: escrever uma decisão em docs/) não é
+    # provada por ele — o job ENTÃO não mexe no backlog (idempotência: o mesmo
+    # push roda de novo e a fábrica não pode "inventar" issue nova).
+    TESTES_AO_VIVO = ("verificar_cnj", "datajud.sh")
+
+    def pendencia_ao_vivo(self) -> dict:
+        """Diz se a pendência atual é provada pela validação ao vivo (CNJ)."""
+        pendente = self.em_desenvolvimento()
+        if pendente is None:
+            return {"issue": None, "prova_ao_vivo": False, "instrucao_teste": None,
+                    "motivo": "não há issue pendente: nada a concluir nesta execução"}
+        teste = pendente.instrucao_teste or ""
+        prova = any(marca in teste for marca in self.TESTES_AO_VIVO)
+        return {
+            "issue": pendente.id, "titulo": pendente.titulo,
+            "instrucao_teste": teste, "prova_ao_vivo": prova,
+            "motivo": ("a instrução de teste da pendência é executada por esta "
+                       "validação (CNJ ao vivo) ⇒ pode ser COMPLETADA"
+                       if prova else
+                       "a pendência é de DESENVOLVIMENTO: a validação ao vivo do CNJ "
+                       "não a prova — continuidade na MESMA issue"),
+        }
+
     def marcar_concluida(self, identificador: str, evidencias: dict) -> Issue:
         issue = self.backlog().achar(identificador)
         if issue is None:
@@ -730,6 +756,8 @@ def montar_parser() -> argparse.ArgumentParser:
     p.add_argument("--instruir", action="store_true",
                    help="cria a instrução de desenvolvimento de toda issue que não tem uma")
     p.add_argument("--listar", action="store_true", help="lista issues e eventos")
+    p.add_argument("--pendencia-ao-vivo", action="store_true",
+                   help="diz se a pendência atual é provada pela validação ao vivo do CNJ")
     p.add_argument("--titulo", default=None, help="(--proxima) título da issue a construir")
     p.add_argument("--entregavel", default="",
                    help="(--proxima) entregável esperado da issue a construir")
@@ -782,6 +810,12 @@ def main(argv=None) -> int:
                               f"{len(atualizadas)} issue(s): {', '.join(atualizadas) or '—'}")
             if args.exportar:
                 pass  # a exportação acontece logo abaixo, já com as instruções
+
+        ao_vivo = None
+        if args.pendencia_ao_vivo:
+            ao_vivo = fabrica.pendencia_ao_vivo()
+            resultados.append(f"pendência ao vivo — {ao_vivo['issue'] or '—'}: "
+                              f"{ao_vivo['motivo']}")
 
         if args.concluir:
             evidencias = {"sucesso": "COMPLETADA", "quando": agora()}
@@ -843,6 +877,7 @@ def main(argv=None) -> int:
                    "issues": len(backlog), "status": backlog.resumo_por_status(),
                    "eventos": len(repositorio.listar_eventos()),
                    "nova_issue": contruida.para_dict() if contruida else None,
+                   "pendencia_ao_vivo": ao_vivo,
                    "direcao": fabrica.instrucao_proxima(proxima),
                    "blueprint": args.blueprint},
             duracao=time.time() - inicio)

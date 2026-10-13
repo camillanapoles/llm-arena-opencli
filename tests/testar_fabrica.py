@@ -29,6 +29,13 @@ FACTORY_CLI = os.path.join(RAIZ, "pipeline", "factory.py")
 GATE_CLI = os.path.join(RAIZ, "pipeline", "gate.py")
 
 
+def primeira_aberta(issues):
+    """A primeira issue não concluída (o que o contrato expõe como next_issue)."""
+    abertas = [i for i in sorted(issues, key=lambda x: x["indice"])
+               if str(i["status"]).lower() not in ("concluida", "completada", "done")]
+    return abertas[0]["id"] if abertas else None
+
+
 def rodar(script, *argumentos):
     proc = subprocess.run([sys.executable, script, *argumentos],
                           capture_output=True, text=True, cwd=RAIZ)
@@ -54,6 +61,20 @@ class CasoBase(unittest.TestCase):
         except Exception:
             pass
         self.tmp.cleanup()
+
+    def backlog_temporario(self, *issues) -> str:
+        """Backlog em arquivo (fixture) — testes determinísticos da CLI."""
+        caminho = os.path.join(self.dir, "backlog-fixture.json")
+        with open(caminho, "w", encoding="utf-8") as fh:
+            json.dump({"issues": list(issues)}, fh)
+        return caminho
+
+    @staticmethod
+    def fixture(indice, status="pendente", instrucao_teste="true"):
+        return {"id": f"ISSUE-{indice:03d}", "indice": indice, "titulo": f"t{indice}",
+                "entregavel": "ent", "instrucao_teste": instrucao_teste,
+                "instrucao_desenvolvimento": "executar e testar", "status": status,
+                "origem": "teste"}
 
     def uma_issue(self, indice=1, status="concluida", **extra):
         dados = {"id": f"ISSUE-{indice:03d}", "indice": indice, "titulo": f"t{indice}",
@@ -255,15 +276,19 @@ class TesteEspelhoBacklog(CasoBase):
         self.assertEqual(outro.sincronizar_backlog(caminho), 0, "import é idempotente")
 
     def test_backlog_do_projeto_espelha_o_sqlite(self):
-        self.repo.sincronizar_backlog(BACKLOG)
-        self.assertEqual(len(self.repo.listar_issues()), 7)
         with open(BACKLOG, encoding="utf-8") as fh:
             dados = json.load(fh)
-        self.assertEqual(len(dados["issues"]), 7)
+        entraram = self.repo.sincronizar_backlog(BACKLOG)
+        self.assertEqual(entraram, len(dados["issues"]))
+        self.assertEqual(len(self.repo.listar_issues()), len(dados["issues"]),
+                         "o SQLite espelha exatamente o backlog.json do projeto")
+        self.assertEqual({i["id"]: i["status"] for i in dados["issues"]},
+                         {i.id: i.status for i in self.repo.listar_issues()})
         self.assertTrue(all(i.get("instrucao_desenvolvimento") for i in dados["issues"]),
                         "toda issue precisa da instrução de desenvolvimento (padrão)")
         self.assertTrue(all(i.get("instrucao_teste") or i["status"] == "bloqueada"
                             for i in dados["issues"]))
+        self.assertEqual(self.repo.sincronizar_backlog(BACKLOG), 0, "sync é idempotente")
 
     def test_backlog_do_projeto_aponta_para_arquivos_reais(self):
         import re
@@ -309,14 +334,64 @@ class TesteGateFabrica(CasoBase):
         self.assertIn("instrução de desenvolvimento", obj["mensagem"])
 
 
+class TestePendenciaAoVivo(CasoBase):
+    """A conclusão automática vale só para a pendência que a execução PROVA."""
+
+    def test_sem_pendencia(self):
+        self.uma_issue(1, status="concluida")
+        info = self.fabrica.pendencia_ao_vivo()
+        self.assertIsNone(info["issue"])
+        self.assertFalse(info["prova_ao_vivo"])
+        self.assertIn("não há issue pendente", info["motivo"])
+
+    def test_pendencia_de_desenvolvimento_nao_e_provada(self):
+        self.uma_issue(1, status="pendente",
+                       instrucao_teste="test -s docs/04-decisao-unificacao.md")
+        info = self.fabrica.pendencia_ao_vivo()
+        self.assertEqual(info["issue"], "ISSUE-001")
+        self.assertFalse(info["prova_ao_vivo"],
+                         "escrever uma decisão em docs/ não é provado pela validação do CNJ")
+        self.assertIn("DESENVOLVIMENTO", info["motivo"])
+
+    def test_pendencia_da_validacao_ao_vivo_e_provada(self):
+        self.uma_issue(1, status="pendente",
+                       instrucao_teste="python3 pipeline/verificar_cnj.py --timeout 20")
+        info = self.fabrica.pendencia_ao_vivo()
+        self.assertEqual(info["issue"], "ISSUE-001")
+        self.assertTrue(info["prova_ao_vivo"])
+        self.assertIn("COMPLETADA", info["motivo"])
+        # o complemento do kit curl também conta como prova ao vivo
+        self.uma_issue(2, status="pendente",
+                       instrucao_teste="bash scripts/datajud.sh contar --tribunal tjpe")
+        self.assertEqual(self.fabrica.pendencia_ao_vivo()["issue"], "ISSUE-001",
+                         "vale a primeira pendência da ordem indexada")
+
+    def test_cli_expoe_a_pendencia_e_a_prova(self):
+        fixture = self.backlog_temporario(
+            self.fixture(1, status="concluida"),
+            self.fixture(2, instrucao_teste="python3 pipeline/verificar_cnj.py --timeout 20"))
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture,
+                                   "--sincronizar", "--pendencia-ao-vivo",
+                                   "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "0", bruto[:200])
+        info = obj["dados"]["pendencia_ao_vivo"]
+        self.assertEqual(info["issue"], "ISSUE-002")
+        self.assertTrue(info["prova_ao_vivo"])
+        self.assertEqual(obj["next_issue"], "ISSUE-002")
+
+
 class TesteCLIFabrica(CasoBase):
     def test_sincronizar_listar_e_contrato(self):
         codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar",
                                    "--listar", "--saida-dir", self.saida)
         self.assertIsNotNone(obj, bruto[:300])
         self.assertEqual((obj["status"], codigo), ("0", 0))
-        self.assertEqual(obj["dados"]["issues"], 7)
-        self.assertEqual(obj["next_issue"], "ISSUE-006")
+        with open(BACKLOG, encoding="utf-8") as fh:
+            projeto = json.load(fh)["issues"]
+        self.assertEqual(obj["dados"]["issues"], len(projeto),
+                         "o SQLite espelha o backlog.json do projeto")
+        self.assertEqual(obj["next_issue"], primeira_aberta(projeto),
+                         "o contrato aponta a próxima issue aberta do projeto")
         self.assertIn("direcao", obj["dados"])
 
     def test_evento_pela_cli(self):
@@ -330,29 +405,35 @@ class TesteCLIFabrica(CasoBase):
         self.assertIn("continuar", obj["dados"]["resultados"][0])
 
     def test_concluir_e_construir_a_proxima(self):
-        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
-              "--saida-dir", self.saida)
+        fixture = self.backlog_temporario(self.fixture(1, status="concluida"),
+                                          self.fixture(2))
+        rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture, "--sincronizar",
+              "-q", "--saida-dir", self.saida)
         codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco,
-                                   "--concluir", "ISSUE-006", "--proxima",
-                                   "--titulo", "frente nova", "--saida-dir", self.saida)
+                                   "--backlog", fixture, "--concluir", "ISSUE-002",
+                                   "--proxima", "--titulo", "frente nova",
+                                   "--saida-dir", self.saida)
         self.assertEqual(obj["status"], "0", bruto[:200])
         nova = obj["dados"]["nova_issue"]
-        self.assertEqual(nova["id"], "ISSUE-008")
-        self.assertEqual(nova["depende_de"], ["ISSUE-006"])
+        self.assertEqual(nova["id"], "ISSUE-003")
+        self.assertEqual(nova["depende_de"], ["ISSUE-002"])
         self.assertEqual(nova["origem"], "fábrica (próxima indexada)")
 
     def test_proxima_com_instrucao_de_teste_e_evidencia(self):
-        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
-              "--saida-dir", self.saida)
+        fixture = self.backlog_temporario(self.fixture(1, status="concluida"),
+                                          self.fixture(2))
+        rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture, "--sincronizar",
+              "-q", "--saida-dir", self.saida)
         codigo, obj, bruto = rodar(
-            FACTORY_CLI, "--banco", self.banco, "--concluir", "ISSUE-006",
+            FACTORY_CLI, "--banco", self.banco, "--backlog", fixture,
+            "--concluir", "ISSUE-002",
             "--evidencia", "validacao_ao_vivo=https://exemplo/runs/1",
             "--proxima", "--titulo", "decisão da 007", "--entregavel", "docs/04.md",
             "--instrucao-teste", "test -s docs/04.md",
             "--saida-dir", self.saida)
         self.assertEqual(obj["status"], "0", bruto[:200])
         nova = obj["dados"]["nova_issue"]
-        self.assertEqual(nova["id"], "ISSUE-008")
+        self.assertEqual(nova["id"], "ISSUE-003")
         self.assertEqual(nova["instrucao_teste"], "test -s docs/04.md")
         self.assertEqual(nova["entregavel"], "docs/04.md")
         self.assertIn("instrucao_desenvolvimento", nova)
@@ -362,20 +443,23 @@ class TesteCLIFabrica(CasoBase):
               "--saida-dir", self.saida, "-q")
         with open(exportado, encoding="utf-8") as fh:
             dados = json.load(fh)
-        seis = [i for i in dados["issues"] if i["id"] == "ISSUE-006"][0]
-        self.assertEqual(seis["status"], "concluida")
-        self.assertTrue(any("validacao_ao_vivo" in str(e) for e in seis["evidencias"]))
+        dois = [i for i in dados["issues"] if i["id"] == "ISSUE-002"][0]
+        self.assertEqual(dois["status"], "concluida")
+        self.assertTrue(any("validacao_ao_vivo" in str(e) for e in dois["evidencias"]))
 
     def test_construir_com_pendencia_devolve_status_1(self):
-        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
-              "--saida-dir", self.saida)
-        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--proxima",
+        fixture = self.backlog_temporario(self.fixture(1, status="concluida"),
+                                          self.fixture(2))
+        rodar(FACTORY_CLI, "--banco", self.banco, "--backlog", fixture, "--sincronizar",
+              "-q", "--saida-dir", self.saida)
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco,
+                                   "--backlog", fixture, "--proxima",
                                    "--saida-dir", self.saida)
         self.assertEqual(obj["status"], "1")
         self.assertEqual(codigo, 1)
         self.assertTrue(obj["continuidade"])
         self.assertEqual(obj["direcao"], "corrigir")
-        self.assertEqual(obj["next_issue"], "ISSUE-006")
+        self.assertEqual(obj["next_issue"], "ISSUE-002")
 
     def test_banco_invalido_e_erro_tipo_2(self):
         with open(os.path.join(self.dir, "quebrado.db"), "w", encoding="utf-8") as fh:

@@ -34,3 +34,16 @@
 
 - **Descrição:** próximo passo indexado após ISSUE-2 (`pipeline/blueprint.json`).
 - **Gatilho de retomada:** ciclo `npm run pipeline -- cycle --id ISSUE-3` após ISSUE-2 `delivered`.
+
+## D5 — Comentário na issue #3 (deliverable ISSUE-009) bloqueado por permissão
+
+- **Descrição:** o comentário de registro da integração IGC/UNIFY na issue #3
+  foi rejeitado pelo GitHub (403 *Resource not accessible by integration*) —
+  o token do sandbox escreve em PRs/issues criadas por ele, mas não comenta
+  nesta issue.
+- **Causa:** permissão do token de integração do ambiente.
+- **Impacto:** baixo — o conteúdo está versionado e pronto; o deliverable de
+  ISSUE-009 fica pendente só do POST.
+- **Gatilho de retomada:** operador rodar do seu terminal (ou workflow com
+  `issues: write`):
+  `gh issue comment 3 --body-file .session/emissoes/issue-3-comentario.md`

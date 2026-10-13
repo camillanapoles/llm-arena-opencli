@@ -178,40 +178,34 @@ jobs:
           echo "step_id=$STEP_ID" >> "$GITHUB_OUTPUT"
           echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
 
-      - name: Testar entrega (acceptance do blueprint) -> envelope JSON
+      - name: Ciclo determinístico de teste da entrega -> envelope JSON
         if: steps.meta.outputs.chain == 'true'
         id: acceptance
         env:
           STEP_ID: ${{ steps.meta.outputs.step_id }}
         run: |
-          ACCEPTANCE="$(jq -r --arg id "$STEP_ID" '.chain[] | select(.id == $id) | .acceptance' pipeline/blueprint.json)"
-          echo "acceptance=$ACCEPTANCE"
           set +e
           npm ci > /dev/null 2>&1
-          bash -c "$ACCEPTANCE" 2>&1 | tee ci.log
-          RESULT=$?
-          if [ "$RESULT" -eq 0 ]; then RCODE=0; else RCODE=1; fi
-
-          node --disable-warning=ExperimentalWarning src/cli/pipeline-cli.ts step \
+          node --disable-warning=ExperimentalWarning src/cli/pipeline-cli.ts cycle \
             --id "$STEP_ID" \
-            --result "$RCODE" \
-            --message "acceptance: $ACCEPTANCE (exit $RESULT)" \
-            --addendum "log:ci.log:saída do acceptance" \
+            --log-file ci.log \
             --action-id "issue-chain-${GITHUB_RUN_ID}" | tee action-result.json
           set -e
-          echo "result=$RCODE" >> "$GITHUB_OUTPUT"
+          echo "result=$(jq -r .exitCode action-result.json)" >> "$GITHUB_OUTPUT"
           echo "next=$(jq -r .nextIssue action-result.json)" >> "$GITHUB_OUTPUT"
+          echo "direction=$(jq -r .direction action-result.json)" >> "$GITHUB_OUTPUT"
 
       - name: Sucesso -> construir a SEGUINTE issue indexada + reportar
         if: steps.meta.outputs.chain == 'true' && steps.acceptance.outputs.result == '0'
         env:
           GH_TOKEN: ${{ github.token }}
           NEXT: ${{ steps.acceptance.outputs.next }}
+          DIRECTION: ${{ steps.acceptance.outputs.direction }}
           ISSUE_NUMBER: ${{ steps.meta.outputs.issue_number }}
           STEP_ID: ${{ steps.meta.outputs.step_id }}
         run: |
           {
-            echo "### Entrega de $STEP_ID testada - envelope do action:"
+            echo "### Entrega de $STEP_ID testada (direção: $DIRECTION) - envelope do action:"
             echo '```json'
             cat action-result.json
             echo '```'
@@ -252,12 +246,13 @@ jobs:
         if: steps.meta.outputs.chain == 'true' && steps.acceptance.outputs.result != '0'
         env:
           GH_TOKEN: ${{ github.token }}
+          DIRECTION: ${{ steps.acceptance.outputs.direction }}
           ISSUE_NUMBER: ${{ steps.meta.outputs.issue_number }}
           STEP_ID: ${{ steps.meta.outputs.step_id }}
         run: |
           gh issue reopen "$ISSUE_NUMBER" || true
           {
-            echo "### Erro em $STEP_ID - envelope do action (nextIssue = MESMA issue, continuidade):"
+            echo "### Erro em $STEP_ID (direção: $DIRECTION) - envelope do action (nextIssue = MESMA issue, continuidade):"
             echo '```json'
             cat action-result.json
             echo '```'

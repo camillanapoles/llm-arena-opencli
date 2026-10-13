@@ -151,25 +151,34 @@ Todo action do pipeline retorna **UM objeto JSON padrão**:
 
 ```json
 { "id": "…", "message": "…", "addenda": [{ "kind": "path", "ref": "…", "description": "…" }],
-  "status": "…", "nextIssue": "ISSUE-2 | mesma | null", "exitCode": 0 }
+  "status": "…", "nextIssue": "ISSUE-2 | mesma | null", "exitCode": 0,
+  "direction": "continue | fix | debt | complete | hold" }
 ```
 
 `exitCode`: **0** sucesso (avança para a próxima issue indexada) · **1** erro
 tipo 1 (validação/execução → MESMA issue + continuidade) · **2** erro tipo 2
-(pré-condição/continuidade → MESMA issue + continuidade).
+(pré-condição/continuidade → MESMA issue + continuidade). `direction` norteia
+o próximo movimento: `continue`/`complete` (aprovado) · `fix` (corrigir a
+mesma issue) · `debt` (registrar débito e manter continuidade) · `hold`.
 
 - **Gate de continuidade** (`blueprint.yml` → `pipeline-cli gate`): verifica a
   **não existência** de issues abertas ∨ CI/CD com erros ∨ SEM testes.
   Não positivo → `status: "continuity"` (o fluxo **continua**); positivo →
   `status: "production-ready"` (pronto para uso).
-- **Cadeia indexada** (`pipeline/blueprint.json`, `pipeline-cli step/next`):
-  a cada issue `[ISSUE-N]` completada, o acceptance testa a entrega;
+- **Cadeia indexada OO + SQLite** (`pipeline/blueprint.json`, domínio em
+  `src/pipeline/domain.ts`): `PipelineIssue` (máquina de estados),
+  `IssueRepository` (SQLite), `IssueFactory` (**event-driven**),
+  `PipelineEngine` (**ciclos determinísticos** com validação de SUCESSO
+  COMPLETO). A cada issue `[ISSUE-N]` completada, o acceptance testa a entrega;
   **sucesso → constrói a próxima issue indexada**; **erro → retorna erro +
   informações de continuidade** (reabre a MESMA issue).
 
 ```sh
 npm run pipeline -- validate
-npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 67 --tests-passed 67
+npm run pipeline -- pending                                          # pendentes COM instrução
+npm run pipeline -- cycle --id ISSUE-1 --log-file ci.log             # ciclo determinístico
+npm run pipeline -- event --type issue.completed --issue ISSUE-1 --result 0
+npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 84 --tests-passed 84
 npm run pipeline -- step --id ISSUE-1 --result 0
 npm run pipeline -- next --after ISSUE-1
 ```
@@ -196,12 +205,13 @@ congelada, sem `eval`.
 
 ## Testes
 
-`npm test` roda `node:test` sobre oito suítes (**67 testes**): `db`, `cache`,
+`npm test` roda `node:test` sobre nove suítes (**84 testes**): `db`, `cache`,
 `factory` (pattern factory + builtins), `gate-driver` (triggers, blocking vs
 advisory, dispatch OpenCLI via mock transport), `server` (CRUD HTTP, webhooks,
 CORS), `session` (continuidade: checkpoints, briefing, handoff), `pipeline`
-(envelope JSON 0/1/2, continuity gate, chain executor) e `wasm` (vetores
-FNV-1a, paridade com a lógica TS de triggers).
+(envelope JSON 0/1/2 + direction, continuity gate, chain executor), `domain`
+(modelo OO: estados, SQLite, factory event-driven, ciclos determinísticos) e
+`wasm` (vetores FNV-1a, paridade com a lógica TS de triggers).
 
 ## Créditos
 

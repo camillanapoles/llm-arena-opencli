@@ -10,12 +10,19 @@
  *     --open-issues N --ci-failures N --tests-total N --tests-passed N
  *   node src/cli/pipeline-cli.ts step --id ISSUE-2 --result 0|1|2 \
  *     [--message "..."] [--addendum kind:ref:description] [--action-id id]
+ *   node src/cli/pipeline-cli.ts cycle --id ISSUE-2 [--log-file ci.log] \
+ *     [--action-id id]          # ciclo determinístico: roda acceptance e valida
+ *                               # SUCESSO COMPLETO -> envelope com DIREÇÃO
+ *   node src/cli/pipeline-cli.ts event --type issue.completed|issue.failed|gate.checked \
+ *     [--issue ISSUE-2] [--result 0|1|2] [--action-id id]
+ *   node src/cli/pipeline-cli.ts pending [--action-id id]
  *   node src/cli/pipeline-cli.ts next [--after ISSUE-1]
  *   node src/cli/pipeline-cli.ts validate
  */
 
 import {
   makeEnvelope,
+  decideDirection,
   type ActionEnvelope,
   type Addendum,
   type ExitCode,
@@ -28,6 +35,13 @@ import {
   runChainStep,
   validateBlueprint,
 } from "../pipeline/chain.ts";
+import {
+  BashRunner,
+  IssueFactory,
+  IssueRepository,
+  PipelineEngine,
+} from "../pipeline/domain.ts";
+import { Database } from "../db/database.ts";
 
 interface Args {
   command: string;
@@ -77,6 +91,13 @@ function emit(envelope: ActionEnvelope): void {
 
 function blueprintPath(flags: Record<string, string>): string {
   return flags["blueprint"] ?? "pipeline/blueprint.json";
+}
+
+function buildEngine(flags: Record<string, string>): PipelineEngine {
+  const db = new Database(process.env["ARENA_DB_PATH"] ?? "data/arena.db");
+  const repo = new IssueRepository(db);
+  const factory = new IssueFactory(loadBlueprint(blueprintPath(flags)));
+  return new PipelineEngine({ repo, factory, runner: new BashRunner() });
 }
 
 function main(): void {
@@ -178,6 +199,68 @@ function main(): void {
           continuity: validation.ok
             ? { required: false, reason: "" }
             : { required: true, reason: "blueprint inválido — corrigir cadeia antes de prosseguir" },
+        }),
+      );
+      return;
+    }
+
+    case "cycle": {
+      const engine = buildEngine(flags);
+      const id = flags["id"] ?? "";
+      const logFile = flags["log-file"] === "true" ? undefined : flags["log-file"];
+      emit(engine.runCycle(id, actionId, logFile));
+      return;
+    }
+
+    case "event": {
+      const engine = buildEngine(flags);
+      const result = num(flags, "result", 0);
+      const envelope = engine.onEvent(
+        {
+          type: flags["type"] ?? "gate.checked",
+          issueId: flags["issue"] === "true" ? undefined : flags["issue"],
+          result: result === 0 ? 0 : result === 1 ? 1 : 2,
+        },
+        actionId,
+      );
+      emit(envelope);
+      return;
+    }
+
+    case "pending": {
+      const bp = loadBlueprint(blueprintPath(flags));
+      const db = new Database(process.env["ARENA_DB_PATH"] ?? "data/arena.db");
+      const repo = new IssueRepository(db);
+      const factory = new IssueFactory(bp);
+      for (const issue of factory.materializeAll()) {
+        if (repo.get(issue.id) === undefined) repo.save(issue);
+      }
+      const pending = repo.listPending();
+      emit(
+        makeEnvelope({
+          id: actionId,
+          status: pending.length === 0 ? "no-pending" : "pending",
+          message: pending
+            .map((p) => `${p.id} [${p.state}] ${p.title} — ${p.instruction}`)
+            .join("\n"),
+          addenda: [
+            { kind: "path", ref: blueprintPath(flags), description: "blueprint da cadeia" },
+            ...pending.map((p) => ({
+              kind: "filename" as const,
+              ref: p.id,
+              description: `${p.title} (acceptance: ${p.acceptance})`,
+            })),
+          ],
+          nextIssue: pending[0]?.id ?? null,
+          exitCode: 0,
+          direction: pending.length === 0 ? "complete" : "continue",
+          continuity: {
+            required: pending.length > 0,
+            reason:
+              pending.length === 0
+                ? ""
+                : `${pending.length} issue(s) pendente(s) com instrução — continuidade em andamento`,
+          },
         }),
       );
       return;

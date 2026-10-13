@@ -57,6 +57,18 @@ CREATE TABLE IF NOT EXISTS cache (
   updated_at    INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS pipeline_issues (
+  id            TEXT PRIMARY KEY,
+  title         TEXT NOT NULL,
+  instruction   TEXT NOT NULL,
+  acceptance    TEXT NOT NULL,
+  state         TEXT NOT NULL DEFAULT 'pending',
+  attempts      INTEGER NOT NULL DEFAULT 0,
+  next          TEXT,
+  last_error    TEXT,
+  updated_at    TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_runs_gate ON runs (gate_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events (type);
 CREATE INDEX IF NOT EXISTS idx_cache_expires ON cache (expires_at);

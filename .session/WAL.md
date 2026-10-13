@@ -20,3 +20,4 @@
 2026-10-13T22:27:08Z | VERIFICAÇÃO | CONTINUE | retificação igc-continuity v2.1 implementada (motor+CLI+Art.8+T1-T8) | make testes 236/236 verde; npm run ci 118/118 verde (108 + 10 garantias IGC) | aceitação verde na linhagem | 19afb06
 2026-10-13T22:27:08Z | GATE | CONTINUE | Art. 12: fechamento da retificação | close-gate 8/8 com round-trip T8 (clone frio offline verde) — nota 10.0 | pode fechar (Art. 12) | 19afb06
 2026-10-13T22:30:22Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38477985120) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38477985120) | 88e5acb
+2026-10-13T22:30:28Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38477990531) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38477990531) | 33bb5a6

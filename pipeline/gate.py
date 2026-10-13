@@ -14,6 +14,8 @@ Cada ação deste pipeline devolve SEMPRE o mesmo objeto JSON no stdout:
       "next_issue":  "ISSUE-007",      # mesma issue se falhou; a próxima se passou
       "direcao":     "proxima",        # para onde ir: continuar|corrigir|depurar|proxima|encerrar|humano
       "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-007 --marcar",
+      "debitos":     [],               # débitos de erro: [{gate, tipo, motivo, prioridade, acao, comando_fix}]
+                                       # prioridade: urgente|alta|media · acao: corrigir (retorno para fix)|humano
       "anexos":      [{"path": "...", "filename": "...", "descricao": "..."}],
       "dados":       { ... },          # detalhes estruturados de cada gate
       "timestamp":   "2026-10-13T14:15:00Z",
@@ -112,11 +114,51 @@ MAPA_DIRECAO = {
 }
 
 
-def direcao_de(gate: str, status: str, next_issue=None) -> str:
-    """Direção de continuidade sugerida pelo resultado do gate."""
+def direcao_de(gate: str, status: str, next_issue=None, corrigivel: bool = False) -> str:
+    """Direção de continuidade sugerida pelo resultado do gate.
+
+    Retorno para fix: o veredito de continuidade com pendência CORRIGÍVEL
+    (débito de erro tipo 1) encaminha para "corrigir" — o pipeline volta no
+    fix até o débito ser quitado.
+    """
     if gate == "issue" and status == "0" and not next_issue:
         return "encerrar"
+    if gate == "continuidade" and str(status) == "1" and corrigivel:
+        return "corrigir"
     return MAPA_DIRECAO.get((gate, str(status)), "continuar" if str(status) == "0" else "humano")
+
+
+# --------------------------------------------------------------------------- #
+# débitos de erro (prioridade + retorno para fix)
+# --------------------------------------------------------------------------- #
+
+# prioridade do débito por gate: erro que impede entrega é ALTO; pendência de
+# processo é MÉDIO; erro tipo 2 (não avaliável) é URGENTE (humano).
+PRIORIDADE_DEBITO = {
+    "issues": "media", "cicd": "alta", "testes": "alta", "fabrica": "media",
+    "issue": "alta", "blueprint": "alta", "continuidade": "alta", "situacao": "media",
+}
+
+
+def debitos_de(gate: str, status: str, motivo: str, comando_fix=None) -> list:
+    """Abre débitos de erro para um resultado não-sucedido.
+
+    status "1" ⇒ débito conhecido/tratável: `acao` = "corrigir" (retorno para
+    fix) e `prioridade` conforme PRIORIDADE_DEBITO.
+    status "2" ⇒ erro tipo 2: `acao` = "humano", `prioridade` = "urgente".
+    status "0" ⇒ sem débito.
+    """
+    if str(status) == "0":
+        return []
+    if comando_fix is None:
+        comando_fix = proximo_passo_de(gate, status)
+    if str(status) == "2":
+        return [{"gate": gate, "tipo": "2", "motivo": str(motivo),
+                 "prioridade": "urgente", "acao": "humano",
+                 "comando_fix": comando_fix}]
+    return [{"gate": gate, "tipo": "1", "motivo": str(motivo),
+             "prioridade": PRIORIDADE_DEBITO.get(gate, "media"),
+             "acao": "corrigir", "comando_fix": comando_fix}]
 
 
 def proximo_passo_de(gate: str, status: str, next_issue=None, identificador=None) -> str:
@@ -164,12 +206,20 @@ def novo_id(gate: str) -> str:
 
 def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
            next_issue=None, continuidade=None, duracao: float = 0.0,
-           direcao=None, proximo_passo=None, identificador=None) -> dict:
-    """Monta o objeto JSON do contrato. Unico ponto de criação — garante o formato."""
+           direcao=None, proximo_passo=None, identificador=None, debitos=None) -> dict:
+    """Monta o objeto JSON do contrato. Unico ponto de criação — garante o formato.
+
+    `debitos` é o fluxo de débito de erro com prioridade e retorno para fix:
+    sempre presente (lista vazia quando não há erro); cada débito carrega
+    prioridade (urgente|alta|media), acao (corrigir|humano) e comando_fix.
+    """
     if continuidade is None:
         continuidade = status == STATUS_CONTINUIDADE
+    if debitos is None:
+        debitos = debitos_de(gate, status, mensagem)
     if direcao is None:
-        direcao = direcao_de(gate, status, next_issue)
+        direcao = direcao_de(gate, status, next_issue,
+                             corrigivel=any(d.get("acao") == "corrigir" for d in debitos))
     if proximo_passo is None:
         proximo_passo = proximo_passo_de(gate, status, next_issue, identificador)
     return {
@@ -182,6 +232,7 @@ def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
         "next_issue": next_issue,
         "direcao": direcao,
         "proximo_passo": proximo_passo,
+        "debitos": debitos,
         "anexos": [
             {"path": a.get("path"), "filename": os.path.basename(a.get("path") or ""),
              "descricao": a.get("descricao", "")}
@@ -505,6 +556,11 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     indeterminados = [n for n, p in parciais.items() if p["status"] == STATUS_INDETERMINADO]
     pendentes = [n for n, p in parciais.items() if p["status"] == STATUS_CONTINUIDADE]
 
+    # débitos de erro agregados (prioridade + retorno para fix)
+    debitos = [d for n in (pendentes + indeterminados) for d in parciais[n].get("debitos", [])]
+    ordem_prioridade = {"urgente": 0, "alta": 1, "media": 2}
+    debitos.sort(key=lambda d: ordem_prioridade.get(d.get("prioridade", "media"), 2))
+
     if indeterminados:
         status = STATUS_INDETERMINADO
         continuidade = False
@@ -514,14 +570,24 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     elif pendentes:
         status = STATUS_CONTINUIDADE
         continuidade = True
-        mensagem = ("gate NÃO positivo — continuidade obrigatória. Pendências: "
-                    + "; ".join(f"{n} ({parciais[n]['dados'].get('abertas', parciais[n]['dados'].get('com_erro', '?'))})"
-                                for n in pendentes))
+        resumo = "; ".join(
+            f"{d['gate']}[{d['prioridade']}]: {d['motivo']}" for d in debitos
+        ) or "; ".join(pendentes)
+        mensagem = ("gate NÃO positivo — continuidade obrigatória. Pendências: " + resumo)
     else:
         status = STATUS_SUCESSO
         continuidade = False
         mensagem = ("gate positivo: nenhuma issue aberta, CI sem erros, testes aprovados "
                     "e fábrica íntegra")
+
+    # retorno para fix: o próximo passo prioriza quitar o débito mais grave
+    proximo_passo = None
+    if debitos and continuidade:
+        principal = debitos[0]
+        cadeia = proximo_passo_de("continuidade", status, (proxima or {}).get("id"))
+        proximo_passo = (f"{principal['comando_fix']}   "
+                         f"# quitar débito {principal['gate']}[{principal['prioridade']}]"
+                         f" — depois: {cadeia}")
 
     dados = {
         "checks": {n: {"status": p["status"], "mensagem": p["mensagem"]} for n, p in parciais.items()},
@@ -535,7 +601,8 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     resultado = objeto(
         gate="continuidade", status=status, continuidade=continuidade, mensagem=mensagem,
         next_issue=(proxima or {}).get("id") if continuidade else None,
-        anexos=anexos, dados=dados, duracao=time.time() - inicio)
+        anexos=anexos, dados=dados, duracao=time.time() - inicio,
+        debitos=debitos, proximo_passo=proximo_passo)
 
     # anexo consolidado em markdown (resumo humano do veredito)
     resumo_md = [
@@ -549,6 +616,14 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     ]
     for nome, parcial in parciais.items():
         resumo_md.append(f"| {nome} | {parcial['status']} | {parcial['mensagem']} |")
+    if resultado["debitos"]:
+        resumo_md += ["", "## Débitos de erro (prioridade + retorno para fix)", "",
+                      "| gate | tipo | prioridade | ação | motivo | comando de fix |",
+                      "| --- | --- | --- | --- | --- | --- |"]
+        for d in resultado["debitos"]:
+            resumo_md.append(
+                f"| {d['gate']} | {d['tipo']} | {d['prioridade']} | {d['acao']} | "
+                f"{d['motivo']} | `{d['comando_fix']}` |")
     resultado["anexos"].append(gravar_anexo(
         "veredito-continuidade.md", "\n".join(resumo_md) + "\n", saida_dir,
         "veredito do gate em Markdown (resumo para humanos)"))

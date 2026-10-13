@@ -29,6 +29,11 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
   "next_issue": "ISSUE-006",
   "direcao": "corrigir",
   "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-006",
+  "debitos": [
+    {"gate": "issues", "tipo": "1", "motivo": "1 issue(s) aberta(s)",
+     "prioridade": "media", "acao": "corrigir",
+     "comando_fix": "gh issue list --state open   # tratar/fechar as issues abertas"}
+  ],
   "anexos": [
     {"path": "pipeline/saida/issues-abertas.md", "filename": "issues-abertas.md",
      "descricao": "lista de issues abertas consultadas pelo gate"},
@@ -53,6 +58,7 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 | `next_issue` | string \| null | a **mesma** issue se falhou; a **próxima** indexada se passou; `null` se acabou ou não se aplica |
 | `direcao` | string | para onde ir: `continuar` · `corrigir` (fix) · `depurar` (debug) · `proxima` (continue to next issue) · `encerrar` · `humano` |
 | `proximo_passo` | string | o comando literal que o operador ou o próximo job executa |
+| `debitos` | array | **débitos de erro** com prioridade e retorno para fix: `{gate, tipo, motivo, prioridade, acao, comando_fix}` (sempre presente; vazio quando o status é `"0"`) |
 | `anexos` | array | `{path, filename, descricao}` — artefatos gerados (logs, listas, veredito, guia da próxima issue) |
 | `dados` | objeto | detalhes estruturados de cada gate |
 
@@ -69,6 +75,28 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 > de issues está íntegra (padrão + instrução de desenvolvimento em todas as issues).
 > **Enquanto não for positivo ⇒ `continuidade = true`** e `next_issue` aponta a próxima
 > pendência do backlog — é isso que mantém o fluxo andando sem sessão humana.
+
+### Débitos de erro (prioridade + retorno para fix)
+
+Toda saída não-sucedida **abre débito de erro** no campo `debitos` — o pipeline
+registra *o que* falhou, *com que prioridade* e *como quitar*:
+
+| `tipo` | `prioridade` | `acao` | significado |
+| --- | --- | --- | --- |
+| `"1"` | `alta` (testes, CI, issue, blueprint) · `media` (issues abertas, fábrica) | **`corrigir`** | erro conhecido e tratável — **retorno para fix**: o `comando_fix` quita o débito |
+| `"2"` | `urgente` | `humano` | não avaliável — exige intervenção humana |
+
+O veredito de continuidade (gate `continuidade`) **agrega os débitos dos checks**,
+ordena por prioridade (`urgente > alta > media`) e:
+
+- `direcao` = **`corrigir`** quando há débito corrigível (retorno para fix);
+- `proximo_passo` = **`comando_fix` do débito mais grave primeiro** e, depois,
+  o comando de cadeia (`gate.py issue --id …`).
+
+O mesmo fluxo existe no contrato canônico Node/TS (`debts[]` em
+`src/pipeline/envelope.ts`): `kind: known|unknown`, `priority: urgent|high|medium`,
+`action: fix|human`, `fixCommand` — mapeado 1:1 por `src/pipeline/interop.ts`
+(`debts ↔ debitos`, `fix ↔ corrigir`, `high ↔ alta`, …).
 
 ---
 

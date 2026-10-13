@@ -6,6 +6,15 @@ ele **valida e testa** o resultado, e qual é exatamente a **saída esperada** d
 etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 31 arquivos embutido —
 não precisa de internet, Git nem de nenhum arquivo externo.
 
+> **Escopo no repositório unificado (duas pilhas):** o `bootstrap.sh` recria o
+> **kit CNJ** — os 32 arquivos do inventário de `tools/gerar_bootstrap.py`
+> (documentação CNJ, `main.py`, `pipeline/`, `scripts/`, `tests/` Python/bash,
+> `Makefile`, workflows CNJ). A pilha Node/TS + WASM (Parte A do README) se
+> reinstala com `npm install` + `npm run build:wasm` / `npm run ci`. Qualquer
+> alteração em arquivo do kit exige `python3 tools/gerar_bootstrap.py` no mesmo
+> commit (o gate 3 do `gates.yml` e `tests/testar_bootstrap.sh` verificam isso —
+> e o fluxo de débitos de erro registra o desvio com prioridade e retorno para fix).
+
 ```bash
 bash bootstrap.sh                      # cria ./projeto-datajud, valida e roda os 90 testes
 bash bootstrap.sh --destino /opt/jus   # escolhe outro diretório

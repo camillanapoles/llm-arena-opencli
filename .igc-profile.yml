@@ -1,0 +1,46 @@
+# .igc-profile.yml — IGC Art. 10: COMO este repositório cumpre o protocolo
+# Regra: o profile NUNCA enfraquece axioma (Art. 1) ou garantia (Art. 6) —
+# só escolhe mecanismo. Contradição → axioma vence, profile vai a DEBT.
+
+igc_profile: "1"
+contrato: "docs/IGC-v2.1.md"          # igc-continuity v2.1.0
+
+linhagem:
+  # A2' (runtime Arena fixa a branch — desvio declarado nos 3 canais:
+  # este profile, CONTEXT.md e .igc-registry.yml):
+  formato_branch: "arena/<id-sessao>/<repo>"
+  formato_igc_equivalente: "sessao/<id-sessao>/<slug>"
+  base_pinada: "3d9b774911c2cda5ddbc39d2d8b88cd9de666182"   # W1' — commit verificado
+  isolamento: "worktree único do runtime (sandbox Arena); quando o runtime permitir, adotar git worktree add ../<wt> -b sessao/<id>/<slug> <base-pinada> (W1)"
+
+eventos:
+  fontes: [issues, ci, webhook, manual]     # GitHub issues/PR, workflows, POST /api/events, operador
+
+bootstrap:
+  comando: "bash .session/bootstrap.sh"
+  verde_quando: "exit 0 + memória .session/ completa (W2)"
+
+verificacao:
+  comando: "npm run ci && make testes"
+  criterio: "0 failed; skips justificados em INTENT.md (M6)"
+
+integridade:
+  comando: "git fsck --no-dangling"
+  pre_base: "git diff --stat <upstream>...HEAD (M7 — sanidade de base, EV-1)"
+
+envelope:
+  schema: "pipeline/contract.schema.json"    # mínimo E3: status, message, checkpoint_ref
+  ancora_wal: "WAL#n (n = número ordinal da entrada)"
+
+transporte:
+  mecanismo: "git bundle + patch"             # EV-5
+  aceite: "round-trip T8 (bundle → clone frio → suíte offline verde)"
+  observacao: "suíte offline = make testes (Python stdlib); npm run ci requer rede p/ npm install (justificado em DEBT D7)"
+
+ci:
+  commit_checkpoint: "github-actions[bot] via GITHUB_TOKEN; commit 'igc(ci): run <id> [igc-checkpoint] [skip ci]' — [skip ci] cumpre C2 na plataforma GitHub"
+  step_final: "node src/cli/igc-cli.ts checkpoint --run-id <GITHUB_RUN_ID> (C1/C3)"
+
+runtime:
+  requer: [fs_write, vcs, exec]              # Art. 11 — fallbacks: branch+clone (vcs), gates de pipeline (exec)
+  append_wal: "texto puro (universal — M1)"

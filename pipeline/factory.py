@@ -334,8 +334,15 @@ class ModeloIssue:
         """Sintetiza uma issue conforme o padrão (o coração da fábrica)."""
         dependencias = list(depende_de) if depende_de is not None else \
             [anterior] if (anterior and "anterior" in self.dependencia_padrao) else []
+        identificador = self.id_de(indice)
+        # a fábrica NUNCA emite issue inválida: entregavel/instrucao_teste
+        # recebem padrões verificáveis quando o evento não traz conteúdo
+        entregavel = str(entregavel).strip() or (
+            f"entrega de {identificador} executada conforme a instrução, "
+            "com sucesso testado")
+        instrucao_teste = instrucao_teste or "make testes"
         return Issue(
-            id=self.id_de(indice), indice=indice, titulo=titulo, entregavel=entregavel,
+            id=identificador, indice=indice, titulo=titulo, entregavel=entregavel,
             instrucao_teste=(instrucao_teste or None),
             instrucao_desenvolvimento=(str(instrucao_desenvolvimento).strip()
                                        or self.instrucao_padrao),

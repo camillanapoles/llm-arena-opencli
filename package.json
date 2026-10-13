@@ -1,0 +1,27 @@
+{
+  "name": "llm-arena-opencli",
+  "version": "0.1.0",
+  "description": "CI/CD-native automation driver: GitHub Actions runtime as the execution environment for OpenCLI, with gate events, backend (SQLite + cache + CRUD + function factory) and a WebAssembly core for web use at arena.ai/agent.",
+  "type": "module",
+  "private": true,
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build:wasm": "node wasm/build.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
+    "start": "node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts serve",
+    "seed": "node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts seed",
+    "gate": "node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts receive",
+    "session": "node --disable-warning=ExperimentalWarning src/cli/session-cli.ts",
+    "pipeline": "node --disable-warning=ExperimentalWarning src/cli/pipeline-cli.ts",
+    "ci": "npm run typecheck && npm run build:wasm && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "assemblyscript": "^0.28.2",
+    "typescript": "^5.8.0"
+  }
+}

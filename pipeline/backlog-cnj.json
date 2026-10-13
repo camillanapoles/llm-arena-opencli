@@ -1,0 +1,150 @@
+{
+  "nome": "backlog do projeto — consulta processual DataJud/DJEN",
+  "gerado_por": "pipeline/factory.py 1.0.0 (SQLite ⇄ backlog.json)",
+  "gerado_em": "2026-10-13T19:07:28Z",
+  "issues": [
+    {
+      "id": "ISSUE-001",
+      "indice": 1,
+      "titulo": "Kit curl para a API Pública do DataJud (TJPE)",
+      "entregavel": "scripts/datajud.sh + docs/01-api-datajud.md + docs/02-receitas-curl-tjpe.md",
+      "instrucao_teste": "bash tests/rodar-testes.sh",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao alterar o kit curl, rodar `bash tests/rodar-testes.sh` (32 verificações) e conferir as receitas em docs/02; qualquer rota/param novo entra na doc antes do código.",
+      "status": "concluida",
+      "depende_de": [],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "evidencias": [
+        "32 verificações offline passando"
+      ]
+    },
+    {
+      "id": "ISSUE-002",
+      "indice": 2,
+      "titulo": "main.py — consulta um processo e gera relatório Markdown",
+      "entregavel": "main.py + tests/testar_main.py + tests/mock_apis.py",
+      "instrucao_teste": "python3 tests/testar_main.py",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mexer no relatório, rodar `python3 tests/testar_main.py` (29) e regerar um exemplo em docs/exemplo-saida/ com `python3 main.py 0001234-43.2024.8.17.2001 -o docs/exemplo-saida/relatorio-processo-exemplo.md`.",
+      "status": "concluida",
+      "depende_de": [
+        "ISSUE-001"
+      ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "evidencias": [
+        "29 testes: NUP/DV, seções do relatório, DJEN, erros 400/401/404/429"
+      ]
+    },
+    {
+      "id": "ISSUE-003",
+      "indice": 3,
+      "titulo": "Bootstrap auto-criador (estrutura, arquivos, permissões, hashes)",
+      "entregavel": "bootstrap.sh + BOOTSTRAP.md + tools/gerar_bootstrap.py",
+      "instrucao_teste": "bash tests/testar_bootstrap.sh",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: depois de criar/renomear arquivo, incluir no ARQUIVOS de tools/gerar_bootstrap.py, rodar `python3 tools/gerar_bootstrap.py` e `bash tests/testar_bootstrap.sh` (25 verificações; o diff -r precisa voltar vazio).",
+      "status": "concluida",
+      "depende_de": [
+        "ISSUE-002"
+      ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "evidencias": [
+        "22 verificações: recriação byte a byte (diff -r), permissões, SHA-256, --verificar"
+      ]
+    },
+    {
+      "id": "ISSUE-004",
+      "indice": 4,
+      "titulo": "Validação de conformidade com a documentação oficial do CNJ",
+      "entregavel": "tests/testar_conformidade.py + tabela de conformidade no BOOTSTRAP.md",
+      "instrucao_teste": "python3 tests/testar_conformidade.py",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar contrato/limite da API, atualizar docs/01 e `python3 tests/testar_conformidade.py` (29) no mesmo commit — a conformidade é o teste que quebra primeiro.",
+      "status": "concluida",
+      "depende_de": [
+        "ISSUE-001"
+      ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "evidencias": [
+        "29 testes contra a wiki do DataJud e o Termo de Uso v1.2"
+      ]
+    },
+    {
+      "id": "ISSUE-005",
+      "indice": 5,
+      "titulo": "Pipeline orientado a gates (JSON) + workflow do GitHub Actions",
+      "entregavel": "pipeline/gate.py + pipeline/blueprint.json + pipeline/backlog.json + .github/workflows/gates.yml",
+      "instrucao_teste": "python3 tests/testar_pipeline.py",
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar o contrato JSON, atualizar `pipeline/blueprint.json` (contrato + transições) e `python3 tests/testar_pipeline.py` (36); rodar `python3 pipeline/gate.py blueprint` antes de commitar.",
+      "status": "concluida",
+      "depende_de": [
+        "ISSUE-003"
+      ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "evidencias": [
+        "contrato JSON, status 0/1/2, continuidade, next_issue, anexos, blueprint e workflow validados"
+      ]
+    },
+    {
+      "id": "ISSUE-006",
+      "indice": 6,
+      "titulo": "Validar as consultas AO VIVO contra as APIs do CNJ (DataJud + DJEN)",
+      "entregavel": "relatório real de um processo do TJPE (a execução exige internet para api-publica.datajud.cnj.jus.br)",
+      "instrucao_teste": "python3 pipeline/verificar_cnj.py --timeout 20",
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO: 1) rodar `python3 pipeline/verificar_cnj.py --timeout 20` numa máquina com internet; 2) se devolver status 0 (HTTP 200), executar `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` e commitar o backlog; 3) se devolver 1, é a rede (continuidade — repetir em outro ambiente); 4) se devolver 2 (HTTP 401/403), trocar a chave com `python3 main.py --chave-publica`, atualizar docs/01 e revalidar.",
+      "status": "concluida",
+      "depende_de": [
+        "ISSUE-002"
+      ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": "2026-10-13T19:07:28Z",
+      "evidencias": [
+        {
+          "sucesso": "COMPLETADA",
+          "quando": "2026-10-13T19:07:28Z",
+          "validacao_ao_vivo": "https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38451978473",
+          "http": ""
+        }
+      ]
+    },
+    {
+      "id": "ISSUE-007",
+      "indice": 7,
+      "titulo": "Integrar o gate ao painel de continuidade da sessão (issue #3) e decidir sobre o fluxo da outra sessão",
+      "entregavel": "decisão do usuário: unificar os dois fluxos (npm/continuity da sessão d917b13b × python/pipeline desta sessão)",
+      "instrucao_teste": null,
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO (decisão humana): 1) ler a issue #3 (SESSION CONTINUITY CONTROL) e o fluxo da outra sessão (`arena/d917b13b-llm-arena-opencli`); 2) escolher explicitamente (a) unificar no pipeline de gates desta sessão, (b) manter os dois fluxos separados, ou (c) portar os gates para o fluxo da outra sessão; 3) registrar a decisão aqui e, se for (a)/(c), abrir a issue de implementação com instrução de teste executável; 4) enquanto não houver decisão, o gate devolve status 2 de propósito.",
+      "status": "bloqueada",
+      "depende_de": [
+        "ISSUE-005"
+      ],
+      "origem": "sessão arena/ed79bd77 (pedido 4)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": null,
+      "evidencias": []
+    },
+    {
+      "id": "ISSUE-008",
+      "indice": 8,
+      "titulo": "Decisão da ISSUE-007: unificar com o fluxo da sessão d917b13b?",
+      "entregavel": "docs/04-decisao-unificacao.md com a decisão registrada (unificar · separar · portar)",
+      "instrucao_teste": "test -s docs/04-decisao-unificacao.md",
+      "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
+      "status": "pendente",
+      "depende_de": [
+        "ISSUE-006"
+      ],
+      "origem": "fábrica (próxima indexada)",
+      "criada_em": "2026-10-13T19:07:28Z",
+      "concluida_em": null,
+      "evidencias": []
+    }
+  ]
+}

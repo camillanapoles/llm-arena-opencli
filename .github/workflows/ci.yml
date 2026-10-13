@@ -1,0 +1,114 @@
+name: ci
+
+# Core CI/CD gates for the arena driver: typecheck, wasm build, tests.
+# Every job here is itself a "gate event" source for gate-driver.yml
+# (workflow_run) so the gate driver stays in lockstep with the codebase.
+
+on:
+  push:
+    branches: [main, "arena/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: typecheck + wasm + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build WASM runtime core
+        run: npm run build:wasm
+
+      - name: Test (db, cache, factory, gate driver, http api, wasm)
+        run: npm test
+
+      - name: Upload arena-runtime.wasm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arena-runtime-wasm
+          path: wasm/dist/arena-runtime.wasm
+          if-no-files-found: error
+
+  backend-smoke:
+    name: backend smoke (boot + /health)
+    runs-on: ubuntu-latest
+    needs: gates
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Boot backend and hit /health
+        run: |
+          node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts serve --port 8787 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8787/health && exit 0
+            sleep 1
+          done
+          echo "backend never became healthy" >&2
+          exit 1
+
+  # IGC Art. 8 (C1/C2/C3): toda pipeline termina com append à WAL + recompute do
+  # CHECKPOINT + commit do bot `igc(ci): run <id> [igc-checkpoint] [skip ci]` (sem
+  # re-trigger). Falha do passo de WAL = falha do job. Sem .session/ → bootstrap (C4).
+  igc-checkpoint:
+    name: IGC checkpoint (WAL no CI)
+    needs: [gates]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: WAL + CHECKPOINT + commit do bot (C1/C2/C3)
+        run: |
+          node src/cli/igc-cli.ts checkpoint \
+            --id-conteudo "$(git rev-parse --short HEAD)" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --slug d917b13b \
+            --resultado "pipeline CI verde (run ${GITHUB_RUN_ID})"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f .igc-registry.yml ]; then git add .igc-registry.yml; fi
+          git add -A -- .session
+          if git diff --cached --quiet; then
+            echo "WAL sem alterações — nada a persistir"
+            exit 0
+          fi
+          git commit -m "igc(ci): run ${GITHUB_RUN_ID} [igc-checkpoint] [skip ci]"
+          alvo="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          for tentativa in 1 2 3; do
+            if git push origin "HEAD:${alvo}"; then
+              exit 0
+            fi
+            git pull --rebase --autostash origin "${alvo}" || true
+            sleep 3
+          done
+          echo "::error::IGC Art. 8: não consegui persistir o checkpoint (C1) — débito de erro aberto (retorno para fix)"
+          exit 1

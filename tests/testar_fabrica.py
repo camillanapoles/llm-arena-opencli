@@ -214,6 +214,18 @@ class TesteConstrucaoIndexada(CasoBase):
         self.assertEqual(nova.depende_de, ["ISSUE-001"])
         self.assertIn("executar", nova.instrucao_desenvolvimento)
 
+    def test_fabrica_nunca_emite_issue_sem_entregavel_nem_teste(self):
+        # débito evitado: a fábrica já gerou ISSUE-009 com entregavel '' e o
+        # teste de integridade do backlog reprovou — agora o padrão preenche
+        anterior = self.uma_issue(1)
+        nova = self.fabrica.construir_proxima(anterior=anterior)
+        self.assertTrue(nova.entregavel.strip(), "entregavel sempre preenchido")
+        self.assertTrue(nova.instrucao_teste and nova.instrucao_teste.strip(),
+                        "instrucao_teste sempre preenchida (padrão make testes)")
+        manual = self.padrao.modelo(indice=9, titulo="com conteúdo")
+        self.assertTrue(manual.entregavel.strip())
+        self.assertEqual(manual.instrucao_teste, "make testes")
+
     def test_bloqueada_nao_congela_a_fabrica(self):
         self.uma_issue(1)
         self.uma_issue(2, status="bloqueada")

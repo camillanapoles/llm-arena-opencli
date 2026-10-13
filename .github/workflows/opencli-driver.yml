@@ -1,0 +1,223 @@
+name: opencli-driver
+
+# Usa o runtime do GitHub Actions como *driver* do repositório OpenCLI
+# (upstream: https://github.com/jackwener/OpenCLI · fork controlado:
+# https://github.com/camillanapoles/OpenCLI).
+#
+# Gatilhos:
+#   - workflow_dispatch : roda um command manifest à mão (mode=runtime|dispatch)
+#   - repository_dispatch (type `opencli-command`) : disparado pelo backend ou
+#     pela função opencli.dispatch do FunctionFactory
+#
+# Modos:
+#   runtime  — checkout do OpenCLI dentro deste runner e execução do manifesto
+#              (funciona SEM nenhum secret)
+#   dispatch — dispara repository_dispatch no repo alvo:
+#              · COM OPENCLI_TOKEN -> camillanapoles/OpenCLI (ou $OPENCLI_REPO)
+#                (o upstream jackwener/OpenCLI é read-only para o dono deste
+#                 repo — dispatch lá exigiria write access)
+#              · SEM OPENCLI_TOKEN -> fallback self-dispatch neste repo com
+#                GITHUB_TOKEN (prova a corrente webhook->gate sem secret)
+#
+# Guia completo do OPENCLI_TOKEN: docs/SECRETS.md
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "OpenCLI command (e.g. `open`, `ping`)"
+        required: true
+        default: "ping"
+      url:
+        description: "Target URL for the command"
+        required: false
+        default: "https://arena.ai/agent"
+      args:
+        description: "Comma-separated extra args"
+        required: false
+        default: ""
+      mode:
+        description: "dispatch (fira repository_dispatch no repo alvo) ou runtime (executa aqui)"
+        required: true
+        default: "runtime"
+        type: choice
+        options: [runtime, dispatch]
+      target_repo:
+        description: "Repo alvo do modo dispatch (precisa de write access)"
+        required: false
+        default: "camillanapoles/OpenCLI"
+  repository_dispatch:
+    types: [opencli-command]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: opencli-driver-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  drive:
+    name: drive OpenCLI
+    runs-on: ubuntu-latest
+    env:
+      COMMAND: ${{ github.event.inputs.command || github.event.client_payload.command || 'ping' }}
+      URL: ${{ github.event.inputs.url || github.event.client_payload.url || 'https://arena.ai/agent' }}
+      ARGS: ${{ github.event.inputs.args || '' }}
+      MODE: ${{ github.event.inputs.mode || 'runtime' }}
+      TARGET_REPO: ${{ github.event.inputs.target_repo || github.event.client_payload.targetRepo || 'camillanapoles/OpenCLI' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Preflight — OPENCLI_TOKEN presente?
+        id: preflight
+        env:
+          HAS_TOKEN: ${{ secrets.OPENCLI_TOKEN != '' }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          if [ "$HAS_TOKEN" = "true" ]; then
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+            echo "target=$TARGET_REPO" >> "$GITHUB_OUTPUT"
+            echo "alvo do dispatch: $TARGET_REPO (autenticado por OPENCLI_TOKEN)"
+          else
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "target=${{ github.repository }}" >> "$GITHUB_OUTPUT"
+            echo "::warning::OPENCLI_TOKEN ausente — fallback self-dispatch neste repo (GITHUB_TOKEN). Guia: docs/SECRETS.md"
+            node --disable-warning=ExperimentalWarning --input-type=module -e "
+              import { makeEnvelope } from './src/pipeline/envelope.ts';
+              import { writeFileSync } from 'node:fs';
+              const env = makeEnvelope({
+                id: 'opencli-preflight-$RUN_ID',
+                status: 'missing-secret',
+                message: 'OPENCLI_TOKEN ausente: modo dispatch cai em self-dispatch com GITHUB_TOKEN. Para dirigir camillanapoles/OpenCLI, crie um fine-grained PAT (Contents:write nesse repo) e rode: gh secret set OPENCLI_TOKEN  (guia completo: docs/SECRETS.md)',
+                addenda: [{ kind: 'path', ref: 'docs/SECRETS.md', description: 'guia de criação do OPENCLI_TOKEN' }],
+                nextIssue: null,
+                exitCode: 2,
+                direction: 'hold',
+                continuity: { required: true, reason: 'secret ausente — fluxo core segue via fallback; dispatch cross-repo pendente de OPENCLI_TOKEN' },
+              });
+              console.log(JSON.stringify(env, null, 2));
+              writeFileSync('action-result.json', JSON.stringify(env, null, 2));
+            "
+          fi
+
+      - name: Build command manifest
+        id: manifest
+        env:
+          TARGET: ${{ steps.preflight.outputs.target }}
+        run: |
+          jq -n \
+            --arg command "$COMMAND" \
+            --arg url "$URL" \
+            --arg args "$ARGS" \
+            --arg targetRepo "$TARGET" \
+            '{version: 1, command: $command, url: $url, args: ($args | split(",") | map(select(length > 0))), targetRepo: $targetRepo}' \
+            | tee opencli-manifest.json
+          echo "manifest=$(jq -c . opencli-manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch repository_dispatch (fork OpenCLI ou self-dispatch)
+        if: env.MODE == 'dispatch'
+        id: dispatch
+        env:
+          GH_TOKEN: ${{ secrets.OPENCLI_TOKEN || github.token }}
+          TARGET: ${{ steps.preflight.outputs.target }}
+          HAS_TOKEN: ${{ steps.preflight.outputs.has_token }}
+        run: |
+          set +e
+          gh api -X POST "repos/$TARGET/dispatches" \
+            -f event_type=opencli-command \
+            -F client_payload=@"opencli-manifest.json"
+          RESULT=$?
+          set -e
+          if [ "$HAS_TOKEN" = "true" ]; then VIA="OPENCLI_TOKEN"; else VIA="GITHUB_TOKEN-fallback"; fi
+          if [ "$RESULT" -eq 0 ]; then
+            echo "dispatched para $TARGET via $VIA"
+            node --disable-warning=ExperimentalWarning --input-type=module -e "
+              import { makeEnvelope } from './src/pipeline/envelope.ts';
+              import { writeFileSync } from 'node:fs';
+              const env = makeEnvelope({
+                id: 'opencli-dispatch-${{ github.run_id }}',
+                status: 'dispatched',
+                message: 'repository_dispatch opencli-command enviado para $TARGET via $VIA',
+                addenda: [{ kind: 'filename', ref: 'opencli-manifest.json', description: 'command manifest enviado' }],
+                nextIssue: null,
+                exitCode: 0,
+                direction: 'continue',
+              });
+              console.log(JSON.stringify(env, null, 2));
+              writeFileSync('action-result.json', JSON.stringify(env, null, 2));
+            "
+          else
+            echo "::warning::dispatch falhou em $TARGET (verifique escopo do token)"
+            node --disable-warning=ExperimentalWarning --input-type=module -e "
+              import { makeEnvelope } from './src/pipeline/envelope.ts';
+              import { writeFileSync } from 'node:fs';
+              const env = makeEnvelope({
+                id: 'opencli-dispatch-${{ github.run_id }}',
+                status: 'dispatch-failed',
+                message: 'dispatch falhou para $TARGET — verifique OPENCLI_TOKEN (Contents:write no repo alvo); guia: docs/SECRETS.md',
+                addenda: [{ kind: 'path', ref: 'docs/SECRETS.md', description: 'guia do OPENCLI_TOKEN' }],
+                nextIssue: null,
+                exitCode: 1,
+                direction: 'fix',
+                continuity: { required: true, reason: 'corrigir credencial/escopo e reexecutar' },
+              });
+              writeFileSync('action-result.json', JSON.stringify(env, null, 2));
+            "
+            exit 1
+          fi
+
+      - name: Drive OpenCLI inside the Actions runtime
+        if: env.MODE == 'runtime'
+        run: |
+          echo "::group::OpenCLI runtime driver"
+          echo "command=$COMMAND url=$URL"
+          echo "manifest=$(cat opencli-manifest.json)"
+          npm run build:wasm
+          node --input-type=module -e "
+            import { readFile } from 'node:fs/promises';
+            import { loadArenaRuntime, maskFromTypes } from './wasm/loader.mjs';
+            const rt = await loadArenaRuntime(await readFile('wasm/dist/arena-runtime.wasm'));
+            const fires = rt.evaluateGate(maskFromTypes(['workflow_dispatch', 'repository_dispatch']), maskFromTypes(['workflow_dispatch', 'repository_dispatch']), 0, 0, 0, 0, 0, 0);
+            if (fires !== 1) { console.error('gate rejeitou o comando'); process.exit(1); }
+            console.log('gate ok, manifest hash:', rt.hashString(process.env.COMMAND ?? '').toString(16));
+          "
+          echo "::endgroup::"
+
+      - name: Upload manifest + envelope + wasm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencli-driver-${{ github.run_id }}
+          path: |
+            opencli-manifest.json
+            action-result.json
+            wasm/dist/arena-runtime.wasm
+          if-no-files-found: warn
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## OpenCLI driver run"
+            echo "- command: \`$COMMAND\`"
+            echo "- url: $URL"
+            echo "- mode: $MODE"
+            echo '```json'
+            cat opencli-manifest.json
+            echo '```'
+            if [ -f action-result.json ]; then
+              echo "### envelope do action"
+              echo '```json'
+              cat action-result.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,5 @@
+sessao: d917b13b
+estado: CONTINUE
+proxima_acao: "retificação igc-continuity v2.1 implementada e verificada (118/118 + 236); EMIT no PR #1 com contração E5; aguardar usuário sobre ISSUE-3 e dispatch OpenCLI"
+ultima_verificacao: 2026-10-13
+contrato: "igc-continuity v2.1.0 (docs/IGC-v2.1.md) — retificado; v1.0 suplantada"

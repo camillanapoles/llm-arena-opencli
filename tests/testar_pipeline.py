@@ -36,7 +36,7 @@ WORKFLOW = os.path.join(RAIZ, ".github", "workflows", "gates.yml")
 
 CHAVES_OBRIGATORIAS = {"id", "gate", "status", "mensagem", "next_issue", "anexos",
                        "continuidade", "codigo_saida", "dados", "timestamp", "versao",
-                       "direcao", "proximo_passo"}
+                       "direcao", "proximo_passo", "debitos"}
 DIRECOES_VALIDAS = {"continuar", "corrigir", "depurar", "proxima", "encerrar", "humano"}
 
 
@@ -106,6 +106,7 @@ class TesteContrato(CasoBase):
                 self.assertIsInstance(obj["continuidade"], bool)
                 self.assertIsInstance(obj["anexos"], list)
                 self.assertIsInstance(obj["dados"], dict)
+                self.assertIsInstance(obj["debitos"], list, "débitos de erro sempre presentes")
                 self.assertIn(obj["direcao"], DIRECOES_VALIDAS, "direção de continuidade")
                 self.assertIsInstance(obj["proximo_passo"], str)
                 self.assertTrue(obj["proximo_passo"].strip(), "sempre há um próximo passo")
@@ -735,6 +736,57 @@ class TesteWorkflow(unittest.TestCase):
             self.skipTest("PyYAML indisponível — a validação definitiva é a execução no Actions")
         dados = yaml.safe_load(self.texto)
         self.assertIn("jobs", dados)
+
+
+class TesteDebitosDeErro(CasoBase):
+    """Fluxo de débito de erro com prioridade e retorno para fix."""
+
+    def test_erro_tipo_1_abre_debito_corrigir_com_prioridade(self):
+        codigo, obj, _ = rodar("testes", "--comando", "exit 3", saida_dir=self.saida)
+        self.assertEqual(codigo, 1)
+        self.assertEqual(len(obj["debitos"]), 1)
+        debito = obj["debitos"][0]
+        self.assertEqual({"gate", "tipo", "motivo", "prioridade", "acao", "comando_fix"},
+                         set(debito), "débito carrega prioridade e retorno para fix")
+        self.assertEqual((debito["gate"], debito["tipo"]), ("testes", "1"))
+        self.assertEqual(debito["prioridade"], "alta", "teste reprovado é prioridade alta")
+        self.assertEqual(debito["acao"], "corrigir", "retorno para fix")
+        self.assertTrue(debito["comando_fix"].strip())
+        self.assertEqual(obj["direcao"], "corrigir")
+
+    def test_erro_tipo_2_abre_debito_urgente_humano(self):
+        codigo, obj, _ = rodar("issues", "--sem-gh", saida_dir=self.saida)
+        self.assertEqual(codigo, 2)
+        debito = obj["debitos"][0]
+        self.assertEqual((debito["tipo"], debito["prioridade"], debito["acao"]),
+                         ("2", "urgente", "humano"))
+
+    def test_sucesso_sem_debito(self):
+        fx = fixture(self.dir, "issues.json", [])
+        _, obj, _ = rodar("issues", "--issues-json", fx, saida_dir=self.saida)
+        self.assertEqual(obj["debitos"], [])
+
+    def test_veredito_encaminha_para_fix_ordenado_por_prioridade(self):
+        codigo, obj, _ = rodar("continuidade", "--status-issues", "1", "--status-cicd", "0",
+                               "--status-testes", "1", "--saida-dir", self.saida)
+        self.assertEqual((codigo, obj["direcao"]), (1, "corrigir"),
+                         "pendência corrigível ⇒ retorno para fix")
+        prioridades = [d["prioridade"] for d in obj["debitos"]]
+        self.assertEqual(prioridades, sorted(prioridades,
+                                             key=lambda p: {"urgente": 0, "alta": 1, "media": 2}[p]),
+                         "débitos ordenados por prioridade")
+        self.assertEqual(obj["debitos"][0]["prioridade"], "alta")
+        self.assertIn(obj["debitos"][0]["comando_fix"].split()[0], obj["proximo_passo"],
+                      "o próximo passo começa quitando o débito mais grave")
+        self.assertNotIn("(?)", obj["mensagem"], "pendências detalhadas, sem interrogação")
+        self.assertIn("[alta]", obj["mensagem"])
+
+    def test_tipos_do_debito(self):
+        _, obj, _ = rodar("testes", "--comando", "exit 1", saida_dir=self.saida)
+        debito = obj["debitos"][0]
+        self.assertIsInstance(debito["motivo"], str)
+        self.assertIn(debito["prioridade"], {"urgente", "alta", "media"})
+        self.assertIn(debito["acao"], {"corrigir", "humano"})
 
 
 if __name__ == "__main__":

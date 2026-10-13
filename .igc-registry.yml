@@ -1,0 +1,19 @@
+# .igc-registry.yml — IGC Art. 7 (D1): descoberta de linhagens
+# D2: todo EMIT atualiza o registry no mesmo commit do CHECKPOINT.
+
+linhagens:
+  d917b13b:
+    branch: "arena/d917b13b-llm-arena-opencli"
+    checkpoint_ref: "49c0bcd"
+    ativa: true
+    checkpoint_em: "2026-10-13T22:37:26Z"
+    descricao: "sessão Arena — driver de automação (Node/TS + WASM) + unificação das duas pilhas; IGC v2.1 (A2': linhagem designada em runtime que proíbe criar branch)"
+    sessao: "d917b13b"
+    pr: "1"
+  ed79bd77:
+    branch: "arena/ed79bd77-llm-arena-opencli"
+    checkpoint_ref: "ce0030b"
+    ativa: false
+    descricao: "sessão paralela — consulta processual CNJ (Python); linhagem JÁ MESCLADA no main (PRs"
+    sessao: "ed79bd77"
+    pr: "2"

@@ -1,0 +1,313 @@
+name: blueprint
+
+# ============================================================================
+# PIPELINE GATE-DRIVEN (blueprint/BPMN via GitHub Actions)
+#
+# 1) GATILHO DE CONTINUIDADE (continuity-gate):
+#    verifica NÃO existência de: issues abertas · CI/CD com erros · SEM testes.
+#    Enquanto não positivo -> CONTINUIDADE (status "continuity", exit 2).
+#    Quando positivo -> produção pronta ("production-ready", exit 0).
+#
+# 2) CADEIA DE ISSUES INDEXADAS (issue-chain):
+#    a cada issue COMPLETADA (closed), testa a entrega (acceptance do
+#    blueprint). SUCESSO -> constrói a SEGUINTE issue indexada. ERRO -> retorna
+#    erro + informações de continuidade (MESMA issue, reaberta).
+#
+# 3) TODO action emite o objeto JSON padrão ActionEnvelope:
+#    { id, message, addenda, status, nextIssue, exitCode }
+#    exitCode: 0 sucesso · 1 erro tipo 1 (execução/validação) · 2 erro tipo 2
+#    (continuidade/pré-condição). Publicado como artifact + step summary +
+#    comentário na issue.
+#
+# Gatilhos: issues closed · workflow_dispatch (gh) · repository_dispatch
+# (webhook) · schedule (reavaliação contínua do gate).
+# ============================================================================
+
+on:
+  issues:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Ação do pipeline"
+        required: true
+        default: "gate"
+        type: choice
+        options: [gate, step, validate]
+      issue_id:
+        description: "Issue indexada do blueprint (ex.: ISSUE-2) para action=step"
+        required: false
+        default: ""
+      result:
+        description: "Resultado do step (0 sucesso, 1 erro tipo 1, 2 erro tipo 2)"
+        required: false
+        default: "0"
+        type: choice
+        options: ["0", "1", "2"]
+  repository_dispatch:
+    types: [pipeline-gate, pipeline-step]
+  schedule:
+    - cron: "23 */4 * * *"
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: blueprint-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  continuity-gate:
+    name: gate de continuidade (issues/CI/testes)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'issues'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Coletar snapshot (issues abertas, CI com erros, testes)
+        id: snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OPEN_ISSUES="$(gh issue list --state open --json number --limit 1000 | jq 'length')"
+          CI_FAILURES="$(gh run list --limit 20 --json conclusion | jq '[.[] | select(.conclusion == "failure")] | length')"
+
+          set +e
+          npm ci > /dev/null 2>&1
+          npm run ci 2>&1 | tee ci.log
+          CI_EXIT=$?
+          set -e
+
+          TESTS_TOTAL="$(grep -E '^# tests ' ci.log | tail -1 | awk '{print $3}')"
+          TESTS_PASSED="$(grep -E '^# pass ' ci.log | tail -1 | awk '{print $3}')"
+          TESTS_TOTAL="${TESTS_TOTAL:-0}"
+          TESTS_PASSED="${TESTS_PASSED:-0}"
+          if [ "$CI_EXIT" -ne 0 ]; then
+            CI_FAILURES=$((CI_FAILURES + 1))
+          fi
+
+          echo "open_issues=$OPEN_ISSUES" >> "$GITHUB_OUTPUT"
+          echo "ci_failures=$CI_FAILURES" >> "$GITHUB_OUTPUT"
+          echo "tests_total=$TESTS_TOTAL" >> "$GITHUB_OUTPUT"
+          echo "tests_passed=$TESTS_PASSED" >> "$GITHUB_OUTPUT"
+
+      - name: Action gate -> envelope JSON padrão
+        id: gate
+        env:
+          OPEN_ISSUES: ${{ steps.snapshot.outputs.open_issues }}
+          CI_FAILURES: ${{ steps.snapshot.outputs.ci_failures }}
+          TESTS_TOTAL: ${{ steps.snapshot.outputs.tests_total }}
+          TESTS_PASSED: ${{ steps.snapshot.outputs.tests_passed }}
+        run: |
+          set +e
+          node --disable-warning=ExperimentalWarning src/cli/pipeline-cli.ts gate \
+            --open-issues "$OPEN_ISSUES" \
+            --ci-failures "$CI_FAILURES" \
+            --tests-total "$TESTS_TOTAL" \
+            --tests-passed "$TESTS_PASSED" \
+            --action-id "gate-${GITHUB_RUN_ID}" | tee action-result.json
+          GATE_EXIT=$?
+          set -e
+          echo "exit=$GATE_EXIT" >> "$GITHUB_OUTPUT"
+          echo "status=$(jq -r .status action-result.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar envelope (summary + issue de continuidade)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS: ${{ steps.gate.outputs.status }}
+        run: |
+          {
+            echo "## Gate de continuidade: ${STATUS:-unknown}"
+            echo '```json'
+            cat action-result.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          ISSUE="$(gh issue list --label session-continuity --state open --json number -q '.[0].number // empty')"
+          if [ -n "$ISSUE" ]; then
+            {
+              echo "### Gate de continuidade: ${STATUS:-unknown}"
+              echo '```json'
+              cat action-result.json
+              echo '```'
+            } > comment-body.md
+            gh issue comment "$ISSUE" --body-file comment-body.md
+          fi
+
+      - name: Upload artifact action-result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blueprint-gate-${{ github.run_id }}
+          path: |
+            action-result.json
+            ci.log
+          if-no-files-found: warn
+
+  issue-chain:
+    name: cadeia de issues indexadas (testa entrega -> próxima)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'closed'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Identificar issue indexada do blueprint
+        id: meta
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          STEP_ID="$(printf '%s' "$ISSUE_TITLE" | sed -n 's/^\[\(ISSUE-[0-9][0-9]*\)\].*/\1/p')"
+          if [ -z "$STEP_ID" ]; then
+            echo "chain=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "chain=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "step_id=$STEP_ID" >> "$GITHUB_OUTPUT"
+          echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Testar entrega (acceptance do blueprint) -> envelope JSON
+        if: steps.meta.outputs.chain == 'true'
+        id: acceptance
+        env:
+          STEP_ID: ${{ steps.meta.outputs.step_id }}
+        run: |
+          ACCEPTANCE="$(jq -r --arg id "$STEP_ID" '.chain[] | select(.id == $id) | .acceptance' pipeline/blueprint.json)"
+          echo "acceptance=$ACCEPTANCE"
+          set +e
+          npm ci > /dev/null 2>&1
+          bash -c "$ACCEPTANCE" 2>&1 | tee ci.log
+          RESULT=$?
+          if [ "$RESULT" -eq 0 ]; then RCODE=0; else RCODE=1; fi
+
+          node --disable-warning=ExperimentalWarning src/cli/pipeline-cli.ts step \
+            --id "$STEP_ID" \
+            --result "$RCODE" \
+            --message "acceptance: $ACCEPTANCE (exit $RESULT)" \
+            --addendum "log:ci.log:saída do acceptance" \
+            --action-id "issue-chain-${GITHUB_RUN_ID}" | tee action-result.json
+          set -e
+          echo "result=$RCODE" >> "$GITHUB_OUTPUT"
+          echo "next=$(jq -r .nextIssue action-result.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Sucesso -> construir a SEGUINTE issue indexada + reportar
+        if: steps.meta.outputs.chain == 'true' && steps.acceptance.outputs.result == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT: ${{ steps.acceptance.outputs.next }}
+          ISSUE_NUMBER: ${{ steps.meta.outputs.issue_number }}
+          STEP_ID: ${{ steps.meta.outputs.step_id }}
+        run: |
+          {
+            echo "### Entrega de $STEP_ID testada - envelope do action:"
+            echo '```json'
+            cat action-result.json
+            echo '```'
+          } > comment-body.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment-body.md
+
+          if [ "$NEXT" != "null" ] && [ -n "$NEXT" ]; then
+            TITLE="$(jq -r --arg id "$NEXT" '.chain[] | select(.id == $id) | .title' pipeline/blueprint.json)"
+            INSTRUCTION="$(jq -r --arg id "$NEXT" '.chain[] | select(.id == $id) | .instruction' pipeline/blueprint.json)"
+            ACCEPTANCE="$(jq -r --arg id "$NEXT" '.chain[] | select(.id == $id) | .acceptance' pipeline/blueprint.json)"
+            {
+              echo "## Instrução indexada ($NEXT)"
+              echo ""
+              echo "$INSTRUCTION"
+              echo ""
+              echo "### Aceitação (teste da entrega)"
+              echo '```'
+              echo "$ACCEPTANCE"
+              echo '```'
+              echo ""
+              echo "### Continuidade"
+              echo "Criada automaticamente pela cadeia blueprint (sucesso testado de \`$STEP_ID\`)."
+            } > issue-body.md
+            NEW_URL="$(gh issue create \
+              --title "[$NEXT] $TITLE" \
+              --label pipeline-chain \
+              --body-file issue-body.md)"
+            echo "próxima issue indexada construída: $NEW_URL"
+          else
+            echo "cadeia completa - nenhuma issue indexada restante"
+            ISSUE="$(gh issue list --label session-continuity --state open --json number -q '.[0].number // empty')"
+            if [ -n "$ISSUE" ]; then
+              gh issue comment "$ISSUE" --body "cadeia blueprint COMPLETA - o gate de continuidade será o próximo veredito (production-ready quando issues=0, CI verde, testes ok)."
+            fi
+          fi
+
+      - name: Erro -> retornar erro + informações de continuidade (reabre MESMA issue)
+        if: steps.meta.outputs.chain == 'true' && steps.acceptance.outputs.result != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.meta.outputs.issue_number }}
+          STEP_ID: ${{ steps.meta.outputs.step_id }}
+        run: |
+          gh issue reopen "$ISSUE_NUMBER" || true
+          {
+            echo "### Erro em $STEP_ID - envelope do action (nextIssue = MESMA issue, continuidade):"
+            echo '```json'
+            cat action-result.json
+            echo '```'
+            echo "Corrija e re-feche a issue para revalidar; a cadeia permanece em continuidade."
+          } > comment-body.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment-body.md
+
+      - name: Fora da cadeia -> envelope de skip
+        if: steps.meta.outputs.chain != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.meta.outputs.issue_number }}
+        run: |
+          node --disable-warning=ExperimentalWarning --input-type=module -e "
+            import { makeEnvelope } from './src/pipeline/envelope.ts';
+            import { writeFileSync } from 'node:fs';
+            const env = makeEnvelope({
+              status: 'skipped',
+              message: 'issue não indexada no blueprint — fora da cadeia',
+              addenda: [],
+              nextIssue: null,
+              exitCode: 0,
+            });
+            console.log(JSON.stringify(env, null, 2));
+            writeFileSync('action-result.json', JSON.stringify(env, null, 2));
+          "
+          {
+            echo "### Fora da cadeia blueprint"
+            echo '```json'
+            cat action-result.json
+            echo '```'
+          } > comment-body.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment-body.md
+
+      - name: Upload artifact action-result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blueprint-chain-${{ github.run_id }}
+          path: |
+            action-result.json
+            ci.log
+          if-no-files-found: warn
+
+      - name: Step summary
+        if: always()
+        run: |
+          {
+            echo "## Cadeia blueprint - envelope do action"
+            echo '```json'
+            cat action-result.json 2>/dev/null || echo '{}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

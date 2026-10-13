@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "chain": [
+    {
+      "id": "ISSUE-1",
+      "title": "OPENCLI_TOKEN + modo dispatch do opencli-driver",
+      "instruction": "Configurar o secret OPENCLI_TOKEN (repo scope) para que o modo 'dispatch' do opencli-driver.yml dispare repository_dispatch real em jackwener/OpenCLI. Aceitação: pipeline verde (typecheck + wasm + testes) e envelope do passo com exitCode 0. Nota: a configuração do secret é manual (Settings > Secrets); o passo valida o código e documenta o estado.",
+      "acceptance": "npm run ci",
+      "next": "ISSUE-2"
+    },
+    {
+      "id": "ISSUE-2",
+      "title": "Webhook real conectado ao POST /api/events",
+      "instruction": "Conectar o endpoint POST /api/events ao webhook do GitHub (push/pull_request/repository_dispatch) apontando para a URL do backend, ou validar o fluxo equivalente via gh workflow run / repository_dispatch. Aceitação: pipeline verde + teste de ingestão de evento (X-GitHub-Event) respondendo envelope/JSON de gates.",
+      "acceptance": "npm run ci",
+      "next": "ISSUE-3"
+    },
+    {
+      "id": "ISSUE-3",
+      "title": "Publicar arena-runtime.wasm para uso web em arena.ai/agent",
+      "instruction": "Publicar o artefato arena-runtime.wasm (ci.yml já publica arena-runtime-wasm) em URL consumível pelo front de arena.ai/agent, usando o loader wasm/loader.mjs (best practices: instantiateStreaming, scratch buffer, API congelada). Aceitação: pipeline verde + smoke do loader (suíte wasm).",
+      "acceptance": "npm run ci",
+      "next": null
+    }
+  ]
+}

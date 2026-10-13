@@ -16,6 +16,7 @@
     "seed": "node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts seed",
     "gate": "node --disable-warning=ExperimentalWarning src/cli/gate-cli.ts receive",
     "session": "node --disable-warning=ExperimentalWarning src/cli/session-cli.ts",
+    "pipeline": "node --disable-warning=ExperimentalWarning src/cli/pipeline-cli.ts",
     "ci": "npm run typecheck && npm run build:wasm && npm test"
   },
   "devDependencies": {

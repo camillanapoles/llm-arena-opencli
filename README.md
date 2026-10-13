@@ -48,6 +48,7 @@ the same gate logic can run on the web at [arena.ai/agent](https://arena.ai/agen
 | **OpenCLI driver** | `src/drivers/opencli.driver.ts` | Transforma intenções em *command manifests* executados pelo runtime do Actions |
 | **WASM core** | `wasm/` | Primitivas de gate/cache em AssemblyScript + loader web com best practices (`instantiateStreaming`, scratch buffer, magic check, API congelada) |
 | **Continuidade** | `src/session/`, `src/cli/session-cli.ts`, `.github/workflows/continuity.yml` | Contexto de sessão durável (`session/`) + handoff automático de branch/PR no merge + segunda via via GH CLI/webhook/comentário |
+| **Pipeline BPMN** | `src/pipeline/`, `src/cli/pipeline-cli.ts`, `pipeline/blueprint.json`, `.github/workflows/blueprint.yml` | Envelope JSON padrão (id/message/addenda/status/nextIssue/exitCode 0/1/2) + gate de continuidade + cadeia de issues indexadas |
 
 ## Quick start
 
@@ -103,6 +104,8 @@ curl -X POST localhost:8787/api/events -H 'content-type: application/json' \
 | `ci.yml` | `push`, `pull_request`, `workflow_dispatch` | Gates do repo: typecheck, build do WASM, testes, smoke do backend; publica `arena-runtime-wasm` |
 | `gate-driver.yml` | `workflow_run` (do `ci`), `repository_dispatch: gate-event`, `issue_comment` (`/gate run`), `schedule`, `workflow_dispatch` | **Gate driver**: transforma o evento em execução de gates, grava estado em SQLite, publica artifact, reage ao comentário `/gate run` |
 | `opencli-driver.yml` | `workflow_dispatch`, `repository_dispatch: opencli-command` | **Driver do OpenCLI**: modo `runtime` (executa o manifesto dentro do runner) e modo `dispatch` (fira `repository_dispatch` em `jackwener/OpenCLI`) |
+| `continuity.yml` | `pull_request: closed`, `push`, `repository_dispatch: session-*`, `issue_comment` (`/session …`), `schedule`, `workflow_dispatch` | **Continuidade da sessão**: handoff automático no merge (branch + draft PR), checkpoint do contexto, heartbeat |
+| `blueprint.yml` | `issues: closed`, `workflow_dispatch`, `repository_dispatch: pipeline-*`, `schedule` | **Pipeline gate-driven (BPMN)**: gate de continuidade (issues/CI/testes) + cadeia de issues indexadas com envelope JSON |
 
 Como `workflow_run` encadeia os fluxos: cada conclusão do `ci` volta a entrar
 como *gate event* no `gate-driver` — a fiação de automação é self-hosted no
@@ -139,6 +142,38 @@ Sem sessão aberta, a automação continua de pé: `gate-driver.yml` segue
 reagindo a gate events, o heartbeat roda os gates a cada 6h e os comandos
 `/session ...` na issue de continuidade operam tudo pela interface do GitHub.
 
+## 🚦 Pipeline gate-driven (blueprint/BPMN) + envelope JSON padrão
+
+**Relatório completo de entrega (solicitado → timeline → realizado → testado →
+validado → produção): [`DELIVERY.md`](DELIVERY.md).**
+
+Todo action do pipeline retorna **UM objeto JSON padrão**:
+
+```json
+{ "id": "…", "message": "…", "addenda": [{ "kind": "path", "ref": "…", "description": "…" }],
+  "status": "…", "nextIssue": "ISSUE-2 | mesma | null", "exitCode": 0 }
+```
+
+`exitCode`: **0** sucesso (avança para a próxima issue indexada) · **1** erro
+tipo 1 (validação/execução → MESMA issue + continuidade) · **2** erro tipo 2
+(pré-condição/continuidade → MESMA issue + continuidade).
+
+- **Gate de continuidade** (`blueprint.yml` → `pipeline-cli gate`): verifica a
+  **não existência** de issues abertas ∨ CI/CD com erros ∨ SEM testes.
+  Não positivo → `status: "continuity"` (o fluxo **continua**); positivo →
+  `status: "production-ready"` (pronto para uso).
+- **Cadeia indexada** (`pipeline/blueprint.json`, `pipeline-cli step/next`):
+  a cada issue `[ISSUE-N]` completada, o acceptance testa a entrega;
+  **sucesso → constrói a próxima issue indexada**; **erro → retorna erro +
+  informações de continuidade** (reabre a MESMA issue).
+
+```sh
+npm run pipeline -- validate
+npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 67 --tests-passed 67
+npm run pipeline -- step --id ISSUE-1 --result 0
+npm run pipeline -- next --after ISSUE-1
+```
+
 ## WebAssembly (best practices para a web)
 
 O núcleo `wasm/assembly/index.ts` exporta primitivas **puras** (`fnv1a`,
@@ -161,10 +196,11 @@ congelada, sem `eval`.
 
 ## Testes
 
-`npm test` roda `node:test` sobre sete suítes: `db`, `cache`, `factory`
-(pattern factory + builtins), `gate-driver` (triggers, blocking vs advisory,
-dispatch OpenCLI via mock transport), `server` (CRUD HTTP, webhooks, CORS),
-`session` (continuidade: checkpoints, briefing, handoff) e `wasm` (vetores
+`npm test` roda `node:test` sobre oito suítes (**67 testes**): `db`, `cache`,
+`factory` (pattern factory + builtins), `gate-driver` (triggers, blocking vs
+advisory, dispatch OpenCLI via mock transport), `server` (CRUD HTTP, webhooks,
+CORS), `session` (continuidade: checkpoints, briefing, handoff), `pipeline`
+(envelope JSON 0/1/2, continuity gate, chain executor) e `wasm` (vetores
 FNV-1a, paridade com a lógica TS de triggers).
 
 ## Créditos

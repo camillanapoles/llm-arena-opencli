@@ -7,3 +7,11 @@ wasm/dist/
 *.tsbuildinfo
 .DS_Store
 .env
+
+# artefatos gerados pelas consultas
+saida/
+*.jsonl
+processos-*.jsonl
+.datajud-key
+__pycache__/
+*.pyc

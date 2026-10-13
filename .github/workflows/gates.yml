@@ -68,7 +68,7 @@ jobs:
       status: ${{ steps.gate.outputs.status }}
       continuidade: ${{ steps.gate.outputs.continuidade }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Executar gate de issues
         id: gate
         run: |
@@ -88,7 +88,7 @@ jobs:
             python3 -c "import json;print(json.load(open('/tmp/gate-issues.json'))['mensagem'])"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "exit do gate: $codigo (0=sucesso, 1=continuidade, 2=indeterminado)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-issues
@@ -105,7 +105,7 @@ jobs:
       status: ${{ steps.gate.outputs.status }}
       continuidade: ${{ steps.gate.outputs.continuidade }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Executar gate de CI/CD
         id: gate
         run: |
@@ -124,7 +124,7 @@ jobs:
             echo
             python3 -c "import json;print(json.load(open('/tmp/gate-cicd.json'))['mensagem'])"
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-cicd
@@ -141,7 +141,7 @@ jobs:
       status: ${{ steps.gate.outputs.status }}
       continuidade: ${{ steps.gate.outputs.continuidade }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Executar gate de testes
         id: gate
         run: |
@@ -160,7 +160,7 @@ jobs:
             echo
             python3 -c "import json;print(json.load(open('/tmp/gate-testes.json'))['mensagem'])"
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-testes
@@ -180,7 +180,7 @@ jobs:
       continuidade: ${{ steps.gate.outputs.continuidade }}
       next_issue: ${{ steps.gate.outputs.next_issue }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Agregar os três gates
         id: gate
         run: |
@@ -215,7 +215,7 @@ jobs:
           else
             echo "::notice::gate positivo: nenhuma pendência, o pipeline pode encerrar"
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-continuidade
@@ -233,9 +233,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
+      - uses: actions/checkout@v5
       - name: Rodar a instrução da issue do backlog
         id: issue
         run: |
@@ -263,8 +261,8 @@ jobs:
           if [ "$status" = "1" ]; then
             echo "::warning::a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"
           fi
-      - name: Versionar o backlog atualizado (somente com marcar=true)
-        if: inputs.marcar
+      - name: Versionar o backlog atualizado (somente com marcar=true, fora de PR)
+        if: inputs.marcar && github.event_name != 'pull_request'
         run: |
           if git diff --quiet -- pipeline/backlog.json; then
             echo "backlog sem alterações"
@@ -275,7 +273,7 @@ jobs:
           git add pipeline/backlog.json
           git commit -m "pipeline: issue ${{ steps.issue.outputs.next_issue || inputs.issue }} concluída (gate issue --marcar) [skip ci]"
           git push
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-issue

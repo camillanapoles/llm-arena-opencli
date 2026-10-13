@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 29 arquivos, 6713 linhas, 309 KiB.
+#  Conteúdo embutido: 29 arquivos, 6711 linhas, 309 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -171,7 +171,7 @@ while read -r esperado caminho; do
     FALHA "hash diferente: $caminho"; falhas_hash=$((falhas_hash+1))
   fi
 done <<'MANIFESTO'
-0b07979fd3f8c913c8ece650184a545aa80369b95721ef5ddf85344c5b9f7cb4  ./.github/workflows/gates.yml
+8b4f26ed565c04416496608d1897e49a317a53c014d2ea49c10844264b8259d6  ./.github/workflows/gates.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
 4b306003100e8ba1982697fa5f41e0a7e8853747ea9aaedd310194db4cc11087  ./BOOTSTRAP.md
 f35dd831e6152076b24d8f86b899fb24d0903efdc6899f700e9865e9df9cbe81  ./ENTREGA.md
@@ -397,7 +397,7 @@ jobs:
       status: ${{ steps.gate.outputs.status }}
       continuidade: ${{ steps.gate.outputs.continuidade }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Executar gate de issues
         id: gate
         run: |
@@ -417,7 +417,7 @@ jobs:
             python3 -c "import json;print(json.load(open('/tmp/gate-issues.json'))['mensagem'])"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "exit do gate: $codigo (0=sucesso, 1=continuidade, 2=indeterminado)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-issues
@@ -434,7 +434,7 @@ jobs:
       status: ${{ steps.gate.outputs.status }}
       continuidade: ${{ steps.gate.outputs.continuidade }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Executar gate de CI/CD
         id: gate
         run: |
@@ -453,7 +453,7 @@ jobs:
             echo
             python3 -c "import json;print(json.load(open('/tmp/gate-cicd.json'))['mensagem'])"
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-cicd
@@ -470,7 +470,7 @@ jobs:
       status: ${{ steps.gate.outputs.status }}
       continuidade: ${{ steps.gate.outputs.continuidade }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Executar gate de testes
         id: gate
         run: |
@@ -489,7 +489,7 @@ jobs:
             echo
             python3 -c "import json;print(json.load(open('/tmp/gate-testes.json'))['mensagem'])"
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-testes
@@ -509,7 +509,7 @@ jobs:
       continuidade: ${{ steps.gate.outputs.continuidade }}
       next_issue: ${{ steps.gate.outputs.next_issue }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Agregar os três gates
         id: gate
         run: |
@@ -544,7 +544,7 @@ jobs:
           else
             echo "::notice::gate positivo: nenhuma pendência, o pipeline pode encerrar"
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-continuidade
@@ -562,9 +562,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
+      - uses: actions/checkout@v5
       - name: Rodar a instrução da issue do backlog
         id: issue
         run: |
@@ -592,8 +590,8 @@ jobs:
           if [ "$status" = "1" ]; then
             echo "::warning::a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"
           fi
-      - name: Versionar o backlog atualizado (somente com marcar=true)
-        if: inputs.marcar
+      - name: Versionar o backlog atualizado (somente com marcar=true, fora de PR)
+        if: inputs.marcar && github.event_name != 'pull_request'
         run: |
           if git diff --quiet -- pipeline/backlog.json; then
             echo "backlog sem alterações"
@@ -604,7 +602,7 @@ jobs:
           git add pipeline/backlog.json
           git commit -m "pipeline: issue ${{ steps.issue.outputs.next_issue || inputs.issue }} concluída (gate issue --marcar) [skip ci]"
           git push
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: gate-issue

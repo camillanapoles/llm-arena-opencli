@@ -25,6 +25,7 @@
 | **T4** — OO + event-driven + direção | "Instrução para **cada issue pendente** do desenvolvimento; funções **event-driven da factory** que criam issues conforme o pattern gate-driven BPMN → **backend + SQLite + orientado a objetos (OOM)**; automação de **ciclos determinísticos** de testes com **validação de sucesso COMPLETADA**; testar entrega com a instrução da issue seguinte; se aprovado → **norteando a direção da continuidade [fix/debt/continue…]**; relatório com **stack utilizado**; **auditar e validar o que falta**" | Domínio OO (`PipelineIssue`, `IssueRepository` SQLite, `IssueFactory` event-driven, `PipelineEngine`), `pipeline-cli cycle/pending/event`, campo `direction` no envelope, 17 novos testes — **84/84 verdes** |
 | **T5** — integração das sessões paralelas | "sabendo que há uma sessão paralela, **como integrar ambas, pra que a outra siga conforme ambas?**" | **Contrato único** `pipeline/contract.schema.json` + adaptador bidirecional `src/pipeline/interop.ts` (camelCase ⇄ dialeto CNJ) + **registro unificado** (`pipeline-cli registry`: backlog d917 + backlog ed79 com namespace) + workflow `integration.yml` (duas suítes + envelope mesclado + ponte nos PRs #1/#2) + **decisão registrada** `docs/04-decisao-unificacao.md` (desbloqueia ISSUE-007/008 da outra sessão) + `docs/INTEGRATION.md` — 8 novos testes |
 | **T6** — conflitos com `main` + débito de erro | "verificar pendercia ➞ merge só pode passar se teste sucesso ➞ porém *This branch has conflicts*…"; "verificar os erros ➞ **garantindo fluxo débito de erro com prioridade no pipeline com retorno para fix**" | Merge `d359631` (conflitos resolvidos: `.gitignore` união · `README.md` duas pilhas · `pipeline/blueprint.json` unificado) + **fluxo de débito de erro**: campo `debitos[]` no contrato CNJ e `debts[]` no canônico (prioridade `urgente>alta>media` · ação `corrigir`=retorno para fix · `comando_fix` literal), veredito de continuidade ordena por prioridade e encaminha `direcao=corrigir`; correções: `make testes` (bootstrap do kit reescopo + manifesto regenerado), corrida do `git push` da fábrica (rebase+retry, sem perda de bookkeeping), pendências do veredito detalhadas (sem `(?)`) — 13 novos testes (5 Python + 8 TS) |
+| **T7** — IGC v1.0 + ISSUE-2 (webhook real) | "quero sim [seguir para ISSUE-2]… **porém siga as instruções para continuidade** (IGC v1.0)" | **Protocolo IGC v1.0 implementado**: `.session/` (WAL append-only · STATE.yml FSM `BOOT→RECON→PLAN→EXEC→VERIFY→GATE→EMIT` · INTENT · CONTEXT · DEBT · CHECKPOINT · `bootstrap.sh` + hooks do worktree); **ISSUE-2 entregue** (envelope `delivered`, acceptance `npm run ci`): assinatura real `X-Hub-Signature-256` (HMAC-SHA256 timing-safe, corpo cru) no `POST /api/events`, handshake `ping`, `docs/WEBHOOK.md` + `scripts/registrar-webhook.sh`, 8 testes de webhook; correção de débito: fábrica nunca mais emite issue sem `entregavel`/`instrucao_teste` (ISSUE-009 curada) |
 
 ## 3. STACK UTILIZADO
 
@@ -114,7 +115,7 @@ SQLite** (`PipelineIssue` + `IssueRepository` + `IssueFactory` event-driven +
 
 ## 4. TESTADO
 
-`npm run ci` = typecheck (tsc) + build WASM + **100 testes** (`node:test`):
+`npm run ci` = typecheck (tsc) + build WASM + **108 testes** (`node:test`):
 
 | Suíte | O que valida | Testes |
 | --- | --- | --- |
@@ -127,13 +128,14 @@ SQLite** (`PipelineIssue` + `IssueRepository` + `IssueFactory` event-driven +
 | `pipeline.test.ts` | **envelope JSON** (contrato 0/1/2 + direction), **continuity gate** (issues/CI/sem testes), **chain executor** (sucesso→próxima, erro→mesma), **débitos de erro** (prioridade + retorno para fix), blueprint íntegro | 17 |
 | `domain.test.ts` | **modelo OO**: máquina de estados, repositório SQLite, **factory event-driven**, **ciclos determinísticos** com validação de sucesso COMPLETA, direções fix/debt/continue/complete | 17 |
 | `interop.test.ts` | **integração entre sessões**: mapeamento camelCase⇄CNJ nos dois sentidos, round-trip (incl. `debts↔debitos`), registro unificado com namespace, backlog real da sessão paralela | 12 |
+| `webhook.test.ts` | **webhook real**: HMAC `X-Hub-Signature-256` (vetor RFC 4231), 401 em adulteração, `ping`→`pong`, ingestão `X-GitHub-Event` com JSON de gates | 8 |
 | `wasm.test.ts` | vetores FNV-1a, paridade com a lógica TS de triggers | 7 |
 
 Com a integração das duas pilhas (T5/T6), a suíte Python também roda em
 `make testes` (gate 3 do `gates.yml`): conformidade 29 · `main.py` 29 ·
-`datajud.sh` 32 · pipeline **76** (incl. 5 de débito de erro) · fábrica 41 ·
-bootstrap **27** (kit CNJ byte a byte) — totalizando **234 verificações locais**
-além das 100 do `npm run ci`. O workflow `integration.yml` executa as duas
+`datajud.sh` 32 · pipeline **77** (incl. 5 de débito de erro) · fábrica 42 ·
+bootstrap **27** (kit CNJ byte a byte) — totalizando **236 verificações locais**
+além das 108 do `npm run ci`. O workflow `integration.yml` executa as duas
 suítes no runner do GitHub a cada push/PR.
 
 Além dos testes automatizados: smoke real do CLI (`seed`, `receive` com exit code

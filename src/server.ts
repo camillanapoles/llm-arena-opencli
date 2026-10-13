@@ -15,6 +15,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { App } from "./app.ts";
 import { normalizeEvent, parseWebhook } from "./gate/events.ts";
+import { verifyWebhookSignature } from "./gate/webhook.ts";
 import type { GateEventType, GatePolicy, GateTrigger } from "./core/types.ts";
 
 type Json = Record<string, unknown> | unknown[] | string | number | boolean | null;
@@ -23,6 +24,8 @@ interface RouteContext {
   req: IncomingMessage;
   res: ServerResponse;
   body: Json;
+  /** corpo cru (bytes exatos) — necessário ao HMAC do webhook real */
+  rawBody: string;
   params: Record<string, string>;
 }
 
@@ -43,7 +46,8 @@ function sendJson(res: ServerResponse, status: number, payload: Json, cors: stri
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": cors,
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-GitHub-Event, Authorization",
+    "Access-Control-Allow-Headers":
+      "Content-Type, X-GitHub-Event, X-Hub-Signature-256, Authorization",
   });
   res.end(JSON.stringify(payload));
 }
@@ -52,16 +56,15 @@ function reply(ctx: RouteContext, status: number, payload: Json): void {
   sendJson(ctx.res, status, payload, corsOrigin());
 }
 
-async function readBody(req: IncomingMessage): Promise<Json> {
+async function readBody(req: IncomingMessage): Promise<{ parsed: Json; raw: string }> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(chunk as Buffer);
-  if (chunks.length === 0) return {};
-  const text = Buffer.concat(chunks).toString("utf8");
-  if (text.trim() === "") return {};
+  const raw = Buffer.concat(chunks).toString("utf8");
+  if (chunks.length === 0 || raw.trim() === "") return { parsed: {}, raw };
   try {
-    return JSON.parse(text) as Json;
+    return { parsed: JSON.parse(raw) as Json, raw };
   } catch {
-    return { _raw: text };
+    return { parsed: { _raw: raw }, raw };
   }
 }
 
@@ -253,8 +256,29 @@ const routes: Route[] = [
     method: "POST",
     pattern: "/api/events",
     handler: async (ctx, app) => {
+      // ---- webhook real: autenticidade por assinatura (X-Hub-Signature-256)
+      const secret = app.webhookSecret;
+      if (secret !== "") {
+        const signature = String(ctx.req.headers["x-hub-signature-256"] ?? "");
+        if (!verifyWebhookSignature(secret, ctx.rawBody, signature)) {
+          reply(ctx, 401, {
+            ok: false,
+            error: "assinatura de webhook inválida (X-Hub-Signature-256)",
+          });
+          return;
+        }
+      }
       const header = String(ctx.req.headers["x-github-event"] ?? "");
       const body = (ctx.body ?? {}) as Record<string, unknown>;
+      // ---- handshake `ping` (entrega de teste do GitHub ao registrar o webhook)
+      if (header === "ping") {
+        return {
+          ok: true,
+          pong: true,
+          zen: String((body as { zen?: unknown })["zen"] ?? ""),
+          hook_id: (body as { hook_id?: unknown })["hook_id"] ?? null,
+        };
+      }
       const event =
         header !== ""
           ? parseWebhook(header, body)
@@ -350,7 +374,8 @@ export function createHttpServer(app: App): Server {
       res.writeHead(204, {
         "Access-Control-Allow-Origin": cors,
         "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, X-GitHub-Event, Authorization",
+        "Access-Control-Allow-Headers":
+          "Content-Type, X-GitHub-Event, X-Hub-Signature-256, Authorization",
       });
       res.end();
       return;
@@ -359,12 +384,14 @@ export function createHttpServer(app: App): Server {
     const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
 
     try {
-      const body = req.method === "GET" || req.method === "HEAD" ? {} : await readBody(req);
+      const empty = { parsed: {} as Json, raw: "" };
+      const { parsed: body, raw: rawBody } =
+        req.method === "GET" || req.method === "HEAD" ? empty : await readBody(req);
       for (const route of routes) {
         if (route.method !== req.method) continue;
         const params = match(route.pattern, pathname);
         if (params === null) continue;
-        const ctx: RouteContext = { req, res, body, params };
+        const ctx: RouteContext = { req, res, body, rawBody, params };
         const result = await route.handler(ctx, app);
         if (!res.writableEnded) {
           sendJson(res, result === undefined ? 204 : 200, result ?? null, cors);

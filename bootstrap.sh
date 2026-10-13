@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 10190 linhas, 489 KiB.
+#  Conteúdo embutido: 32 arquivos, 10209 linhas, 491 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -190,9 +190,9 @@ e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo
 0988a9fe28376cca40c84bbbe73172203e1f4740695026e2f9408f1fd88bea0a  ./docs/exemplo-saida/relatorio-tjpe-exemplo.md
 c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
 050816945908d18638af12bdf9bbaa59c4038ff5317f885004868bc3ef5e0941  ./pipeline/.gitignore
-527961b2be5f57f2cac104b94b7e919379df783cf3c1d6ddfc9afa94d609752e  ./pipeline/backlog.json
+6df7308dae505b29dea71616a1cdb2d3303703d3c91f1bf0f8d8b06a6068ed61  ./pipeline/backlog.json
 8d828da7ba61b5e197deba26c2932c1100a63e523c84a7c6139584cc27fc1452  ./pipeline/blueprint.json
-240c6334e26706a736ade794b4d4db80970a987093b982c7713ce0e623204071  ./pipeline/factory.py
+a3ed80173d0a1c3be6151d18b783e09a9850764d4577ff13e336c06b86d41720  ./pipeline/factory.py
 2143874e43fbdb47ac8707f1236eb5fff205880207589facffce2c1ed4926cfe  ./pipeline/gate.py
 b0e13746b042c5388aee48c3b3b8d5dc69cd213d90654b853fc84c0534c200aa  ./pipeline/verificar_cnj.py
 dd78d8b6469b06e5ab67d11137eaac3891ac16b2856064bce8be6a801e67dea0  ./scripts/datajud.sh
@@ -201,7 +201,7 @@ b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_a
 3d917cdf5b4b7732d17ccf0f542987e8daded8b62f03c0e5c055a4988f329daa  ./tests/rodar-testes.sh
 aa6c3af22855b29ab2d4cfb9f634d9dbe69b33fb1d66da128bbd0d2bcebe9006  ./tests/testar_bootstrap.sh
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
-5e23cd6ef858535304a4bf4c72d992c828e3fafea4bf4f855dd98ae19c3378a5  ./tests/testar_fabrica.py
+3bf02455fe3511ce751d133ca57feeaa6abbd5fe7c5c318ecf0c0d45adc69fb1  ./tests/testar_fabrica.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
 cd40cc2e77124f166f807d1685f28c19a86db0d6da7eae0cfef4b4ce4323f6f1  ./tests/testar_pipeline.py
 5487c11416c3535f8486c07bd8bd65ec781eb24198ba6d7dc86c534f4d412cd3  ./tools/gerar_bootstrap.py
@@ -4536,10 +4536,10 @@ __ARQ__ pipeline/backlog.json
     {
       "id": "ISSUE-009",
       "indice": 9,
-      "titulo": "pendência 9 (gerada pela fábrica)",
-      "entregavel": "",
-      "instrucao_teste": null,
-      "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
+      "titulo": "Registrar a integração IGC/UNIFY no painel de continuidade (issue #3)",
+      "entregavel": "issue #3 com comentário apontando docs/04-decisao-unificacao.md, docs/INTEGRATION.md e o protocolo IGC (.session/WAL.md)",
+      "instrucao_teste": "test -s docs/04-decisao-unificacao.md && test -s docs/INTEGRATION.md",
+      "instrucao_desenvolvimento": "1) comentar na issue #3 (SESSION CONTINUITY CONTROL) com os links da decisão de unificação e do protocolo IGC da sessão (caminhos no entregavel desta issue); 2) rodar o gate (make gates) e o teste indicado em instrucao_teste; 3) marcar com `python3 pipeline/gate.py issue --id ISSUE-009 --marcar` (grava evidência e a data de conclusão)",
       "status": "pendente",
       "depende_de": [
         "ISSUE-008"
@@ -5249,8 +5249,15 @@ class ModeloIssue:
         """Sintetiza uma issue conforme o padrão (o coração da fábrica)."""
         dependencias = list(depende_de) if depende_de is not None else \
             [anterior] if (anterior and "anterior" in self.dependencia_padrao) else []
+        identificador = self.id_de(indice)
+        # a fábrica NUNCA emite issue inválida: entregavel/instrucao_teste
+        # recebem padrões verificáveis quando o evento não traz conteúdo
+        entregavel = str(entregavel).strip() or (
+            f"entrega de {identificador} executada conforme a instrução, "
+            "com sucesso testado")
+        instrucao_teste = instrucao_teste or "make testes"
         return Issue(
-            id=self.id_de(indice), indice=indice, titulo=titulo, entregavel=entregavel,
+            id=identificador, indice=indice, titulo=titulo, entregavel=entregavel,
             instrucao_teste=(instrucao_teste or None),
             instrucao_desenvolvimento=(str(instrucao_desenvolvimento).strip()
                                        or self.instrucao_padrao),
@@ -8841,6 +8848,18 @@ class TesteConstrucaoIndexada(CasoBase):
         self.assertEqual(nova.id, "ISSUE-002")
         self.assertEqual(nova.depende_de, ["ISSUE-001"])
         self.assertIn("executar", nova.instrucao_desenvolvimento)
+
+    def test_fabrica_nunca_emite_issue_sem_entregavel_nem_teste(self):
+        # débito evitado: a fábrica já gerou ISSUE-009 com entregavel '' e o
+        # teste de integridade do backlog reprovou — agora o padrão preenche
+        anterior = self.uma_issue(1)
+        nova = self.fabrica.construir_proxima(anterior=anterior)
+        self.assertTrue(nova.entregavel.strip(), "entregavel sempre preenchido")
+        self.assertTrue(nova.instrucao_teste and nova.instrucao_teste.strip(),
+                        "instrucao_teste sempre preenchida (padrão make testes)")
+        manual = self.padrao.modelo(indice=9, titulo="com conteúdo")
+        self.assertTrue(manual.entregavel.strip())
+        self.assertEqual(manual.instrucao_teste, "make testes")
 
     def test_bloqueada_nao_congela_a_fabrica(self):
         self.uma_issue(1)

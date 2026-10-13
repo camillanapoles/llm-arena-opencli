@@ -21,6 +21,8 @@ export interface AppOptions {
   actionsToken?: string | undefined;
   transport?: ActionsTransport | undefined;
   log?: ((message: string) => void) | undefined;
+  /** secret do webhook real (X-Hub-Signature-256); vazio ⇒ sem verificação */
+  webhookSecret?: string | undefined;
 }
 
 export interface App {
@@ -34,6 +36,8 @@ export interface App {
   actions: GitHubActionsDriver;
   opencli: OpenCLIDriver;
   driver: GateDriver;
+  /** secret do operador para validar entregas do GitHub (webhook real) */
+  webhookSecret: string;
   close(): void;
 }
 
@@ -83,6 +87,7 @@ export function createApp(options: AppOptions = {}): App {
     actions,
     opencli,
     driver,
+    webhookSecret: options.webhookSecret ?? process.env["GITHUB_WEBHOOK_SECRET"] ?? "",
     close: () => db.close(),
   };
 }

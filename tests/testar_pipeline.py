@@ -585,12 +585,17 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
                       "e o if: do GitHub compara com a string minúscula")
 
     def test_conclusao_que_nao_acontece_nao_deixa_o_job_vermelho(self):
-        self.assertIn("steps.concluir.outputs.status == '0'", self.texto,
-                      "o commit do backlog só acontece com a conclusão concluída")
-        self.assertIn("a próxima indexada só nasce depois do sucesso testado", self.texto)
         bloco = self.texto[self.texto.index("Fábrica · concluir a pendência provada"):]
         bloco = bloco[:bloco.index("Continuidade ·")]
+        self.assertIn("a próxima indexada só nasce depois do sucesso testado", bloco)
         self.assertIn("set +e", bloco, "status 1 = continuidade, não erro")
+        self.assertIn('if [ "$status" = "1" ]', bloco)
+        # concluir E versionar no MESMO passo: um passo pulado pelo `if:` não publica
+        # output, e depender disso derrubou o job (run 38454531073)
+        for pedaco in ('git commit -m "pipeline: $issue', "git push", "backlog sem alterações"):
+            self.assertIn(pedaco, bloco, "o versionamento vive dentro do próprio passo")
+        self.assertNotIn("steps.concluir.outputs", self.texto,
+                         "nenhum passo pode depender do output de um passo que pode ser pulado")
 
     def test_pendencia_nao_provada_nao_cria_issue(self):
         self.assertIn("steps.pendencia.outputs.prova_ao_vivo != 'true'", self.texto)

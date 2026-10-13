@@ -260,7 +260,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "::notice::fábrica — pendência: ${issue:-—} · provada por esta execução: $prova · $motivo"
 
-      - name: "Fábrica · concluir a pendência provada e construir a próxima indexada"
+      - name: "Fábrica · concluir a pendência provada, construir a próxima e versionar"
         id: concluir
         if: steps.pendencia.outputs.prova_ao_vivo == 'true'
         run: |
@@ -286,14 +286,34 @@ jobs:
           cat /tmp/fabrica.out
           status=$(python3 -c "import json;print(json.load(open('/tmp/fabrica.out'))['status'])" 2>/dev/null || echo 2)
           echo "status=$status" >> "$GITHUB_OUTPUT"
-          # 1 = continuidade (nada a concluir agora): não é erro, o job não fica vermelho.
-          if [ "$status" = "1" ]; then
-            echo "::warning::a fábrica manteve a continuidade (status 1) — a próxima indexada só nasce depois do sucesso testado"
-          fi
           if [ "$status" = "2" ]; then
             echo "::error::a fábrica devolveu erro tipo 2 (banco/arquivo inacessível) — exige humano"
             exit 1
           fi
+          if [ "$status" = "1" ]; then
+            # continuidade: nada a concluir agora — a próxima indexada só nasce depois do
+            # sucesso testado. Não é erro: o job não fica vermelho e o backlog não muda.
+            echo "::warning::a fábrica manteve a continuidade (status 1) — a próxima indexada só nasce depois do sucesso testado"
+            exit 0
+          fi
+          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
+          echo "::notice::$issue COMPLETADA — a fábrica construiu a próxima indexada: $nova"
+          {
+            echo "### fábrica · $issue COMPLETADA e próxima indexada construída ($nova)"
+            echo
+            echo '```json'
+            tail -40 /tmp/fabrica.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- pipeline/backlog.json; then
+            echo "backlog sem alterações"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pipeline/backlog.json
+          git commit -m "pipeline: $issue validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
+          git push
 
       - name: "Continuidade · a pendência atual não é provada por esta validação"
         if: steps.pendencia.outputs.prova_ao_vivo != 'true'
@@ -310,28 +330,6 @@ jobs:
             echo "- validação ao vivo: OK (HTTP ${{ needs.validacao-cnj.outputs.http }})"
             echo "- pendência: \`${issue:-—}\` — a instrução de teste dela é outra; a fábrica não cria issue nova"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: "Resumo e versionamento do backlog"
-        if: steps.concluir.outputs.status == '0'
-        run: |
-          {
-            echo "### fábrica · pendência COMPLETADA e próxima indexada construída"
-            echo
-            echo '```json'
-            tail -40 /tmp/fabrica.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
-          echo "::notice::${{ steps.pendencia.outputs.issue }} COMPLETADA — a fábrica construiu a próxima indexada: $nova"
-          if git diff --quiet -- pipeline/backlog.json; then
-            echo "backlog sem alterações"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pipeline/backlog.json
-          git commit -m "pipeline: ${{ steps.pendencia.outputs.issue }} validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
-          git push
 
       - uses: actions/upload-artifact@v5
         if: always()

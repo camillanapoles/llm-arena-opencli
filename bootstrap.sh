@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 9677 linhas, 461 KiB.
+#  Conteúdo embutido: 32 arquivos, 9680 linhas, 461 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -175,7 +175,7 @@ while read -r esperado caminho; do
   fi
 done <<'MANIFESTO'
 c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/workflows/gates.yml
-38aa726b3053301344b1d34280abc5fcc99e94fe9375276a83573efa890d978c  ./.github/workflows/validacao-cnj.yml
+1ebe7247a079ef496b1ec457199469572a4b9c2b34656d92aa038c1d4254347c  ./.github/workflows/validacao-cnj.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
 4082965737ceb93c6b7422f6f672d885af391a2d93b298bf42de3229700c2c22  ./BOOTSTRAP.md
 24eecd1e2bb5f002b688ab5727c70d25b6b99e1feaac2c55872768f562b60071  ./ENTREGA.md
@@ -203,7 +203,7 @@ b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_a
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
 5e23cd6ef858535304a4bf4c72d992c828e3fafea4bf4f855dd98ae19c3378a5  ./tests/testar_fabrica.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
-a30d2e8b5da43bd50d010b13682282208c5d70da8d626fe0fcec521f8cd9e5d9  ./tests/testar_pipeline.py
+37752e2156367cb6169d8ad9e2007c554aa13de1158398b9616bcc21b924a9d3  ./tests/testar_pipeline.py
 5487c11416c3535f8486c07bd8bd65ec781eb24198ba6d7dc86c534f4d412cd3  ./tools/gerar_bootstrap.py
 MANIFESTO
 if [[ "$falhas_hash" == "0" ]]; then
@@ -982,7 +982,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "::notice::fábrica — pendência: ${issue:-—} · provada por esta execução: $prova · $motivo"
 
-      - name: "Fábrica · concluir a pendência provada e construir a próxima indexada"
+      - name: "Fábrica · concluir a pendência provada, construir a próxima e versionar"
         id: concluir
         if: steps.pendencia.outputs.prova_ao_vivo == 'true'
         run: |
@@ -1008,14 +1008,34 @@ jobs:
           cat /tmp/fabrica.out
           status=$(python3 -c "import json;print(json.load(open('/tmp/fabrica.out'))['status'])" 2>/dev/null || echo 2)
           echo "status=$status" >> "$GITHUB_OUTPUT"
-          # 1 = continuidade (nada a concluir agora): não é erro, o job não fica vermelho.
-          if [ "$status" = "1" ]; then
-            echo "::warning::a fábrica manteve a continuidade (status 1) — a próxima indexada só nasce depois do sucesso testado"
-          fi
           if [ "$status" = "2" ]; then
             echo "::error::a fábrica devolveu erro tipo 2 (banco/arquivo inacessível) — exige humano"
             exit 1
           fi
+          if [ "$status" = "1" ]; then
+            # continuidade: nada a concluir agora — a próxima indexada só nasce depois do
+            # sucesso testado. Não é erro: o job não fica vermelho e o backlog não muda.
+            echo "::warning::a fábrica manteve a continuidade (status 1) — a próxima indexada só nasce depois do sucesso testado"
+            exit 0
+          fi
+          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
+          echo "::notice::$issue COMPLETADA — a fábrica construiu a próxima indexada: $nova"
+          {
+            echo "### fábrica · $issue COMPLETADA e próxima indexada construída ($nova)"
+            echo
+            echo '```json'
+            tail -40 /tmp/fabrica.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- pipeline/backlog.json; then
+            echo "backlog sem alterações"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pipeline/backlog.json
+          git commit -m "pipeline: $issue validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
+          git push
 
       - name: "Continuidade · a pendência atual não é provada por esta validação"
         if: steps.pendencia.outputs.prova_ao_vivo != 'true'
@@ -1032,28 +1052,6 @@ jobs:
             echo "- validação ao vivo: OK (HTTP ${{ needs.validacao-cnj.outputs.http }})"
             echo "- pendência: \`${issue:-—}\` — a instrução de teste dela é outra; a fábrica não cria issue nova"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: "Resumo e versionamento do backlog"
-        if: steps.concluir.outputs.status == '0'
-        run: |
-          {
-            echo "### fábrica · pendência COMPLETADA e próxima indexada construída"
-            echo
-            echo '```json'
-            tail -40 /tmp/fabrica.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          nova=$(python3 -c "import json;d=json.load(open('/tmp/fabrica.out'));print((d['dados'].get('nova_issue') or {}).get('id','—'))")
-          echo "::notice::${{ steps.pendencia.outputs.issue }} COMPLETADA — a fábrica construiu a próxima indexada: $nova"
-          if git diff --quiet -- pipeline/backlog.json; then
-            echo "backlog sem alterações"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pipeline/backlog.json
-          git commit -m "pipeline: ${{ steps.pendencia.outputs.issue }} validada AO VIVO no CNJ — COMPLETADA; fábrica construiu a próxima indexada [skip ci]"
-          git push
 
       - uses: actions/upload-artifact@v5
         if: always()
@@ -9492,12 +9490,17 @@ class TesteWorkflowValidacaoCNJ(unittest.TestCase):
                       "e o if: do GitHub compara com a string minúscula")
 
     def test_conclusao_que_nao_acontece_nao_deixa_o_job_vermelho(self):
-        self.assertIn("steps.concluir.outputs.status == '0'", self.texto,
-                      "o commit do backlog só acontece com a conclusão concluída")
-        self.assertIn("a próxima indexada só nasce depois do sucesso testado", self.texto)
         bloco = self.texto[self.texto.index("Fábrica · concluir a pendência provada"):]
         bloco = bloco[:bloco.index("Continuidade ·")]
+        self.assertIn("a próxima indexada só nasce depois do sucesso testado", bloco)
         self.assertIn("set +e", bloco, "status 1 = continuidade, não erro")
+        self.assertIn('if [ "$status" = "1" ]', bloco)
+        # concluir E versionar no MESMO passo: um passo pulado pelo `if:` não publica
+        # output, e depender disso derrubou o job (run 38454531073)
+        for pedaco in ('git commit -m "pipeline: $issue', "git push", "backlog sem alterações"):
+            self.assertIn(pedaco, bloco, "o versionamento vive dentro do próprio passo")
+        self.assertNotIn("steps.concluir.outputs", self.texto,
+                         "nenhum passo pode depender do output de um passo que pode ser pulado")
 
     def test_pendencia_nao_provada_nao_cria_issue(self):
         self.assertIn("steps.pendencia.outputs.prova_ao_vivo != 'true'", self.texto)

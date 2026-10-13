@@ -7,7 +7,7 @@ branch: arena/d917b13b-llm-arena-opencli   # ≡ sessao/d917b13b/llm-arena-openc
 worktree: /home/user/llm-arena-opencli
 contrato: IGC v1.0
 
-estado_atual: PLAN
+estado_atual: CONTINUE
 historico:
   - estado: BOOT
     em: "2026-10-13T21:40:00Z"
@@ -18,6 +18,18 @@ historico:
   - estado: PLAN
     em: "2026-10-13T21:42:00Z"
     evento: INTENT.md gravado — escopo: IGC v1.0 + ISSUE-2 (webhook real)
+  - estado: EXEC
+    em: "2026-10-13T22:05:00Z"
+    evento: ISSUE-2 implementada (assinatura X-Hub-Signature-256 + ping + docs/registro) + débito da fábrica quitado
+  - estado: VERIFY
+    em: "2026-10-13T22:08:00Z"
+    evento: npm run ci 108/108 + make testes 236 (EXIT 0) + bootstrap IGC verde
+  - estado: GATE
+    em: "2026-10-13T22:10:00Z"
+    evento: ciclo ISSUE-2 → SUCESSO COMPLETO (delivered · nextIssue ISSUE-3 · debts [])
+  - estado: EMIT
+    em: "2026-10-13T22:12:00Z"
+    evento: emissão rotulada [IMPLEMENT] — commit fd6ca27 + fechamento .session/ (checkpoint fd6ca27)
 
 proxima_transicao: EXEC
-condicao_de_saida: "EXEC: implementar assinatura de webhook + ping + docs/registro"
+condicao_de_saida: "EXEC da ISSUE-3 (publicar arena-runtime.wasm para arena.ai/agent) via node src/cli/pipeline-cli.ts cycle --id ISSUE-3 — ou RESUME (R5) a partir deste estado"

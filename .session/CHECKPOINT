@@ -1,4 +1,4 @@
-sha=9acbc18
-wal=8c5d0281dfd89fb0c7a656de5abf23f72e52dea9185a1a30a1802e620579c9cf
-atualizado_em=2026-10-13T21:42:00Z
-convencao=sha do ultimo commit de trabalho verificado; o commit que grava o CHECKPOINT e a assinatura (diff = apenas .session/)
+sha=fd6ca27
+wal=361adfc4102be29e9703994b397f7c3c430132376a1fda3dd67af0209e2b9d5c
+atualizado_em=2026-10-13T22:12:00Z
+convencao=sha do ultimo commit de trabalho verificado (acceptance verde); o commit que grava o CHECKPOINT e a assinatura (diff = apenas .session/)

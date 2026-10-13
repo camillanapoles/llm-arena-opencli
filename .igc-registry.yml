@@ -3,17 +3,17 @@
 
 linhagens:
   d917b13b:
-    branch: "arena/d917b13b-llm-arena-opencli"
-    checkpoint_ref: "33bb5a6"
+    branch: arena/d917b13b-llm-arena-opencli
+    checkpoint_ref: 66a7fa9
     ativa: true
-    sessao: "d917b13b"
+    checkpoint_em: 2026-10-13T22:34:31.571Z
     descricao: "sessão Arena — driver de automação (Node/TS + WASM) + unificação das duas pilhas; IGC v2.1 (A2': linhagem designada em runtime que proíbe criar branch)"
+    sessao: "d917b13b"
     pr: "1"
-    checkpoint_em: "2026-10-13T22:30:28Z"
   ed79bd77:
-    branch: "arena/ed79bd77-llm-arena-opencli"
-    checkpoint_ref: "ce0030b"
+    branch: arena/ed79bd77-llm-arena-opencli
+    checkpoint_ref: ce0030b
     ativa: false
-    sessao: "ed79bd77"
     descricao: "sessão paralela — consulta processual CNJ (Python); linhagem JÁ MESCLADA no main (PRs"
+    sessao: "ed79bd77"
     pr: "2"

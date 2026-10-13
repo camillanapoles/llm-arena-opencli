@@ -59,5 +59,5 @@
 **Prioridade:** baixa · **Quando:** quando houver runner com rede disponível para verificação extra.
 
 ## M1 — correção de âncora (registro de correção, não edição)
-**O que é:** a entrada do WAL sobre a contração E5 do PR (#12) cita "WAL#10" como âncora da emissão PR; a entrada correta do EMIT do PR é **WAL#7** (o #10 é o EMIT do webhook/ISSUE-2). A memória é append-only: a correção vale por esta entrada.
+**O que é:** a entrada WAL#12 (contração E5) cita "WAL#10" como âncora do EMIT do PR; a entrada correta do EMIT do PR (comentário 6155983956) é **WAL#7**. A identificação de #10 como "EMIT do webhook" também estava errada: **WAL#10 é AMENDA** (retificação do contrato) — ver WAL#19. A memória é append-only: as correções valem por entradas novas (WAL#13 e WAL#19).
 **Gatilho:** n/a (correção registrada) · **Prioridade:** baixa.

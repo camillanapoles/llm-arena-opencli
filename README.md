@@ -103,7 +103,7 @@ curl -X POST localhost:8787/api/events -H 'content-type: application/json' \
 | --- | --- | --- |
 | `ci.yml` | `push`, `pull_request`, `workflow_dispatch` | Gates do repo: typecheck, build do WASM, testes, smoke do backend; publica `arena-runtime-wasm` |
 | `gate-driver.yml` | `workflow_run` (do `ci`), `repository_dispatch: gate-event`, `issue_comment` (`/gate run`), `schedule`, `workflow_dispatch` | **Gate driver**: transforma o evento em execução de gates, grava estado em SQLite, publica artifact, reage ao comentário `/gate run` |
-| `opencli-driver.yml` | `workflow_dispatch`, `repository_dispatch: opencli-command` | **Driver do OpenCLI**: modo `runtime` (executa o manifesto dentro do runner) e modo `dispatch` (fira `repository_dispatch` em `jackwener/OpenCLI`) |
+| `opencli-driver.yml` | `workflow_dispatch`, `repository_dispatch: opencli-command` | **Driver do OpenCLI**: modo `runtime` (executa o manifesto dentro do runner) e modo `dispatch` (`repository_dispatch` no fork `camillanapoles/OpenCLI` via `OPENCLI_TOKEN` — [guia](docs/SECRETS.md); fallback self-dispatch sem secret) |
 | `continuity.yml` | `pull_request: closed`, `push`, `repository_dispatch: session-*`, `issue_comment` (`/session …`), `schedule`, `workflow_dispatch` | **Continuidade da sessão**: handoff automático no merge (branch + draft PR), checkpoint do contexto, heartbeat |
 | `blueprint.yml` | `issues: closed`, `workflow_dispatch`, `repository_dispatch: pipeline-*`, `schedule` | **Pipeline gate-driven (BPMN)**: gate de continuidade (issues/CI/testes) + cadeia de issues indexadas com envelope JSON |
 

@@ -158,13 +158,18 @@ workflows e smoke do loader WASM (vetores FNV-1a).
 
 ### ⏳ Pendente (depende de ação manual do usuário ou do ambiente GitHub)
 
-| Item | Quem | Impacto enquanto não resolve |
+| Item | Quem | Status / Instrução |
 | --- | --- | --- |
-| Secret `OPENCLI_TOKEN` (repo scope) | usuário (Settings → Secrets) | modo `dispatch` do `opencli-driver.yml` degrada para dry-run (o modo `runtime` continua funcionando) |
-| Webhook do GitHub → `POST /api/events` | usuário (Settings → Webhooks) | ingestão usa `gh workflow run` / `repository_dispatch` como via alternativa |
+| Secret `OPENCLI_TOKEN` (fine-grained PAT, `Contents: write` em `camillanapoles/OpenCLI`) | usuário (~3 min) | **GUIA COMPLETO: [`docs/SECRETS.md`](docs/SECRETS.md)** — Settings UI, `gh secret set` ou actions de marketplace (verificadas: `actions/secrets-action`, `jon-grey/github-actions-secrets-creator` — todas exigem bootstrap token com `secrets:write`; `GITHUB_TOKEN` não cria secrets, 403 verificado). **Sem o secret o fluxo core NÃO trava**: `opencli-driver.yml` faz fallback self-dispatch com `GITHUB_TOKEN` e publica envelope `missing-secret` com instruções |
+| Webhook do GitHub → `POST /api/events` | usuário (Settings → Webhooks) | Alternativa já funcional: `gh api repos/<owner>/<repo>/dispatches -f event_type=...` / `gh workflow run` (a corrente webhook→gate é exercitada por `repository_dispatch`) |
 | Merge do PR #1 | usuário | workflows com gatilhos `issues`/`issue_comment`/`workflow_dispatch` passam a operar quando o workflow estiver no `main` (regra do GitHub); até lá, `push`/`pull_request`/`workflow_run` já operam na branch |
 | Execução real dos workflows de cadeia (`blueprint.yml`) | GitHub (após merge) | a lógica já está coberta por testes + smoke local do `cycle`/`event`/`pending` |
 | Agendamentos (`schedule`) | GitHub | sujeitos a atrasos do runner em horários de pico (limitação da plataforma) |
+
+**Descobertas da auditoria verificadas via API:**
+- `jackwener/OpenCLI` (upstream) é **read-only** para o dono do repo (`pull: true`, `push: false`) — `repository_dispatch` lá **nunca** funcionaria; o alvo correto é o fork **`camillanapoles/OpenCLI`** (admin confirmado) — que é o default do `opencli-driver.yml` (input `target_repo`).
+- `GITHUB_TOKEN` de workflow **não** consegue criar/listar secrets (403 `Resource not accessible by integration` — reproduzido).
+- Actions de marketplace para secrets **existem** (verificadas em `docs/SECRETS.md`) mas exigem token bootstrap com `secrets: write` — não eliminam a criação manual do PAT.
 
 ### 🔍 Riscos/limitações conhecidas (documentados, sem impacto para uso)
 

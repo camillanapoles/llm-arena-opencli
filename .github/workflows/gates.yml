@@ -358,11 +358,24 @@ jobs:
             echo "backlog sem alterações"
             exit 0
           fi
+          # o backlog faz parte do kit embutido no bootstrap — regenera no mesmo commit
+          python3 tools/gerar_bootstrap.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pipeline/backlog.json
+          git add pipeline/backlog.json bootstrap.sh
           git commit -m "pipeline: $alvo COMPLETADA e próxima indexada construída pela fábrica [skip ci]"
-          git push
+          # retorno para fix sem perda: push com rebase + retry (corrige corrida
+          # com outros jobs que também versionam, ex. o checkpoint de continuidade)
+          for tentativa in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "::notice::push rejeitado (corrida com outro job?) — rebasando ($tentativa/3)"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME:-HEAD}" || true
+            sleep 3
+          done
+          echo "::error::não foi possível persistir o resultado da fábrica — débito de erro aberto (retorno para fix: reexecutar o gate 6)"
+          exit 1
       - uses: actions/upload-artifact@v5
         if: always()
         with:

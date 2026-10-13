@@ -201,3 +201,52 @@ test("nextStepAfter navega a cadeia indexada", () => {
   assert.equal(nextStepAfter(demoBlueprint, "ISSUE-2"), null);
   assert.equal(nextStepAfter(demoBlueprint, "ISSUE-404"), null);
 });
+
+// --------------------------------------- fluxo de débito de erro (prioridade + fix)
+
+test("errorEnvelope tipo 1 abre débito known/high/fix com comando de fix", () => {
+  const env = errorEnvelope({
+    sameIssue: "ISSUE-2",
+    errorType: 1,
+    message: "acceptance reprovado",
+    gate: "ISSUE-2",
+    fixCommand: "npm run ci",
+    continuityReason: "correção necessária",
+  });
+  assert.equal(env.direction, "fix"); // retorno para fix
+  assert.deepEqual(env.debts, [
+    {
+      gate: "ISSUE-2",
+      kind: "known",
+      reason: "acceptance reprovado",
+      priority: "high",
+      action: "fix",
+      fixCommand: "npm run ci",
+    },
+  ]);
+});
+
+test("errorEnvelope tipo 2 abre débito unknown/urgent/human", () => {
+  const env = errorEnvelope({ sameIssue: "ISSUE-2", errorType: 2, message: "sem CI", continuityReason: "contorno" });
+  assert.equal(env.debts[0]?.kind, "unknown");
+  assert.equal(env.debts[0]?.priority, "urgent");
+  assert.equal(env.debts[0]?.action, "human");
+});
+
+test("makeEnvelope: exitCode != 0 sem debts explícitos abre débito padrão; exit 0 fica vazio", () => {
+  const erro = makeEnvelope({ status: "error", message: "x", nextIssue: "ISSUE-1", exitCode: 1, direction: "fix" });
+  assert.equal(erro.debts.length, 1);
+  assert.equal(erro.debts[0]?.action, "fix");
+  const ok = makeEnvelope({ status: "success", message: "", nextIssue: null, exitCode: 0, direction: "complete" });
+  assert.deepEqual(ok.debts, []);
+});
+
+test("runChainStep falha registra débito na MESMA issue com acceptance como comando de fix", () => {
+  const step = { id: "ISSUE-2", title: "t", instruction: "i", acceptance: "npm run ci", next: "ISSUE-3" };
+  const env = runChainStep(step, { exitCode: 1, message: "reprovado" });
+  assert.equal(env.nextIssue, "ISSUE-2");
+  assert.equal(env.direction, "fix");
+  assert.equal(env.debts[0]?.gate, "ISSUE-2");
+  assert.equal(env.debts[0]?.fixCommand, "npm run ci");
+  assert.equal(env.debts[0]?.priority, "high");
+});

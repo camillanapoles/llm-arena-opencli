@@ -120,6 +120,8 @@ export function runChainStep(
     addenda,
     sameIssue: step.id,
     errorType,
+    gate: step.id,
+    fixCommand: step.acceptance,
     continuityReason:
       errorType === 1
         ? `falha de execução/validação em ${step.id} — correção necessária; a MESMA issue permanece como nextIssue (continuidade)`

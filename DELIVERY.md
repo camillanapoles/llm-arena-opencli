@@ -24,6 +24,7 @@
 | **T3** — relatório + pipeline | "Documente (solicitado/incrementado/timeline/realizado/testado/validado → produção); gatilho que verifica **não existência de issues abertas ou CI com erros ou sem testes** → enquanto não positivo = **continuidade**; a cada issue completada **testar a entrega e construir a seguinte indexada**; erro retorna erro + continuidade; **todo action retorna JSON** `{id, message, addenda, status, nextIssue, exitCode 0/1/2}` — fluxo gate-driven tipo BPMN via Actions" | Commits `91faadb` — `src/pipeline/` (envelope, gate, chain) + `pipeline-cli` + `pipeline/blueprint.json` + `blueprint.yml` (workflow BPMN-like) |
 | **T4** — OO + event-driven + direção | "Instrução para **cada issue pendente** do desenvolvimento; funções **event-driven da factory** que criam issues conforme o pattern gate-driven BPMN → **backend + SQLite + orientado a objetos (OOM)**; automação de **ciclos determinísticos** de testes com **validação de sucesso COMPLETADA**; testar entrega com a instrução da issue seguinte; se aprovado → **norteando a direção da continuidade [fix/debt/continue…]**; relatório com **stack utilizado**; **auditar e validar o que falta**" | Domínio OO (`PipelineIssue`, `IssueRepository` SQLite, `IssueFactory` event-driven, `PipelineEngine`), `pipeline-cli cycle/pending/event`, campo `direction` no envelope, 17 novos testes — **84/84 verdes** |
 | **T5** — integração das sessões paralelas | "sabendo que há uma sessão paralela, **como integrar ambas, pra que a outra siga conforme ambas?**" | **Contrato único** `pipeline/contract.schema.json` + adaptador bidirecional `src/pipeline/interop.ts` (camelCase ⇄ dialeto CNJ) + **registro unificado** (`pipeline-cli registry`: backlog d917 + backlog ed79 com namespace) + workflow `integration.yml` (duas suítes + envelope mesclado + ponte nos PRs #1/#2) + **decisão registrada** `docs/04-decisao-unificacao.md` (desbloqueia ISSUE-007/008 da outra sessão) + `docs/INTEGRATION.md` — 8 novos testes |
+| **T6** — conflitos com `main` + débito de erro | "verificar pendercia ➞ merge só pode passar se teste sucesso ➞ porém *This branch has conflicts*…"; "verificar os erros ➞ **garantindo fluxo débito de erro com prioridade no pipeline com retorno para fix**" | Merge `d359631` (conflitos resolvidos: `.gitignore` união · `README.md` duas pilhas · `pipeline/blueprint.json` unificado) + **fluxo de débito de erro**: campo `debitos[]` no contrato CNJ e `debts[]` no canônico (prioridade `urgente>alta>media` · ação `corrigir`=retorno para fix · `comando_fix` literal), veredito de continuidade ordena por prioridade e encaminha `direcao=corrigir`; correções: `make testes` (bootstrap do kit reescopo + manifesto regenerado), corrida do `git push` da fábrica (rebase+retry, sem perda de bookkeeping), pendências do veredito detalhadas (sem `(?)`) — 13 novos testes (5 Python + 8 TS) |
 
 ## 3. STACK UTILIZADO
 
@@ -113,7 +114,7 @@ SQLite** (`PipelineIssue` + `IssueRepository` + `IssueFactory` event-driven +
 
 ## 4. TESTADO
 
-`npm run ci` = typecheck (tsc) + build WASM + **92 testes** (`node:test`):
+`npm run ci` = typecheck (tsc) + build WASM + **100 testes** (`node:test`):
 
 | Suíte | O que valida | Testes |
 | --- | --- | --- |
@@ -123,10 +124,17 @@ SQLite** (`PipelineIssue` + `IssueRepository` + `IssueFactory` event-driven +
 | `gate-driver.test.ts` | normalização de webhooks, matchesTrigger (refs/actors), blocking vs advisory, skip/fail de steps, dispatch OpenCLI | 10 |
 | `server.test.ts` | CRUD HTTP completo, webhooks `X-GitHub-Event`, runs/cache/opencli, CORS, 404 | 9 |
 | `session.test.ts` | continuidade: round-trip, cap de checkpoints, corrupção tolerada, briefing, nomes de branch | 8 |
-| `pipeline.test.ts` | **envelope JSON** (contrato 0/1/2 + direction), **continuity gate** (issues/CI/sem testes), **chain executor** (sucesso→próxima, erro→mesma), blueprint íntegro | 13 |
+| `pipeline.test.ts` | **envelope JSON** (contrato 0/1/2 + direction), **continuity gate** (issues/CI/sem testes), **chain executor** (sucesso→próxima, erro→mesma), **débitos de erro** (prioridade + retorno para fix), blueprint íntegro | 17 |
 | `domain.test.ts` | **modelo OO**: máquina de estados, repositório SQLite, **factory event-driven**, **ciclos determinísticos** com validação de sucesso COMPLETA, direções fix/debt/continue/complete | 17 |
-| `interop.test.ts` | **integração entre sessões**: mapeamento camelCase⇄CNJ nos dois sentidos, round-trip, registro unificado com namespace, backlog real da sessão paralela | 8 |
+| `interop.test.ts` | **integração entre sessões**: mapeamento camelCase⇄CNJ nos dois sentidos, round-trip (incl. `debts↔debitos`), registro unificado com namespace, backlog real da sessão paralela | 12 |
 | `wasm.test.ts` | vetores FNV-1a, paridade com a lógica TS de triggers | 7 |
+
+Com a integração das duas pilhas (T5/T6), a suíte Python também roda em
+`make testes` (gate 3 do `gates.yml`): conformidade 29 · `main.py` 29 ·
+`datajud.sh` 32 · pipeline **76** (incl. 5 de débito de erro) · fábrica 41 ·
+bootstrap **27** (kit CNJ byte a byte) — totalizando **234 verificações locais**
+além das 100 do `npm run ci`. O workflow `integration.yml` executa as duas
+suítes no runner do GitHub a cada push/PR.
 
 Além dos testes automatizados: smoke real do CLI (`seed`, `receive` com exit code
 de gate), smoke do backend HTTP (`/health`, `/api/events`, `/api/kinds`),

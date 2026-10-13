@@ -48,26 +48,33 @@ for etapa in '1/7' '2/7' '3/7' '4/7' '5/7' '6/7'; do
   if grep -q "$etapa" "$TMP/criacao.log"; then ok "etapa $etapa executada"; else ruim "etapa $etapa ausente"; fi
 done
 
-titulo '3. Árvore criada x repositório (byte a byte)'
-if diff -r -q \
-      --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
-      --exclude='saida' --exclude='*.jsonl' --exclude='*.db' --exclude='*.db-wal' \
-      --exclude='*.db-shm' \
-      "$RAIZ" "$TMP/projeto" >"$TMP/diff.log" 2>&1; then
-  ok 'todos os arquivos idênticos ao repositório'
-else
-  ruim 'há diferenças entre o projeto criado e o repositório:'
-  sed 's/^/      /' "$TMP/diff.log" | head -20
+titulo '3. Árvore criada x repositório (byte a byte, arquivos do kit)'
+# No repositório unificado (pilhas CNJ + Node/TS) o bootstrap cobre o KIT CNJ —
+# os arquivos que tools/gerar_bootstrap.py embute. A comparação é byte a byte
+# sobre esse inventário; a pilha Node/TS se reinstala com npm (ver README).
+mapfile -t KIT < <(python3 -c "import sys; sys.path.insert(0, 'tools'); import gerar_bootstrap as g; print('\n'.join(g.ARQUIVOS))")
+diferencas=0
+for caminho in "${KIT[@]}"; do
+  if [[ ! -f "$TMP/projeto/$caminho" ]]; then
+    ruim "faltando no projeto criado: $caminho"; diferencas=$((diferencas+1)); continue
+  fi
+  if [[ ! -f "$RAIZ/$caminho" ]]; then
+    ruim "faltando no repositório: $caminho"; diferencas=$((diferencas+1)); continue
+  fi
+  if ! cmp -s "$RAIZ/$caminho" "$TMP/projeto/$caminho"; then
+    ruim "conteúdo diferente do repositório: $caminho"; diferencas=$((diferencas+1))
+  fi
+done
+if [[ $diferencas -eq 0 ]]; then
+  ok "todos os ${#KIT[@]} arquivos do kit idênticos ao repositório (byte a byte)"
 fi
-# diretórios gerados em tempo de execução (saida/, __pycache__) não entram na contagem
-qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
-qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
-if [[ "$qtd_repo" == "$qtd_novo" ]]; then
-  ok "mesma quantidade de arquivos ($qtd_novo)"
+printf '%s\n' "${KIT[@]}" | sort >"$TMP/kit.txt"
+(cd "$TMP/projeto" && find . -type f | sed 's|^\./||' | sort) >"$TMP/criado.txt"
+if diff -u "$TMP/kit.txt" "$TMP/criado.txt" >"$TMP/diff.log" 2>&1; then
+  ok "o projeto criado tem exatamente os ${#KIT[@]} arquivos do kit (sem extras nem faltas)"
 else
-  ruim "quantidade diferente: repositório=$qtd_repo, criado=$qtd_novo"
+  ruim 'inventário do projeto criado difere do kit:'
+  sed 's/^/      /' "$TMP/diff.log" | head -20
 fi
 python3 tools/gerar_bootstrap.py --conferir >/dev/null 2>&1 && ok 'bootstrap presente no projeto criado'
 

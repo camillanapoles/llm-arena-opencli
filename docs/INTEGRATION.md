@@ -23,6 +23,7 @@ são equivalentes:
 | `exitCode` (0/1/2) | `codigo_saida` / `status` | mesmo valor numérico |
 | `nextIssue` | `next_issue` | igual |
 | `direction` | `direcao` | `continue→proxima · fix→corrigir · debt→depurar · complete→encerrar · hold→humano` |
+| `debts[]` | `debitos[]` | débitos de erro: `gate→gate · kind→tipo (known→"1" · unknown→"2") · reason→motivo · priority→prioridade (high→alta · medium→media · urgent→urgente) · action→acao (fix→corrigir · human→humano) · fixCommand→comando_fix` |
 | `addenda[] {kind,ref,description}` | `anexos[] {path,filename,descricao}` | `ref↔path`, `filename↔basename`, `description↔descricao` |
 | `continuity {required,reason}` | `continuidade` + `mensagem` | `required↔continuidade` |
 | `at` | `timestamp` | igual |

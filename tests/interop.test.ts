@@ -160,3 +160,86 @@ test("dependências entre issues da sessão CNJ são namespaced no registro", ()
   // ISSUE-008 depende de ISSUE-006 na sessão ed79
   assert.ok(i8.dependsOn.every((d) => d.startsWith("ed79bd77:")));
 });
+
+// ------------------------------------------------- débitos de erro (debts ↔ debitos)
+
+test("toCnjEnvelope: debts -> debitos (prioridade/acao/tipo/comando_fix)", () => {
+  const ours = makeEnvelope({
+    status: "error",
+    message: "acceptance reprovado",
+    nextIssue: "ISSUE-2",
+    exitCode: 1,
+    direction: "fix",
+    debts: [
+      {
+        gate: "ISSUE-2",
+        kind: "known",
+        reason: "acceptance reprovado (exit 1)",
+        priority: "high",
+        action: "fix",
+        fixCommand: "npm run ci",
+      },
+    ],
+  });
+  const cnj = toCnjEnvelope(ours, { gate: "issue" });
+  assert.deepEqual(cnj.debitos, [
+    {
+      gate: "ISSUE-2",
+      tipo: "1",
+      motivo: "acceptance reprovado (exit 1)",
+      prioridade: "alta",
+      acao: "corrigir",
+      comando_fix: "npm run ci",
+    },
+  ]);
+});
+
+test("fromCnjEnvelope: debitos -> debts (tipo 2 = unknown/human urgente)", () => {
+  const env = fromCnjEnvelope({
+    ...cnjSample,
+    status: "2",
+    codigo_saida: 2,
+    direcao: "humano",
+    debitos: [
+      { gate: "testes", tipo: "2", motivo: "gh ausente", prioridade: "urgente", acao: "humano", comando_fix: "gh auth login" },
+    ],
+  });
+  assert.deepEqual(env.debts, [
+    {
+      gate: "testes",
+      kind: "unknown",
+      reason: "gh ausente",
+      priority: "urgent",
+      action: "human",
+      fixCommand: "gh auth login",
+    },
+  ]);
+});
+
+test("roundtrip débito: ActionEnvelope -> CNJ -> ActionEnvelope preserva semântica", () => {
+  const ours = makeEnvelope({
+    status: "continuity",
+    message: "2 pendências",
+    nextIssue: "ISSUE-3",
+    exitCode: 1,
+    direction: "fix",
+    debts: [
+      { gate: "testes", kind: "known", reason: "make testes código 2", priority: "high", action: "fix", fixCommand: "make testes" },
+      { gate: "issues", kind: "known", reason: "2 abertas", priority: "medium", action: "fix" },
+    ],
+  });
+  const back = fromCnjEnvelope(toCnjEnvelope(ours));
+  assert.deepEqual(back.debts, ours.debts);
+});
+
+test("sem erro não há débito (debitos: []) nos dois dialetos", () => {
+  const ours = makeEnvelope({
+    status: "success",
+    message: "ok",
+    nextIssue: "ISSUE-3",
+    exitCode: 0,
+  });
+  assert.deepEqual(ours.debts, []);
+  const cnj = toCnjEnvelope(ours);
+  assert.deepEqual(cnj.debitos, []);
+});

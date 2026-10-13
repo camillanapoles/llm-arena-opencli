@@ -46,6 +46,25 @@ export interface ContinuityInfo {
   reason: string;
 }
 
+/**
+ * Débito de erro (fluxo de erro com prioridade e retorno para fix).
+ * Sempre que um gate/passo não é 0, o envelope registra o débito com
+ * prioridade e a AÇÃO de quitação — `fix` (retorno para fix) ou `human`.
+ */
+export interface ErrorDebt {
+  /** gate/etapa que abriu o débito */
+  gate: string;
+  /** known = erro tipo 1 (tratável) · unknown = erro tipo 2 (não avaliável) */
+  kind: "known" | "unknown";
+  reason: string;
+  /** urgent > high > medium */
+  priority: "urgent" | "high" | "medium";
+  /** fix = retorno para fix · human = exige intervenção humana */
+  action: "fix" | "human";
+  /** comando literal que quita o débito (quando houver) */
+  fixCommand?: string | undefined;
+}
+
 export interface ActionEnvelope {
   id: string;
   message: string;
@@ -56,6 +75,8 @@ export interface ActionEnvelope {
   direction: Direction;
   at: string;
   continuity: ContinuityInfo;
+  /** Débitos de erro abertos por este action (vazio quando exitCode 0). */
+  debts: ErrorDebt[];
   /** Detalhes estruturados opcionais (usado pela interop entre sessões). */
   data?: Record<string, unknown> | undefined;
 }
@@ -70,7 +91,26 @@ export interface EnvelopeInput {
   direction?: Direction | undefined;
   continuity?: ContinuityInfo | undefined;
   at?: string | undefined;
+  debts?: ErrorDebt[] | undefined;
   data?: Record<string, unknown> | undefined;
+}
+
+/** Abre o débito de erro padrão para um exitCode não-zero (prioridade + retorno para fix). */
+export function makeDebt(
+  gate: string,
+  exitCode: 1 | 2,
+  reason: string,
+  fixCommand?: string,
+): ErrorDebt {
+  const debt: ErrorDebt = {
+    gate,
+    kind: exitCode === 1 ? "known" : "unknown",
+    reason,
+    priority: exitCode === 1 ? "high" : "urgent",
+    action: exitCode === 1 ? "fix" : "human",
+  };
+  if (fixCommand !== undefined) debt.fixCommand = fixCommand;
+  return debt;
 }
 
 /** Direção da continuidade a partir do exitCode e da existência de próxima issue. */
@@ -91,6 +131,11 @@ export function makeEnvelope(input: EnvelopeInput): ActionEnvelope {
     direction: input.direction ?? "hold",
     at: input.at ?? new Date().toISOString(),
     continuity: input.continuity ?? { required: false, reason: "" },
+    debts:
+      input.debts ??
+      (input.exitCode === 0
+        ? []
+        : [makeDebt("step", input.exitCode, input.message || "erro do passo")]),
     data: input.data,
   };
 }
@@ -124,6 +169,10 @@ export function errorEnvelope(input: {
   errorType: 1 | 2;
   continuityReason: string;
   direction?: Direction | undefined;
+  /** gate/passo que abriu o débito (rótulo do débito de erro) */
+  gate?: string | undefined;
+  /** comando literal que quita o débito (retorno para fix) */
+  fixCommand?: string | undefined;
 }): ActionEnvelope {
   return makeEnvelope({
     id: input.id,
@@ -134,5 +183,13 @@ export function errorEnvelope(input: {
     exitCode: input.errorType,
     direction: input.direction ?? (input.errorType === 1 ? "fix" : "debt"),
     continuity: { required: true, reason: input.continuityReason },
+    debts: [
+      makeDebt(
+        input.gate ?? "step",
+        input.errorType,
+        input.message || input.continuityReason,
+        input.fixCommand,
+      ),
+    ],
   });
 }

@@ -20,6 +20,7 @@ import {
   type ActionEnvelope,
   type Addendum,
   type Direction,
+  type ErrorDebt,
   type ExitCode,
 } from "./envelope.ts";
 import type { Blueprint } from "./chain.ts";
@@ -32,6 +33,16 @@ export interface CnjAnexo {
   descricao: string;
 }
 
+/** Débito de erro no dialeto CNJ (fluxo com prioridade e retorno para fix). */
+export interface CnjDebito {
+  gate: string;
+  tipo: string; // "1" | "2"
+  motivo: string;
+  prioridade: string; // urgente|alta|media
+  acao: string; // corrigir (retorno para fix)|humano
+  comando_fix?: string;
+}
+
 export interface CnjEnvelope {
   id: string;
   gate: string;
@@ -42,6 +53,7 @@ export interface CnjEnvelope {
   next_issue: string | null;
   direcao: string; // continuar|corrigir|depurar|proxima|encerrar|humano
   proximo_passo: string;
+  debitos?: CnjDebito[] | undefined;
   anexos: CnjAnexo[];
   dados: Record<string, unknown>;
   timestamp: string;
@@ -91,6 +103,50 @@ export const DIRECTION_FROM_CNJ: Record<string, Direction> = {
   humano: "hold",
 };
 
+/** débitos de erro: priority/action/kind (nosso) <-> prioridade/acao/tipo (CNJ) */
+export const DEBT_PRIORITY_TO_CNJ: Record<string, string> = {
+  urgent: "urgente",
+  high: "alta",
+  medium: "media",
+};
+export const DEBT_PRIORITY_FROM_CNJ: Record<string, "urgent" | "high" | "medium"> = {
+  urgente: "urgent",
+  alta: "high",
+  media: "medium",
+};
+export const DEBT_ACTION_TO_CNJ: Record<string, string> = {
+  fix: "corrigir",
+  human: "humano",
+};
+export const DEBT_ACTION_FROM_CNJ: Record<string, "fix" | "human"> = {
+  corrigir: "fix",
+  humano: "human",
+};
+
+function debtFromCnj(d: CnjDebito): ErrorDebt {
+  const debt: ErrorDebt = {
+    gate: d.gate,
+    kind: d.tipo === "1" ? "known" : "unknown",
+    reason: d.motivo,
+    priority: DEBT_PRIORITY_FROM_CNJ[d.prioridade] ?? "medium",
+    action: DEBT_ACTION_FROM_CNJ[d.acao] ?? "human",
+  };
+  if (d.comando_fix !== undefined) debt.fixCommand = d.comando_fix;
+  return debt;
+}
+
+function debtToCnj(d: ErrorDebt): CnjDebito {
+  const debt: CnjDebito = {
+    gate: d.gate,
+    tipo: d.kind === "known" ? "1" : "2",
+    motivo: d.reason,
+    prioridade: DEBT_PRIORITY_TO_CNJ[d.priority] ?? "media",
+    acao: DEBT_ACTION_TO_CNJ[d.action] ?? "humano",
+  };
+  if (d.fixCommand !== undefined) debt.comando_fix = d.fixCommand;
+  return debt;
+}
+
 function statusFromCnjCode(code: string): string {
   if (code === "0") return "success";
   if (code === "1") return "continuity";
@@ -120,6 +176,7 @@ export function fromCnjEnvelope(cnj: CnjEnvelope): ActionEnvelope {
       required: Boolean(cnj.continuidade),
       reason: cnj.continuidade ? cnj.mensagem : "",
     },
+    debts: cnj.debitos ? cnj.debitos.map(debtFromCnj) : undefined,
   });
 }
 
@@ -138,6 +195,7 @@ export function toCnjEnvelope(
     next_issue: env.nextIssue,
     direcao: DIRECTION_TO_CNJ[env.direction] ?? "humano",
     proximo_passo: options.proximoPasso ?? "",
+    debitos: env.debts.map(debtToCnj),
     anexos: env.addenda.map((a) => ({
       path: a.ref,
       filename: a.ref.split("/").pop() ?? a.ref,

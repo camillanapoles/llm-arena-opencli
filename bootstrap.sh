@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 9688 linhas, 462 KiB.
+#  Conteúdo embutido: 32 arquivos, 10169 linhas, 489 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -174,16 +174,16 @@ while read -r esperado caminho; do
     FALHA "hash diferente: $caminho"; falhas_hash=$((falhas_hash+1))
   fi
 done <<'MANIFESTO'
-c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/workflows/gates.yml
+a2fe6a7e2518e2d70c8492d93442044445638352327115b403f580df87fc20d3  ./.github/workflows/gates.yml
 1ebe7247a079ef496b1ec457199469572a4b9c2b34656d92aa038c1d4254347c  ./.github/workflows/validacao-cnj.yml
-f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
-4082965737ceb93c6b7422f6f672d885af391a2d93b298bf42de3229700c2c22  ./BOOTSTRAP.md
+2caa341b92fddacfa3cdf6933cbbba6fbc338517152dd7ea7c7314f100f2d8f8  ./.gitignore
+4f7fb71e540cfafb00af75008e7949ac6c5a2431e7b991d9aac34bba22e77e03  ./BOOTSTRAP.md
 8d7202082bac5574d17e1116104e38cb569cd1f5cbabe8678fb5f72277565532  ./ENTREGA.md
 0e4e1891354e193ff084ad8ce428d3b87de0c13fb0446b9cec08e0e4a6938f8a  ./Makefile
-8f3e9ccd6093f7b4b8566295877865701557e5e7d7bec0349cf258fa1bbf298b  ./README.md
+3d243bc30bb3a480000f759158ab2615ddd6e486173623cfb6f327701b2ab2bd  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
 5e8befc6e2434cb27c1404693dc775f7de8056893bcc94712e61644e40ddbc3f  ./docs/02-receitas-curl-tjpe.md
-8839410b537352f99a1fdcc300c3103de300f9e94ccaabdaf52affab2bb0ce37  ./docs/03-pipeline-gates.md
+aa01f858a1ab789575488574ad6f9468b48bbe66fb260331ed05064e4ba29658  ./docs/03-pipeline-gates.md
 7c75c6c9e28b98ba45eb7ffdb7ad5165b2d002338c9e32dbbe61d02986e1fd06  ./docs/exemplo-saida/agg-grau.tsv
 8d95b990767a0c8a967f45ccce11471fccb2d6f875f494213f223f7a788a05d0  ./docs/exemplo-saida/agg-orgao-nome.csv
 e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo-saida/relatorio-processo-exemplo.md
@@ -191,19 +191,19 @@ e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo
 c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
 050816945908d18638af12bdf9bbaa59c4038ff5317f885004868bc3ef5e0941  ./pipeline/.gitignore
 b6dbec2ce1ffd8dbbab5e6e3af6128e3cd59e7b8e140923c0ae929610425c067  ./pipeline/backlog.json
-4c5cf6428692501b4491ad9d1d960cefaddc9c11ed8c8b830edad8103bb42590  ./pipeline/blueprint.json
+8d828da7ba61b5e197deba26c2932c1100a63e523c84a7c6139584cc27fc1452  ./pipeline/blueprint.json
 240c6334e26706a736ade794b4d4db80970a987093b982c7713ce0e623204071  ./pipeline/factory.py
-94dda7de1f5784804710612cd3b830aeaa0e03d4bfcdc5401e60cc954e381bb6  ./pipeline/gate.py
+2143874e43fbdb47ac8707f1236eb5fff205880207589facffce2c1ed4926cfe  ./pipeline/gate.py
 b0e13746b042c5388aee48c3b3b8d5dc69cd213d90654b853fc84c0534c200aa  ./pipeline/verificar_cnj.py
 dd78d8b6469b06e5ab67d11137eaac3891ac16b2856064bce8be6a801e67dea0  ./scripts/datajud.sh
 b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_apis.py
 54b84ce8348712a3e8d689f96d284d0f019e11bb2bcf888abeab2c147fe63baa  ./tests/mock_datajud.py
 3d917cdf5b4b7732d17ccf0f542987e8daded8b62f03c0e5c055a4988f329daa  ./tests/rodar-testes.sh
-18184cbf5b7f03f294f136fb6b68d5ed98e6fc9cd7de9c9ab3b6e38d5bf7703e  ./tests/testar_bootstrap.sh
+aa6c3af22855b29ab2d4cfb9f634d9dbe69b33fb1d66da128bbd0d2bcebe9006  ./tests/testar_bootstrap.sh
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
 5e23cd6ef858535304a4bf4c72d992c828e3fafea4bf4f855dd98ae19c3378a5  ./tests/testar_fabrica.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
-37752e2156367cb6169d8ad9e2007c554aa13de1158398b9616bcc21b924a9d3  ./tests/testar_pipeline.py
+cd40cc2e77124f166f807d1685f28c19a86db0d6da7eae0cfef4b4ce4323f6f1  ./tests/testar_pipeline.py
 5487c11416c3535f8486c07bd8bd65ec781eb24198ba6d7dc86c534f4d412cd3  ./tools/gerar_bootstrap.py
 MANIFESTO
 if [[ "$falhas_hash" == "0" ]]; then
@@ -704,11 +704,24 @@ jobs:
             echo "backlog sem alterações"
             exit 0
           fi
+          # o backlog faz parte do kit embutido no bootstrap — regenera no mesmo commit
+          python3 tools/gerar_bootstrap.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pipeline/backlog.json
+          git add pipeline/backlog.json bootstrap.sh
           git commit -m "pipeline: $alvo COMPLETADA e próxima indexada construída pela fábrica [skip ci]"
-          git push
+          # retorno para fix sem perda: push com rebase + retry (corrige corrida
+          # com outros jobs que também versionam, ex. o checkpoint de continuidade)
+          for tentativa in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "::notice::push rejeitado (corrida com outro job?) — rebasando ($tentativa/3)"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME:-HEAD}" || true
+            sleep 3
+          done
+          echo "::error::não foi possível persistir o resultado da fábrica — débito de erro aberto (retorno para fix: reexecutar o gate 6)"
+          exit 1
       - uses: actions/upload-artifact@v5
         if: always()
         with:
@@ -1064,6 +1077,16 @@ jobs:
           if-no-files-found: warn
 __ARQ_EOF__
 __ARQ__ .gitignore
+node_modules/
+dist/
+data/
+wasm/dist/
+*.db
+*.db-journal
+*.tsbuildinfo
+.DS_Store
+.env
+
 # artefatos gerados pelas consultas
 saida/
 *.jsonl
@@ -1080,6 +1103,15 @@ Este é o **documento único** do projeto: ele descreve como o `bootstrap.sh` re
 ele **valida e testa** o resultado, e qual é exatamente a **saída esperada** de cada
 etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 31 arquivos embutido —
 não precisa de internet, Git nem de nenhum arquivo externo.
+
+> **Escopo no repositório unificado (duas pilhas):** o `bootstrap.sh` recria o
+> **kit CNJ** — os 32 arquivos do inventário de `tools/gerar_bootstrap.py`
+> (documentação CNJ, `main.py`, `pipeline/`, `scripts/`, `tests/` Python/bash,
+> `Makefile`, workflows CNJ). A pilha Node/TS + WASM (Parte A do README) se
+> reinstala com `npm install` + `npm run build:wasm` / `npm run ci`. Qualquer
+> alteração em arquivo do kit exige `python3 tools/gerar_bootstrap.py` no mesmo
+> commit (o gate 3 do `gates.yml` e `tests/testar_bootstrap.sh` verificam isso —
+> e o fluxo de débitos de erro registra o desvio com prioridade e retorno para fix).
 
 ```bash
 bash bootstrap.sh                      # cria ./projeto-datajud, valida e roda os 90 testes
@@ -1730,7 +1762,270 @@ limpar: ## remove artefatos gerados
 	rm -rf $(SAIDA) processos-*.jsonl
 __ARQ_EOF__
 __ARQ__ README.md
-# llm-arena-opencli — consulta processual nas APIs públicas do CNJ
+# llm-arena-opencli
+
+> **Um repositório, duas pilhas integradas pelo mesmo fluxo gate-driven** (decisão de
+> unificação em [`docs/04-decisao-unificacao.md`](docs/04-decisao-unificacao.md), contrato
+> único em [`pipeline/contract.schema.json`](pipeline/contract.schema.json), guia em
+> [`docs/INTEGRATION.md`](docs/INTEGRATION.md)):
+>
+> **A)** driver de automação com o **GitHub Actions runtime como driver** (Node/TS + WASM,
+> cache + SQLite + CRUD + factory) — PR #1, branch de desenvolvimento
+> `arena/d917b13b-llm-arena-opencli`;
+> **B)** **consulta processual nas APIs públicas do CNJ** (Python, DataJud + DJEN, pipeline
+> de gates + fábrica de issues) — PRs #2/#5, já integrados ao `main`.
+
+| Pilha | O que entrega | Entrada rápida |
+| --- | --- | --- |
+| **A — Driver (Node/TS + WASM)** | gate events → gates → funções de runtime (factory), backend cache+SQLite+CRUD, envelope único de pipeline, WASM para web | `npm run ci` · `npm run pipeline -- registry` |
+| **B — CNJ (Python)** | relatório de processo (DataJud + DJEN), consultas agregadas, pipeline de gates JSON 0/1/2, fábrica event-driven POO+SQLite | `python3 main.py <numero-cnj>` · `bash tests/rodar-testes.sh` |
+
+**Regra de merge (política do mantenedor):** o merge só pode "passar" quando os **testes
+estiverem em sucesso** — as duas suítes (`npm run ci` = 92 testes Node/TS/WASM + suítes
+Python offline) e o workflow `integration.yml` verdes. Conflitos com `main` resolvidos
+neste branch (`.gitignore`, `README.md`, `pipeline/blueprint.json` unificado).
+
+---
+
+
+# Parte A — Driver de automação (Node/TS + WASM)
+
+
+**CI/CD-native automation driver** — a fork-development branch of the
+[OpenCLI](https://github.com/jackwener/OpenCLI) concept in which **the GitHub
+Actions runtime is the driver**: gate events (workflow triggers) fire gates,
+gates execute runtime functions created by a **factory**, and everything is
+backed by a **cache + SQLite + CRUD** backend — with a **WebAssembly core** so
+the same gate logic can run on the web at [arena.ai/agent](https://arena.ai/agent).
+
+> **Branch note (pt-BR):** esta sessão está fixada na branch
+> `arena/d917b13b-llm-arena-opencli`, que funciona como a *branch de
+> desenvolvimento* deste fork. Todo o trabalho acontece aqui.
+
+---
+
+### Visão geral / Overview
+
+```
+ GitHub gate events                      GitHub Actions runtime
+ (push, PR, workflow_run,                (o runner É o driver)
+  repository_dispatch,                          │
+  issue_comment "/gate run", ──►  GateDriver ───┼──► FunctionFactory
+  schedule, workflow_dispatch)        │         │        │
+                                      ▼         │        ▼
+                                 SQLite runs ◄──┴── RuntimeFunctions
+                                 + cache TTL        (echo, cache.*, sql.query,
+                                 + CRUD API          github.event, opencli.dispatch,
+                                                     log, …blueprints)
+                                      │
+                                      ▼
+                          WASM core (arena-runtime.wasm)
+                          mesmas decisões de gate no browser
+                          → https://arena.ai/agent
+```
+
+#### O que cada peça faz
+
+| Camada | Onde | Papel |
+| --- | --- | --- |
+| **Gate events / triggers** | `src/gate/events.ts`, `.github/workflows/gate-driver.yml` | Normaliza webhooks do GitHub em `GateEvent` e decide quais gates disparam (`events`, `refs`, `actorAllow`) |
+| **Gate driver** | `src/gate/gate-driver.ts` | Executa o pipeline de funções de cada gate, grava `runs` no SQLite, cacheia a última decisão; gates **blocking** derrubam o CI, **advisory** só reportam |
+| **Backend** | `src/server.ts`, `src/cli/gate-cli.ts` | API HTTP REST (`node:http`, zero deps de produção) + CLI usada pelos workflows |
+| **Cache** | `src/cache/cache.ts` | TTL + LRU em memória com *write-through* para SQLite (sobrevive a jobs) |
+| **SQLite DB** | `src/db/` (`node:sqlite`) | `functions`, `gates`, `runs`, `events`, `cache` |
+| **CRUD** | `src/crud/` | `CrudRepository<T>` genérico + repos concretos (`FunctionsRepo`, `GatesRepo`, `RunsRepo`, `EventsRepo`) |
+| **Function factory** | `src/functions/factory.ts`, `builtins.ts` | **Pattern factory**: `FunctionBlueprint.create(spec) → RuntimeFunction`; CRUD nunca `eval`ua código — sempre instancia via factory |
+| **GitHub Actions driver** | `src/drivers/github-actions.driver.ts` | `repository_dispatch` / `workflow_dispatch` / polling de runs — o runtime do Actions como atuador do repo alvo (`jackwener/OpenCLI` por padrão) |
+| **OpenCLI driver** | `src/drivers/opencli.driver.ts` | Transforma intenções em *command manifests* executados pelo runtime do Actions |
+| **WASM core** | `wasm/` | Primitivas de gate/cache em AssemblyScript + loader web com best practices (`instantiateStreaming`, scratch buffer, magic check, API congelada) |
+| **Continuidade** | `src/session/`, `src/cli/session-cli.ts`, `.github/workflows/continuity.yml` | Contexto de sessão durável (`session/`) + handoff automático de branch/PR no merge + segunda via via GH CLI/webhook/comentário |
+| **Pipeline BPMN** | `src/pipeline/`, `src/cli/pipeline-cli.ts`, `pipeline/blueprint.json`, `.github/workflows/blueprint.yml` | Envelope JSON padrão (id/message/addenda/status/nextIssue/exitCode 0/1/2) + gate de continuidade + cadeia de issues indexadas |
+
+### Quick start
+
+```sh
+npm install
+npm run ci            # typecheck + build:wasm + test
+
+npm run seed          # cria functions + gates padrão
+npm run gate -- --event push --ref refs/heads/main   # roda os gates (exit 1 se blocking falhar)
+npm start             # backend em http://0.0.0.0:8787
+```
+
+### Backend API
+
+| Método & rota | Descrição |
+| --- | --- |
+| `GET /health` | status + contagens |
+| `GET /api/kinds` | blueprints registrados na factory |
+| `GET/POST /api/functions`, `GET/PATCH/DELETE /api/functions/:id` | CRUD de funções (kind validado pela factory) |
+| `GET/POST /api/gates`, `GET/PATCH/DELETE /api/gates/:id` | CRUD de gates |
+| `GET /api/runs?gateId=`, `GET /api/runs/:id` | histórico de execuções |
+| `POST /api/events` | ingere um gate event (JSON ou webhook `X-GitHub-Event`) e roda os gates |
+| `GET /api/events` | eventos recebidos |
+| `GET /api/cache/stats`, `GET/PUT/DELETE /api/cache/:key` | cache |
+| `POST /api/opencli/run` | despacha um comando OpenCLI via Actions runtime |
+
+CORS é configurável (`ARENA_CORS_ORIGIN`, default `*`) para chamadas vindas da
+web em `arena.ai/agent`. Banco em `ARENA_DB_PATH` (default `data/arena.db`).
+
+#### Exemplo: criar função via factory + gate via CRUD
+
+```sh
+curl -X POST localhost:8787/api/functions -H 'content-type: application/json' -d '{
+  "id": "fn-echo-1", "kind": "echo", "name": "Echo demo", "params": {}
+}'
+
+curl -X POST localhost:8787/api/gates -H 'content-type: application/json' -d '{
+  "id": "gate-demo",
+  "name": "Demo gate",
+  "policy": "blocking",
+  "trigger": { "events": ["push"], "refs": ["refs/heads/main"] },
+  "functions": ["fn-echo-1"]
+}'
+
+curl -X POST localhost:8787/api/events -H 'content-type: application/json' \
+  -d '{ "type": "push", "ref": "refs/heads/main", "payload": {} }'
+```
+
+### Workflows (CI/CD ➞ gate driver por triggers)
+
+| Workflow | Gatilhos | Papel |
+| --- | --- | --- |
+| `ci.yml` | `push`, `pull_request`, `workflow_dispatch` | Gates do repo: typecheck, build do WASM, testes, smoke do backend; publica `arena-runtime-wasm` |
+| `gate-driver.yml` | `workflow_run` (do `ci`), `repository_dispatch: gate-event`, `issue_comment` (`/gate run`), `schedule`, `workflow_dispatch` | **Gate driver**: transforma o evento em execução de gates, grava estado em SQLite, publica artifact, reage ao comentário `/gate run` |
+| `opencli-driver.yml` | `workflow_dispatch`, `repository_dispatch: opencli-command` | **Driver do OpenCLI**: modo `runtime` (executa o manifesto dentro do runner) e modo `dispatch` (`repository_dispatch` no fork `camillanapoles/OpenCLI` via `OPENCLI_TOKEN` — [guia](docs/SECRETS.md); fallback self-dispatch sem secret) |
+| `continuity.yml` | `pull_request: closed`, `push`, `repository_dispatch: session-*`, `issue_comment` (`/session …`), `schedule`, `workflow_dispatch` | **Continuidade da sessão**: handoff automático no merge (branch + draft PR), checkpoint do contexto, heartbeat |
+| `blueprint.yml` | `issues: closed`, `workflow_dispatch`, `repository_dispatch: pipeline-*`, `schedule` | **Pipeline gate-driven (BPMN)**: gate de continuidade (issues/CI/testes) + cadeia de issues indexadas com envelope JSON |
+
+Como `workflow_run` encadeia os fluxos: cada conclusão do `ci` volta a entrar
+como *gate event* no `gate-driver` — a fiação de automação é self-hosted no
+próprio Actions.
+
+### 🔁 Continuidade da sessão (a "segunda via")
+
+> **O merge do PR encerra a sessão do Arena — não encerra o fluxo.** Toda a
+> continuidade é garantida por GitHub Actions + contexto versionado em git.
+
+| Gatilho (GH CLI / webhook / UI) | Efeito |
+| --- | --- |
+| **Merge do PR** (`pull_request: closed`) | `continuity.yml` cria automaticamente a branch `arena/continuity-<ts>` **no mesmo repo** + draft PR com *briefing de retomada* + comentário no PR mesclado |
+| `push` em `main`/`arena/**` | Checkpoint automático: `session/state.json` commitado pelo bot + artifact `session-context-*` |
+| Comentário `/session continue` | Briefing + checkpoint + branch de continuidade |
+| Comentário `/session checkpoint [nota]` | Checkpoint com nota |
+| Comentário `/session branch` | Cria a branch de continuidade agora |
+| Comentário `/session heartbeat` | Roda os gates (`npm run ci`) e reporta (verde/vermelho) |
+| `gh workflow run continuity.yml -f action=continue` | Mesma superfície via GH CLI |
+| `gh api repos/<owner>/<repo>/dispatches -f event_type=session-continue` | Webhook externo (`session-continue`, `session-checkpoint`, `session-branch`) |
+| `schedule` (6/6h) | Heartbeat: gates vivos + re-dispara `gate-driver.yml` + reporta na issue `session-continuity` |
+
+**Contexto durável:** `session/CONTEXT.md` (metas, arquitetura, convenções,
+próximas ações) + `session/state.json` (checkpoints, status, PR/branch) —
+versionados em git e publicados como artifacts. Qualquer novo ator retoma com:
+
+```sh
+npm run session -- resume          # briefing completo de retomada
+npm run session -- checkpoint --note "..." --event manual
+npm run session -- branch-name     # nome sugerido p/ próxima branch
+```
+
+Sem sessão aberta, a automação continua de pé: `gate-driver.yml` segue
+reagindo a gate events, o heartbeat roda os gates a cada 6h e os comandos
+`/session ...` na issue de continuidade operam tudo pela interface do GitHub.
+
+### 🚦 Pipeline gate-driven (blueprint/BPMN) + envelope JSON padrão
+
+**Relatório completo de entrega (solicitado → timeline → realizado → testado →
+validado → produção): [`DELIVERY.md`](DELIVERY.md).**
+
+Todo action do pipeline retorna **UM objeto JSON padrão**:
+
+```json
+{ "id": "…", "message": "…", "addenda": [{ "kind": "path", "ref": "…", "description": "…" }],
+  "status": "…", "nextIssue": "ISSUE-2 | mesma | null", "exitCode": 0,
+  "direction": "continue | fix | debt | complete | hold" }
+```
+
+`exitCode`: **0** sucesso (avança para a próxima issue indexada) · **1** erro
+tipo 1 (validação/execução → MESMA issue + continuidade) · **2** erro tipo 2
+(pré-condição/continuidade → MESMA issue + continuidade). `direction` norteia
+o próximo movimento: `continue`/`complete` (aprovado) · `fix` (corrigir a
+mesma issue) · `debt` (registrar débito e manter continuidade) · `hold`.
+
+- **Gate de continuidade** (`blueprint.yml` → `pipeline-cli gate`): verifica a
+  **não existência** de issues abertas ∨ CI/CD com erros ∨ SEM testes.
+  Não positivo → `status: "continuity"` (o fluxo **continua**); positivo →
+  `status: "production-ready"` (pronto para uso).
+- **Cadeia indexada OO + SQLite** (`pipeline/blueprint.json`, domínio em
+  `src/pipeline/domain.ts`): `PipelineIssue` (máquina de estados),
+  `IssueRepository` (SQLite), `IssueFactory` (**event-driven**),
+  `PipelineEngine` (**ciclos determinísticos** com validação de SUCESSO
+  COMPLETO). A cada issue `[ISSUE-N]` completada, o acceptance testa a entrega;
+  **sucesso → constrói a próxima issue indexada**; **erro → retorna erro +
+  informações de continuidade** (reabre a MESMA issue).
+
+```sh
+npm run pipeline -- validate
+npm run pipeline -- pending                                          # pendentes COM instrução
+npm run pipeline -- cycle --id ISSUE-1 --log-file ci.log             # ciclo determinístico
+npm run pipeline -- event --type issue.completed --issue ISSUE-1 --result 0
+npm run pipeline -- gate --open-issues 0 --ci-failures 0 --tests-total 92 --tests-passed 92
+npm run pipeline -- step --id ISSUE-1 --result 0
+npm run pipeline -- next --after ISSUE-1
+npm run pipeline -- registry --cnj-backlog pipeline/backlog-cnj.json   # registro unificado (2 sessões)
+npm run pipeline -- interop --from arquivo-cnj.json                  # dialeto CNJ -> canônico
+```
+
+**Integração entre sessões paralelas** (d917b13b × ed79bd77): contrato único
+`pipeline/contract.schema.json`, adaptador `src/pipeline/interop.ts`, registro
+unificado e workflow `integration.yml` — ver [`docs/INTEGRATION.md`](docs/INTEGRATION.md) e a
+decisão registrada em [`docs/04-decisao-unificacao.md`](docs/04-decisao-unificacao.md).
+
+### WebAssembly (best practices para a web)
+
+O núcleo `wasm/assembly/index.ts` exporta primitivas **puras** (`fnv1a`,
+`gateMatch`, `evaluateGate`, `cacheEvictScore`, `combineHash`) — as mesmas
+regras de `matchesTrigger` do driver — para o browser decidir gates sem
+round-trip:
+
+```js
+import { loadArenaRuntime, maskFromTypes } from "./wasm/loader.mjs";
+const rt = await loadArenaRuntime("./wasm/dist/arena-runtime.wasm");
+const fires = rt.evaluateGate(maskFromTypes(["push"]), maskFromTypes(["push"]),
+  0, 0, 0, 0, 0, 0); // 1 = gate dispara
+```
+
+Best practices aplicadas (detalhes em [`wasm/README.md`](wasm/README.md)):
+magic-byte validation, `instantiateStreaming` + fallback, compilação separada
+da instanciação (módulo cacheável), *scratch buffer* com comprimento explícito
+(sem marshalling implícito), recriação de views após `memory.grow`, API
+congelada, sem `eval`.
+
+### Testes
+
+`npm test` roda `node:test` sobre dez suítes (**92 testes**): `db`, `cache`,
+`factory` (pattern factory + builtins), `gate-driver` (triggers, blocking vs
+advisory, dispatch OpenCLI via mock transport), `server` (CRUD HTTP, webhooks,
+CORS), `session` (continuidade: checkpoints, briefing, handoff), `pipeline`
+(envelope JSON 0/1/2 + direction, continuity gate, chain executor), `domain`
+(modelo OO: estados, SQLite, factory event-driven, ciclos determinísticos) e
+`wasm` (vetores FNV-1a, paridade com a lógica TS de triggers).
+
+### Créditos
+
+- Conceito de “website como CLI para agentes”: [jackwener/OpenCLI](https://github.com/jackwener/OpenCLI)
+- Runtime de automação web: [arena.ai/agent](https://arena.ai/agent)
+
+---
+
+# Parte B — Consulta processual CNJ (Python, DataJud + DJEN)
+
+> Documentação da pilha Python integrada ao repositório via PRs #2/#5. O
+> `pipeline/blueprint.json` é **único e compartilhado**: carrega a planta BPMN
+> (`gates`, `transicoes`, … — lida por `pipeline/gate.py`) **e** a cadeia indexada
+> (`version`, `chain` — lida pelo `src/pipeline` TS). O registro unificado das duas
+> sessões sai de `npm run pipeline -- registry`.
+
 
 Consulta um processo judicial e gera um **relatório em Markdown** com tudo o que as APIs
 públicas do CNJ entregam: capa, partes(*) e movimentações (DataJud) + publicações, intimações
@@ -1764,7 +2059,7 @@ Requisitos: **Python 3.8+** (só biblioteca padrão) para o `main.py`; `bash`, `
 
 ---
 
-## 1. Consultar um processo (`main.py`)
+### 1. Consultar um processo (`main.py`)
 
 ```bash
 python3 main.py 0001234-56.2024.8.17.2001               # TJPE (deduzido do número CNJ)
@@ -1779,7 +2074,7 @@ O script lê o **número único (Resolução CNJ 65/2008)**: valida o dígito ve
 base 10), descobre o tribunal pelo campo `J.TR` e escolhe o índice correto do DataJud — inclusive
 os casos especiais (`8.07` → `tjdft`, `6.07` → `tre-dft`, `5.00` → `tst`).
 
-### O que entra no relatório
+#### O que entra no relatório
 
 1. **Resumo executivo** — tribunal, grau(s), classe, órgão julgador, ajuizamento, nº de movimentações, última movimentação, publicações no DJEN.
 2. **Identificação e validação do número** — DV conferido, campos `NNNNNNN/DD/AAAA/J/TR/OOOO` decodificados.
@@ -1794,7 +2089,7 @@ os casos especiais (`8.07` → `tjdft`, `6.07` → `tre-dft`, `5.00` → `tst`).
 
 Exemplo completo: [`docs/exemplo-saida/relatorio-processo-exemplo.md`](docs/exemplo-saida/relatorio-processo-exemplo.md).
 
-### Opções
+#### Opções
 
 | Opção | Efeito |
 | --- | --- |
@@ -1810,7 +2105,7 @@ Exemplo completo: [`docs/exemplo-saida/relatorio-processo-exemplo.md`](docs/exem
 
 Variáveis: `DATAJUD_API_KEY`, `DATAJUD_BASE_URL`, `DJEN_BASE_URL`, `DATAJUD_TIMEOUT`.
 
-### Anexos e documentos: o que dá e o que não dá
+#### Anexos e documentos: o que dá e o que não dá
 
 Ser honesto aqui evita frustração: **a API Pública do DataJud não devolve peças nem anexos** —
 ela expõe metadados (número, classe, assuntos, órgão, datas, movimentações). O relatório deixa
@@ -1829,12 +2124,12 @@ Processo em **segredo de justiça** não aparece em nenhuma consulta pública: o
 
 ---
 
-## 2. Consultas agregadas (`scripts/datajud.sh`)
+### 2. Consultas agregadas (`scripts/datajud.sh`)
 
 
 ---
 
-## Início rápido
+### Início rápido
 
 ```bash
 # 1) contar os processos públicos do TJPE
@@ -1868,7 +2163,7 @@ curl -sS -X POST "https://api-publica.datajud.cnj.jus.br/api_publica_tjpe/_searc
 
 ---
 
-## Comandos do script
+### Comandos do script
 
 | Comando | O que faz |
 | --- | --- |
@@ -1894,7 +2189,7 @@ Filtros disponíveis: `--tribunal`, `--classe`, `--assunto`, `--orgao`, `--munic
 ./scripts/datajud.sh paginar --limite 2000 --pagina 100 --saida processos-tjpe.jsonl
 ```
 
-## Relatório
+### Relatório
 
 ```bash
 ./scripts/datajud.sh relatorio --tribunal tjpe --saida saida
@@ -1907,7 +2202,7 @@ Veja o formato em [`docs/exemplo-saida/relatorio-tjpe-exemplo.md`](docs/exemplo-
 O relatório registra endpoint, hora UTC, filtros usados e nº de requisições — e traz as notas do Termo de
 Uso (dados não garantidos pelo CNJ, uso não comercial, ciência ao CNJ ao divulgar, LGPD).
 
-## Pipeline de gates (o gatilho)
+### Pipeline de gates (o gatilho)
 
 ```bash
 make gates          # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
@@ -1929,7 +2224,7 @@ O **gatilho só é positivo** quando não há issue aberta **e** o CI não tem e
 **próxima indexada**. Detalhes, diagrama BPMN e contrato completo:
 [`docs/03-pipeline-gates.md`](docs/03-pipeline-gates.md). Entrega documentada: [`ENTREGA.md`](ENTREGA.md).
 
-### Validação ao vivo no runner (event-driven)
+#### Validação ao vivo no runner (event-driven)
 
 A consulta real ao CNJ não roda no sandbox de desenvolvimento (sem rota), mas roda no
 **runner do GitHub**: o workflow `validacao-cnj` dispara em `push`, `pull_request`, agenda
@@ -1949,7 +2244,7 @@ confirmou `Total: 6852614`. Então a fábrica marcou a `ISSUE-006` **COMPLETADA*
 URL do run) e construiu a `ISSUE-008` sozinha, com commit do bot no backlog: o laço
 evento → teste → conclusão → próxima issue **fechou no runner**.
 
-## Testes (sem internet)
+### Testes (sem internet)
 
 ```bash
 make testes                          # todas as 6 suítes (229 verificações)
@@ -1964,7 +2259,7 @@ python3 tests/testar_fabrica.py      # 37 — fábrica de issues (SQLite, evento
 As suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam
 autenticação, erros 400/401/404/429, agregações e paginação. **Nenhuma requisição real ao CNJ é feita.**
 
-### Reconstruir o projeto do zero
+#### Reconstruir o projeto do zero
 
 ```bash
 bash bootstrap.sh                  # cria ./projeto-datajud, confere hashes e roda as 4 suítes
@@ -1974,11 +2269,11 @@ python3 tools/gerar_bootstrap.py   # regera o bootstrap após editar algum arqui
 
 Detalhes de estrutura, permissões, etapas e saída esperada: [`BOOTSTRAP.md`](BOOTSTRAP.md).
 
-## Requisitos
+### Requisitos
 
 `bash` ≥ 4.3, `curl` e `jq`. Em Debian/Ubuntu: `sudo apt install curl jq`.
 
-## Regras de uso (resumo do Termo de Uso v1.2)
+### Regras de uso (resumo do Termo de Uso v1.2)
 
 - **120 requisições por minuto** no máximo (item 3.13); o CNJ pode limitar sem aviso (3.14).
 - Uso **legal e não comercial** (3.3, 3.8).
@@ -2479,6 +2774,11 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
   "next_issue": "ISSUE-006",
   "direcao": "corrigir",
   "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-006",
+  "debitos": [
+    {"gate": "issues", "tipo": "1", "motivo": "1 issue(s) aberta(s)",
+     "prioridade": "media", "acao": "corrigir",
+     "comando_fix": "gh issue list --state open   # tratar/fechar as issues abertas"}
+  ],
   "anexos": [
     {"path": "pipeline/saida/issues-abertas.md", "filename": "issues-abertas.md",
      "descricao": "lista de issues abertas consultadas pelo gate"},
@@ -2503,6 +2803,7 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 | `next_issue` | string \| null | a **mesma** issue se falhou; a **próxima** indexada se passou; `null` se acabou ou não se aplica |
 | `direcao` | string | para onde ir: `continuar` · `corrigir` (fix) · `depurar` (debug) · `proxima` (continue to next issue) · `encerrar` · `humano` |
 | `proximo_passo` | string | o comando literal que o operador ou o próximo job executa |
+| `debitos` | array | **débitos de erro** com prioridade e retorno para fix: `{gate, tipo, motivo, prioridade, acao, comando_fix}` (sempre presente; vazio quando o status é `"0"`) |
 | `anexos` | array | `{path, filename, descricao}` — artefatos gerados (logs, listas, veredito, guia da próxima issue) |
 | `dados` | objeto | detalhes estruturados de cada gate |
 
@@ -2519,6 +2820,28 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 > de issues está íntegra (padrão + instrução de desenvolvimento em todas as issues).
 > **Enquanto não for positivo ⇒ `continuidade = true`** e `next_issue` aponta a próxima
 > pendência do backlog — é isso que mantém o fluxo andando sem sessão humana.
+
+### Débitos de erro (prioridade + retorno para fix)
+
+Toda saída não-sucedida **abre débito de erro** no campo `debitos` — o pipeline
+registra *o que* falhou, *com que prioridade* e *como quitar*:
+
+| `tipo` | `prioridade` | `acao` | significado |
+| --- | --- | --- | --- |
+| `"1"` | `alta` (testes, CI, issue, blueprint) · `media` (issues abertas, fábrica) | **`corrigir`** | erro conhecido e tratável — **retorno para fix**: o `comando_fix` quita o débito |
+| `"2"` | `urgente` | `humano` | não avaliável — exige intervenção humana |
+
+O veredito de continuidade (gate `continuidade`) **agrega os débitos dos checks**,
+ordena por prioridade (`urgente > alta > media`) e:
+
+- `direcao` = **`corrigir`** quando há débito corrigível (retorno para fix);
+- `proximo_passo` = **`comando_fix` do débito mais grave primeiro** e, depois,
+  o comando de cadeia (`gate.py issue --id …`).
+
+O mesmo fluxo existe no contrato canônico Node/TS (`debts[]` em
+`src/pipeline/envelope.ts`): `kind: known|unknown`, `priority: urgent|high|medium`,
+`action: fix|human`, `fixCommand` — mapeado 1:1 por `src/pipeline/interop.ts`
+(`debts ↔ debitos`, `fix ↔ corrigir`, `high ↔ alta`, …).
 
 ---
 
@@ -4541,7 +4864,31 @@ __ARQ__ pipeline/blueprint.json
     "regra": "0 ⇒ proxima/continuar/encerrar · 1 ⇒ corrigir/depurar (continuidade=true) · 2 ⇒ humano (continuidade=false)",
     "nudge": "quando a compactação do contexto estiver próxima: rodar `make gates`, atualizar o backlog com `--marcar` e seguir o `proximo_passo` do JSON — o estado fica no repositório (blueprint/backlog/SQLite), não no contexto.",
     "comando_padrao": "python3 pipeline/gate.py issue --id <NEXT_ISSUE> --marcar"
-  }
+  },
+  "version": 1,
+  "chain": [
+    {
+      "id": "ISSUE-1",
+      "title": "OPENCLI_TOKEN + modo dispatch do opencli-driver",
+      "instruction": "Configurar o secret OPENCLI_TOKEN (repo scope) para que o modo 'dispatch' do opencli-driver.yml dispare repository_dispatch real em jackwener/OpenCLI. Aceitação: pipeline verde (typecheck + wasm + testes) e envelope do passo com exitCode 0. Nota: a configuração do secret é manual (Settings > Secrets); o passo valida o código e documenta o estado.",
+      "acceptance": "npm run ci",
+      "next": "ISSUE-2"
+    },
+    {
+      "id": "ISSUE-2",
+      "title": "Webhook real conectado ao POST /api/events",
+      "instruction": "Conectar o endpoint POST /api/events ao webhook do GitHub (push/pull_request/repository_dispatch) apontando para a URL do backend, ou validar o fluxo equivalente via gh workflow run / repository_dispatch. Aceitação: pipeline verde + teste de ingestão de evento (X-GitHub-Event) respondendo envelope/JSON de gates.",
+      "acceptance": "npm run ci",
+      "next": "ISSUE-3"
+    },
+    {
+      "id": "ISSUE-3",
+      "title": "Publicar arena-runtime.wasm para uso web em arena.ai/agent",
+      "instruction": "Publicar o artefato arena-runtime.wasm (ci.yml já publica arena-runtime-wasm) em URL consumível pelo front de arena.ai/agent, usando o loader wasm/loader.mjs (best practices: instantiateStreaming, scratch buffer, API congelada). Aceitação: pipeline verde + smoke do loader (suíte wasm).",
+      "acceptance": "npm run ci",
+      "next": null
+    }
+  ]
 }
 __ARQ_EOF__
 __ARQ__ pipeline/factory.py
@@ -5507,6 +5854,8 @@ Cada ação deste pipeline devolve SEMPRE o mesmo objeto JSON no stdout:
       "next_issue":  "ISSUE-007",      # mesma issue se falhou; a próxima se passou
       "direcao":     "proxima",        # para onde ir: continuar|corrigir|depurar|proxima|encerrar|humano
       "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-007 --marcar",
+      "debitos":     [],               # débitos de erro: [{gate, tipo, motivo, prioridade, acao, comando_fix}]
+                                       # prioridade: urgente|alta|media · acao: corrigir (retorno para fix)|humano
       "anexos":      [{"path": "...", "filename": "...", "descricao": "..."}],
       "dados":       { ... },          # detalhes estruturados de cada gate
       "timestamp":   "2026-10-13T14:15:00Z",
@@ -5605,11 +5954,51 @@ MAPA_DIRECAO = {
 }
 
 
-def direcao_de(gate: str, status: str, next_issue=None) -> str:
-    """Direção de continuidade sugerida pelo resultado do gate."""
+def direcao_de(gate: str, status: str, next_issue=None, corrigivel: bool = False) -> str:
+    """Direção de continuidade sugerida pelo resultado do gate.
+
+    Retorno para fix: o veredito de continuidade com pendência CORRIGÍVEL
+    (débito de erro tipo 1) encaminha para "corrigir" — o pipeline volta no
+    fix até o débito ser quitado.
+    """
     if gate == "issue" and status == "0" and not next_issue:
         return "encerrar"
+    if gate == "continuidade" and str(status) == "1" and corrigivel:
+        return "corrigir"
     return MAPA_DIRECAO.get((gate, str(status)), "continuar" if str(status) == "0" else "humano")
+
+
+# --------------------------------------------------------------------------- #
+# débitos de erro (prioridade + retorno para fix)
+# --------------------------------------------------------------------------- #
+
+# prioridade do débito por gate: erro que impede entrega é ALTO; pendência de
+# processo é MÉDIO; erro tipo 2 (não avaliável) é URGENTE (humano).
+PRIORIDADE_DEBITO = {
+    "issues": "media", "cicd": "alta", "testes": "alta", "fabrica": "media",
+    "issue": "alta", "blueprint": "alta", "continuidade": "alta", "situacao": "media",
+}
+
+
+def debitos_de(gate: str, status: str, motivo: str, comando_fix=None) -> list:
+    """Abre débitos de erro para um resultado não-sucedido.
+
+    status "1" ⇒ débito conhecido/tratável: `acao` = "corrigir" (retorno para
+    fix) e `prioridade` conforme PRIORIDADE_DEBITO.
+    status "2" ⇒ erro tipo 2: `acao` = "humano", `prioridade` = "urgente".
+    status "0" ⇒ sem débito.
+    """
+    if str(status) == "0":
+        return []
+    if comando_fix is None:
+        comando_fix = proximo_passo_de(gate, status)
+    if str(status) == "2":
+        return [{"gate": gate, "tipo": "2", "motivo": str(motivo),
+                 "prioridade": "urgente", "acao": "humano",
+                 "comando_fix": comando_fix}]
+    return [{"gate": gate, "tipo": "1", "motivo": str(motivo),
+             "prioridade": PRIORIDADE_DEBITO.get(gate, "media"),
+             "acao": "corrigir", "comando_fix": comando_fix}]
 
 
 def proximo_passo_de(gate: str, status: str, next_issue=None, identificador=None) -> str:
@@ -5657,12 +6046,20 @@ def novo_id(gate: str) -> str:
 
 def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
            next_issue=None, continuidade=None, duracao: float = 0.0,
-           direcao=None, proximo_passo=None, identificador=None) -> dict:
-    """Monta o objeto JSON do contrato. Unico ponto de criação — garante o formato."""
+           direcao=None, proximo_passo=None, identificador=None, debitos=None) -> dict:
+    """Monta o objeto JSON do contrato. Unico ponto de criação — garante o formato.
+
+    `debitos` é o fluxo de débito de erro com prioridade e retorno para fix:
+    sempre presente (lista vazia quando não há erro); cada débito carrega
+    prioridade (urgente|alta|media), acao (corrigir|humano) e comando_fix.
+    """
     if continuidade is None:
         continuidade = status == STATUS_CONTINUIDADE
+    if debitos is None:
+        debitos = debitos_de(gate, status, mensagem)
     if direcao is None:
-        direcao = direcao_de(gate, status, next_issue)
+        direcao = direcao_de(gate, status, next_issue,
+                             corrigivel=any(d.get("acao") == "corrigir" for d in debitos))
     if proximo_passo is None:
         proximo_passo = proximo_passo_de(gate, status, next_issue, identificador)
     return {
@@ -5675,6 +6072,7 @@ def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
         "next_issue": next_issue,
         "direcao": direcao,
         "proximo_passo": proximo_passo,
+        "debitos": debitos,
         "anexos": [
             {"path": a.get("path"), "filename": os.path.basename(a.get("path") or ""),
              "descricao": a.get("descricao", "")}
@@ -5998,6 +6396,11 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     indeterminados = [n for n, p in parciais.items() if p["status"] == STATUS_INDETERMINADO]
     pendentes = [n for n, p in parciais.items() if p["status"] == STATUS_CONTINUIDADE]
 
+    # débitos de erro agregados (prioridade + retorno para fix)
+    debitos = [d for n in (pendentes + indeterminados) for d in parciais[n].get("debitos", [])]
+    ordem_prioridade = {"urgente": 0, "alta": 1, "media": 2}
+    debitos.sort(key=lambda d: ordem_prioridade.get(d.get("prioridade", "media"), 2))
+
     if indeterminados:
         status = STATUS_INDETERMINADO
         continuidade = False
@@ -6007,14 +6410,24 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     elif pendentes:
         status = STATUS_CONTINUIDADE
         continuidade = True
-        mensagem = ("gate NÃO positivo — continuidade obrigatória. Pendências: "
-                    + "; ".join(f"{n} ({parciais[n]['dados'].get('abertas', parciais[n]['dados'].get('com_erro', '?'))})"
-                                for n in pendentes))
+        resumo = "; ".join(
+            f"{d['gate']}[{d['prioridade']}]: {d['motivo']}" for d in debitos
+        ) or "; ".join(pendentes)
+        mensagem = ("gate NÃO positivo — continuidade obrigatória. Pendências: " + resumo)
     else:
         status = STATUS_SUCESSO
         continuidade = False
         mensagem = ("gate positivo: nenhuma issue aberta, CI sem erros, testes aprovados "
                     "e fábrica íntegra")
+
+    # retorno para fix: o próximo passo prioriza quitar o débito mais grave
+    proximo_passo = None
+    if debitos and continuidade:
+        principal = debitos[0]
+        cadeia = proximo_passo_de("continuidade", status, (proxima or {}).get("id"))
+        proximo_passo = (f"{principal['comando_fix']}   "
+                         f"# quitar débito {principal['gate']}[{principal['prioridade']}]"
+                         f" — depois: {cadeia}")
 
     dados = {
         "checks": {n: {"status": p["status"], "mensagem": p["mensagem"]} for n, p in parciais.items()},
@@ -6028,7 +6441,8 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     resultado = objeto(
         gate="continuidade", status=status, continuidade=continuidade, mensagem=mensagem,
         next_issue=(proxima or {}).get("id") if continuidade else None,
-        anexos=anexos, dados=dados, duracao=time.time() - inicio)
+        anexos=anexos, dados=dados, duracao=time.time() - inicio,
+        debitos=debitos, proximo_passo=proximo_passo)
 
     # anexo consolidado em markdown (resumo humano do veredito)
     resumo_md = [
@@ -6042,6 +6456,14 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     ]
     for nome, parcial in parciais.items():
         resumo_md.append(f"| {nome} | {parcial['status']} | {parcial['mensagem']} |")
+    if resultado["debitos"]:
+        resumo_md += ["", "## Débitos de erro (prioridade + retorno para fix)", "",
+                      "| gate | tipo | prioridade | ação | motivo | comando de fix |",
+                      "| --- | --- | --- | --- | --- | --- |"]
+        for d in resultado["debitos"]:
+            resumo_md.append(
+                f"| {d['gate']} | {d['tipo']} | {d['prioridade']} | {d['acao']} | "
+                f"{d['motivo']} | `{d['comando_fix']}` |")
     resultado["anexos"].append(gravar_anexo(
         "veredito-continuidade.md", "\n".join(resumo_md) + "\n", saida_dir,
         "veredito do gate em Markdown (resumo para humanos)"))
@@ -7838,26 +8260,33 @@ for etapa in '1/7' '2/7' '3/7' '4/7' '5/7' '6/7'; do
   if grep -q "$etapa" "$TMP/criacao.log"; then ok "etapa $etapa executada"; else ruim "etapa $etapa ausente"; fi
 done
 
-titulo '3. Árvore criada x repositório (byte a byte)'
-if diff -r -q \
-      --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
-      --exclude='saida' --exclude='*.jsonl' --exclude='*.db' --exclude='*.db-wal' \
-      --exclude='*.db-shm' \
-      "$RAIZ" "$TMP/projeto" >"$TMP/diff.log" 2>&1; then
-  ok 'todos os arquivos idênticos ao repositório'
-else
-  ruim 'há diferenças entre o projeto criado e o repositório:'
-  sed 's/^/      /' "$TMP/diff.log" | head -20
+titulo '3. Árvore criada x repositório (byte a byte, arquivos do kit)'
+# No repositório unificado (pilhas CNJ + Node/TS) o bootstrap cobre o KIT CNJ —
+# os arquivos que tools/gerar_bootstrap.py embute. A comparação é byte a byte
+# sobre esse inventário; a pilha Node/TS se reinstala com npm (ver README).
+mapfile -t KIT < <(python3 -c "import sys; sys.path.insert(0, 'tools'); import gerar_bootstrap as g; print('\n'.join(g.ARQUIVOS))")
+diferencas=0
+for caminho in "${KIT[@]}"; do
+  if [[ ! -f "$TMP/projeto/$caminho" ]]; then
+    ruim "faltando no projeto criado: $caminho"; diferencas=$((diferencas+1)); continue
+  fi
+  if [[ ! -f "$RAIZ/$caminho" ]]; then
+    ruim "faltando no repositório: $caminho"; diferencas=$((diferencas+1)); continue
+  fi
+  if ! cmp -s "$RAIZ/$caminho" "$TMP/projeto/$caminho"; then
+    ruim "conteúdo diferente do repositório: $caminho"; diferencas=$((diferencas+1))
+  fi
+done
+if [[ $diferencas -eq 0 ]]; then
+  ok "todos os ${#KIT[@]} arquivos do kit idênticos ao repositório (byte a byte)"
 fi
-# diretórios gerados em tempo de execução (saida/, __pycache__) não entram na contagem
-qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
-qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
-if [[ "$qtd_repo" == "$qtd_novo" ]]; then
-  ok "mesma quantidade de arquivos ($qtd_novo)"
+printf '%s\n' "${KIT[@]}" | sort >"$TMP/kit.txt"
+(cd "$TMP/projeto" && find . -type f | sed 's|^\./||' | sort) >"$TMP/criado.txt"
+if diff -u "$TMP/kit.txt" "$TMP/criado.txt" >"$TMP/diff.log" 2>&1; then
+  ok "o projeto criado tem exatamente os ${#KIT[@]} arquivos do kit (sem extras nem faltas)"
 else
-  ruim "quantidade diferente: repositório=$qtd_repo, criado=$qtd_novo"
+  ruim 'inventário do projeto criado difere do kit:'
+  sed 's/^/      /' "$TMP/diff.log" | head -20
 fi
 python3 tools/gerar_bootstrap.py --conferir >/dev/null 2>&1 && ok 'bootstrap presente no projeto criado'
 
@@ -8949,7 +9378,7 @@ WORKFLOW = os.path.join(RAIZ, ".github", "workflows", "gates.yml")
 
 CHAVES_OBRIGATORIAS = {"id", "gate", "status", "mensagem", "next_issue", "anexos",
                        "continuidade", "codigo_saida", "dados", "timestamp", "versao",
-                       "direcao", "proximo_passo"}
+                       "direcao", "proximo_passo", "debitos"}
 DIRECOES_VALIDAS = {"continuar", "corrigir", "depurar", "proxima", "encerrar", "humano"}
 
 
@@ -9019,6 +9448,7 @@ class TesteContrato(CasoBase):
                 self.assertIsInstance(obj["continuidade"], bool)
                 self.assertIsInstance(obj["anexos"], list)
                 self.assertIsInstance(obj["dados"], dict)
+                self.assertIsInstance(obj["debitos"], list, "débitos de erro sempre presentes")
                 self.assertIn(obj["direcao"], DIRECOES_VALIDAS, "direção de continuidade")
                 self.assertIsInstance(obj["proximo_passo"], str)
                 self.assertTrue(obj["proximo_passo"].strip(), "sempre há um próximo passo")
@@ -9648,6 +10078,57 @@ class TesteWorkflow(unittest.TestCase):
             self.skipTest("PyYAML indisponível — a validação definitiva é a execução no Actions")
         dados = yaml.safe_load(self.texto)
         self.assertIn("jobs", dados)
+
+
+class TesteDebitosDeErro(CasoBase):
+    """Fluxo de débito de erro com prioridade e retorno para fix."""
+
+    def test_erro_tipo_1_abre_debito_corrigir_com_prioridade(self):
+        codigo, obj, _ = rodar("testes", "--comando", "exit 3", saida_dir=self.saida)
+        self.assertEqual(codigo, 1)
+        self.assertEqual(len(obj["debitos"]), 1)
+        debito = obj["debitos"][0]
+        self.assertEqual({"gate", "tipo", "motivo", "prioridade", "acao", "comando_fix"},
+                         set(debito), "débito carrega prioridade e retorno para fix")
+        self.assertEqual((debito["gate"], debito["tipo"]), ("testes", "1"))
+        self.assertEqual(debito["prioridade"], "alta", "teste reprovado é prioridade alta")
+        self.assertEqual(debito["acao"], "corrigir", "retorno para fix")
+        self.assertTrue(debito["comando_fix"].strip())
+        self.assertEqual(obj["direcao"], "corrigir")
+
+    def test_erro_tipo_2_abre_debito_urgente_humano(self):
+        codigo, obj, _ = rodar("issues", "--sem-gh", saida_dir=self.saida)
+        self.assertEqual(codigo, 2)
+        debito = obj["debitos"][0]
+        self.assertEqual((debito["tipo"], debito["prioridade"], debito["acao"]),
+                         ("2", "urgente", "humano"))
+
+    def test_sucesso_sem_debito(self):
+        fx = fixture(self.dir, "issues.json", [])
+        _, obj, _ = rodar("issues", "--issues-json", fx, saida_dir=self.saida)
+        self.assertEqual(obj["debitos"], [])
+
+    def test_veredito_encaminha_para_fix_ordenado_por_prioridade(self):
+        codigo, obj, _ = rodar("continuidade", "--status-issues", "1", "--status-cicd", "0",
+                               "--status-testes", "1", "--saida-dir", self.saida)
+        self.assertEqual((codigo, obj["direcao"]), (1, "corrigir"),
+                         "pendência corrigível ⇒ retorno para fix")
+        prioridades = [d["prioridade"] for d in obj["debitos"]]
+        self.assertEqual(prioridades, sorted(prioridades,
+                                             key=lambda p: {"urgente": 0, "alta": 1, "media": 2}[p]),
+                         "débitos ordenados por prioridade")
+        self.assertEqual(obj["debitos"][0]["prioridade"], "alta")
+        self.assertIn(obj["debitos"][0]["comando_fix"].split()[0], obj["proximo_passo"],
+                      "o próximo passo começa quitando o débito mais grave")
+        self.assertNotIn("(?)", obj["mensagem"], "pendências detalhadas, sem interrogação")
+        self.assertIn("[alta]", obj["mensagem"])
+
+    def test_tipos_do_debito(self):
+        _, obj, _ = rodar("testes", "--comando", "exit 1", saida_dir=self.saida)
+        debito = obj["debitos"][0]
+        self.assertIsInstance(debito["motivo"], str)
+        self.assertIn(debito["prioridade"], {"urgente", "alta", "media"})
+        self.assertIn(debito["acao"], {"corrigir", "humano"})
 
 
 if __name__ == "__main__":

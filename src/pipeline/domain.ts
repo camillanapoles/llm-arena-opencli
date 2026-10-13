@@ -337,6 +337,7 @@ export class PipelineEngine {
         message: err instanceof Error ? err.message : String(err),
         sameIssue: issueId,
         errorType: 2,
+        gate: "cycle",
         continuityReason: "pré-condição violada — issue desconhecida/inacessível (continuidade)",
         direction: "hold",
       });
@@ -420,6 +421,7 @@ export class PipelineEngine {
         message: err instanceof Error ? err.message : String(err),
         sameIssue: event.issueId ?? "",
         errorType: 2,
+        gate: "event",
         continuityReason: "evento sem issue válida (continuidade)",
         direction: "hold",
       });
@@ -466,6 +468,7 @@ export class PipelineEngine {
       message: `evento ${event.type}: ${issue.id} com resultado ${result}`,
       sameIssue: issue.id,
       errorType: outcome === 2 ? 2 : 1,
+      gate: "event",
       continuityReason: `direção de continuidade: ${direction} — MESMA issue como nextIssue`,
       direction,
       addenda: [{ kind: "path", ref: "pipeline/blueprint.json", description: "blueprint da cadeia" }],

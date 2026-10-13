@@ -76,55 +76,76 @@ jobs:
           INPUT_ACTION: ${{ github.event.inputs.action }}
           INPUT_NOTE: ${{ github.event.inputs.note }}
           HEAD_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           NOTE="${INPUT_NOTE:-auto}"
-          echo "note=$NOTE" >> "$GITHUB_OUTPUT"
-          echo "base_sha=${MERGE_SHA:-$HEAD_SHA}" >> "$GITHUB_OUTPUT"
-          echo "pr_number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
+          ACTION="none"
+          PR_NUM="${PR_NUMBER:-}"
 
           case "$EVENT_NAME" in
             pull_request)
               if [ "$MERGED" = "true" ]; then
-                echo "action=continue" >> "$GITHUB_OUTPUT"
+                ACTION="continue"
               else
-                echo "action=none" >> "$GITHUB_OUTPUT"
+                ACTION="none"
               fi
               ;;
             push)
-              echo "action=checkpoint" >> "$GITHUB_OUTPUT"
+              # Safety net: um merge commit em main também dispara o handoff
+              # (cobre squash/merge que não emitam pull_request closed).
+              case "$HEAD_COMMIT_MSG" in
+                "Merge pull request"*|*"(#"*")"*)
+                  if [ "$REF_NAME" = "main" ]; then
+                    ACTION="continue"
+                    if [ -z "$PR_NUM" ]; then
+                      PR_NUM="$(printf '%s' "$HEAD_COMMIT_MSG" | sed -n 's/.*#\([0-9][0-9]*\).*/\1/p' | head -1)"
+                    fi
+                  else
+                    ACTION="checkpoint"
+                  fi
+                  ;;
+                *)
+                  ACTION="checkpoint"
+                  ;;
+              esac
               ;;
             repository_dispatch)
               case "$DISPATCH_ACTION" in
-                session-continue)   echo "action=continue" >> "$GITHUB_OUTPUT" ;;
-                session-checkpoint) echo "action=checkpoint" >> "$GITHUB_OUTPUT" ;;
-                session-branch)     echo "action=create-branch" >> "$GITHUB_OUTPUT" ;;
-                *)                  echo "action=resume-report" >> "$GITHUB_OUTPUT" ;;
+                session-continue)   ACTION="continue" ;;
+                session-checkpoint) ACTION="checkpoint" ;;
+                session-branch)     ACTION="create-branch" ;;
+                *)                  ACTION="resume-report" ;;
               esac
               ;;
             issue_comment)
               case "$COMMENT_BODY" in
-                "/session continue"*)   echo "action=continue" >> "$GITHUB_OUTPUT" ;;
-                "/session checkpoint"*) echo "action=checkpoint" >> "$GITHUB_OUTPUT" ;;
-                "/session branch"*)     echo "action=create-branch" >> "$GITHUB_OUTPUT" ;;
-                "/session heartbeat"*)  echo "action=heartbeat" >> "$GITHUB_OUTPUT" ;;
-                "/session resume"*)     echo "action=resume-report" >> "$GITHUB_OUTPUT" ;;
-                *)                      echo "action=none" >> "$GITHUB_OUTPUT" ;;
+                "/session continue"*)   ACTION="continue" ;;
+                "/session checkpoint"*) ACTION="checkpoint" ;;
+                "/session branch"*)     ACTION="create-branch" ;;
+                "/session heartbeat"*)  ACTION="heartbeat" ;;
+                "/session resume"*)     ACTION="resume-report" ;;
+                *)                      ACTION="none" ;;
               esac
               if [ "$COMMENT_BODY" != "${COMMENT_BODY#/session checkpoint }" ]; then
                 NOTE="${COMMENT_BODY#/session checkpoint }"
-                echo "note=$NOTE" >> "$GITHUB_OUTPUT"
               fi
               ;;
             schedule)
-              echo "action=heartbeat" >> "$GITHUB_OUTPUT"
+              ACTION="heartbeat"
               ;;
             workflow_dispatch)
-              echo "action=${INPUT_ACTION:-resume-report}" >> "$GITHUB_OUTPUT"
+              ACTION="${INPUT_ACTION:-resume-report}"
               ;;
             *)
-              echo "action=none" >> "$GITHUB_OUTPUT"
+              ACTION="none"
               ;;
           esac
+
+          echo "action=$ACTION" >> "$GITHUB_OUTPUT"
+          echo "note=$NOTE" >> "$GITHUB_OUTPUT"
+          echo "base_sha=${MERGE_SHA:-$HEAD_SHA}" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUM" >> "$GITHUB_OUTPUT"
 
   checkpoint:
     name: checkpoint de contexto

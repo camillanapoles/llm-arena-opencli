@@ -9,6 +9,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 - **Data da entrega:** 13/10/2026
 - **Situação:** pronto para uso — `bash bootstrap.sh` recria o projeto inteiro do zero;
   `make gates` diz se há pendências; `python3 main.py <processo>` consulta a Justiça de verdade.
+- **GitHub Actions:** workflow `gates` ativo, 5 jobs encadeados, últimos runs (push e pull_request) **verdes**.
 
 ---
 
@@ -60,6 +61,8 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 12/10 22:11 | `aa5a5f4` — `__pycache__`/`.pyc` fora do versionamento |
 | 12/10 22:30 | `436253a` — **`bootstrap.sh` auto-criador + `BOOTSTRAP.md` + validação de conformidade** |
 | 12/10 22:4x | **PR #2** aberto (base `main` ← branch), +9.347/−1 em 20 arquivos |
+| 13/10 14:2x | Publicação do pedido 4 (`92a31c0`) → o workflow `gates` dispara no Actions e o run de `push` fica **verde** |
+| 13/10 14:3x | `e864c53` corrige o job 5 em `pull_request` (`github.ref_name` = `NNN/merge` quebrava o checkout; commit do backlog agora só fora de PR) e atualiza as actions para v5 → **runs de `push` e `pull_request` verdes, 5/5 jobs** |
 | 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
 
 ### 2.4 Testado (5 suítes, 151 verificações, tudo offline)
@@ -84,6 +87,7 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Testes | `python3 pipeline/gate.py testes` | `status "0"` — 151 verificações aprovadas |
 | Sem fonte de dados (`gh` ausente) | `python3 pipeline/gate.py issues --sem-gh` | `status "2"` (erro tipo 2) — não inventa sucesso |
 | Projeto reconstruído funciona | `bash bootstrap.sh --destino /tmp/x` | 7/7 etapas ✔, exit 0 |
+| **Workflow no GitHub Actions** | [run de `push`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [run de `pull_request`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644) | **os dois verdes**, com os **5 jobs** passando (`gate 1·issues`, `gate 2·cicd`, `gate 3·testes`, `gate 4·continuidade`, `gate 5·issue`) — é a validação real do YAML |
 
 ### 2.6 Produção (pronto para uso)
 
@@ -216,7 +220,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 | --- | --- | --- |
 | Validação **ao vivo** do CNJ (ISSUE-006) | o ambiente de desenvolvimento não tem rota até `api-publica.datajud.cnj.jus.br` (TLS encerrado pelo proxy) — `pipeline/verificar_cnj.py` devolve honestamente `status "1"`/continuidade | rodar `python3 pipeline/verificar_cnj.py` numa máquina com internet; `status "0"` ⇒ `gate.py issue --id ISSUE-006 --marcar` |
 | ISSUE-007 (unificação com a issue #3, de outra sessão) | o outro fluxo não está em `main` (`.github/workflows` → 404 no ref `main`) e vive na issue #3; não foi tocado | gate devolve `2` de propósito: requer decisão do usuário |
-| YAML do workflow | não há PyYAML no ambiente de desenvolvimento; a checagem local é estrutural (indentação, tabulação, gatilhos, jobs) | a validação definitiva é a execução real do workflow no GitHub Actions — visível em **Actions → gates** |
+| YAML do workflow | não há PyYAML no ambiente de desenvolvimento; a checagem local é estrutural (indentação, tabulação, gatilhos, jobs) | **já validado**: o workflow rodou de verdade no Actions ([push](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [PR](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644)), 5/5 jobs verdes |
 | Permissão de escrita do bot | o job `executa-issue` só commita o backlog quando disparado com `marcar=true` (e o repositório precisa permitir "Read and write permissions" para o `GITHUB_TOKEN`) | conferir em **Settings → Actions → General → Workflow permissions** |
 | Consulta pública do TJPE (Projudi/PJe) | as URLs do TJPE não respondem fora da rede da Justiça (`srv01…`, `pje.cloud…`) | usar o kit em rede compatível; o DataJud/DJEN cobrem o que é público nacional |
 
@@ -228,7 +232,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 - [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
 - [x] **Realizado** — 5 marcos de commit + 9 arquivos novos, tudo versionado no branch (seção 2.3)
 - [x] **Testado** — 5 suítes, **151 verificações**, todas offline e reprodutíveis (seção 2.4)
-- [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero (seção 2.5)
+- [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero e **os 5 jobs do workflow verdes no GitHub Actions** (seção 2.5)
 - [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
 - [x] **Documentado** — `README.md` (visão geral), `BOOTSTRAP.md` (instalação), `docs/01-03` (API, receitas, pipeline) e esta `ENTREGA.md`
 - [ ] **Pendente do usuário** — rodar a validação ao vivo do CNJ (ISSUE-006) num ambiente com internet e decidir a ISSUE-007

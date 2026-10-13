@@ -160,7 +160,7 @@ workflows e smoke do loader WASM (vetores FNV-1a).
 
 | Item | Quem | Status / Instrução |
 | --- | --- | --- |
-| Secret `OPENCLI_TOKEN` (fine-grained PAT, `Contents: write` em `camillanapoles/OpenCLI`) | usuário (~3 min) | **GUIA COMPLETO: [`docs/SECRETS.md`](docs/SECRETS.md)** — Settings UI, `gh secret set` ou actions de marketplace (verificadas: `actions/secrets-action`, `jon-grey/github-actions-secrets-creator` — todas exigem bootstrap token com `secrets:write`; `GITHUB_TOKEN` não cria secrets, 403 verificado). **Sem o secret o fluxo core NÃO trava**: `opencli-driver.yml` faz fallback self-dispatch com `GITHUB_TOKEN` e publica envelope `missing-secret` com instruções |
+| Secret `OPENCLI_TOKEN` | ✅ **FEITO pelo usuário (2026-10-13)** | Criado em *Settings → Secrets and variables → Actions*. Teste definitivo: `gh workflow run opencli-driver.yml -f mode=dispatch` (pós-merge, ou `--ref arena/d917b13b-llm-arena-opencli` do terminal do usuário — o token do sandbox Arena não tem `actions: write` p/ disparar runs, 403 verificado) |
 | Webhook do GitHub → `POST /api/events` | usuário (Settings → Webhooks) | Alternativa já funcional: `gh api repos/<owner>/<repo>/dispatches -f event_type=...` / `gh workflow run` (a corrente webhook→gate é exercitada por `repository_dispatch`) |
 | Merge do PR #1 | usuário | workflows com gatilhos `issues`/`issue_comment`/`workflow_dispatch` passam a operar quando o workflow estiver no `main` (regra do GitHub); até lá, `push`/`pull_request`/`workflow_run` já operam na branch |
 | Execução real dos workflows de cadeia (`blueprint.yml`) | GitHub (após merge) | a lógica já está coberta por testes + smoke local do `cycle`/`event`/`pending` |

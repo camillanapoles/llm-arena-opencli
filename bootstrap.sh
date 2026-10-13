@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 31 arquivos, 8779 linhas, 411 KiB.
+#  Conteúdo embutido: 31 arquivos, 8781 linhas, 411 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -176,7 +176,7 @@ done <<'MANIFESTO'
 c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/workflows/gates.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
 56faf5626df883873030d020c8fb31ec8668991b3b3f0d5c923df0150d7b2fb5  ./BOOTSTRAP.md
-4ebe04761a8e2bae2678daa6e776739716a31b3d46f511bbb7616f4cdc3f1327  ./ENTREGA.md
+1613c34cf84bc589923a6428fe246c78dde190d5f3967060973ed2be6c6525ff  ./ENTREGA.md
 0e4e1891354e193ff084ad8ce428d3b87de0c13fb0446b9cec08e0e4a6938f8a  ./Makefile
 a45edb6dc7ec7e5e0389f8ac1daa8c72b2cdea1f99394e0826b7982274f5f662  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
@@ -1073,7 +1073,9 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Shell do workflow | teste `test_blocos_run_sao_bash_valido` | os 8 blocos `run:` são `bash -n` válidos |
 | Sem fonte de dados (`gh` ausente) | `python3 pipeline/gate.py issues --sem-gh` | `status "2"` (erro tipo 2) — não inventa sucesso |
 | Projeto reconstruído funciona | `bash bootstrap.sh --destino /tmp/x` | 7/7 etapas ✔, exit 0 |
-| **Workflow no GitHub Actions** | [run de `push`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [run de `pull_request`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644) | **os dois verdes**, com os **5 jobs** passando (`gate 1·issues`, `gate 2·cicd`, `gate 3·testes`, `gate 4·continuidade`, `gate 5·issue`) — é a validação real do YAML |
+| **Workflow no GitHub Actions** | [run de `push`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444008073) e [run de `pull_request`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38444012416) | **os dois verdes**, com os **6 jobs** passando (`gate 1·issues`, `gate 2·cicd`, `gate 3·testes`, `gate 4·fábrica`, `gate 5·continuidade`, `gate 6·issue`) e 6 artifacts publicados — é a validação real do YAML |
+| **Fábrica no CI** | job `gate 4 · fábrica de issues (padrão + SQLite)` | verde em 5–8 s; o passo de eventos registra `issue_aberta`/`ci_falhou`/`teste_falhou` conforme os gates anteriores |
+| **Continuidade honesta no runner** | anotação do job 6: *"a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"* | o runner do GitHub **também não alcançou o CNJ** naquele momento: em vez de marcar sucesso falso, o gate manteve a `ISSUE-006` e a direção `corrigir` (exatamente o comportamento pedido) |
 
 ### 2.6 Produção (pronto para uso)
 
@@ -1235,7 +1237,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 | ISSUE-003 | Bootstrap auto-criador do projeto | concluída |
 | ISSUE-004 | Validação de conformidade com a documentação do CNJ | concluída |
 | ISSUE-005 | Pipeline de gates (contrato JSON, 0/1/2) | concluída |
-| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente** |
+| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente** (o sandbox e o runner do GitHub não alcançaram o CNJ; o gate manteve a pendência) |
 | ISSUE-007 | Decidir unificação com o fluxo da issue #3 (outra sessão) | bloqueada (decisão humana) |
 
 ---
@@ -1244,7 +1246,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 
 | Limitação | Detalhe | Próximo passo |
 | --- | --- | --- |
-| Validação **ao vivo** do CNJ (ISSUE-006) | o ambiente de desenvolvimento não tem rota até `api-publica.datajud.cnj.jus.br` (TLS encerrado pelo proxy) — `pipeline/verificar_cnj.py` devolve honestamente `status "1"`/continuidade | rodar `python3 pipeline/verificar_cnj.py` numa máquina com internet; `status "0"` ⇒ `gate.py issue --id ISSUE-006 --marcar` |
+| Validação **ao vivo** do CNJ (ISSUE-006) | nem o sandbox de desenvolvimento nem o **runner do GitHub** conseguiram falar com `api-publica.datajud.cnj.jus.br` (TLS encerrado pelo proxy local; do runner, a anotação do job 6 registrou "continuidade na MESMA issue") — `pipeline/verificar_cnj.py` devolve honestamente `status "1"` | rodar `python3 pipeline/verificar_cnj.py` numa máquina/rede que alcance o CNJ; `status "0"` ⇒ `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` (ou `make fabrica-proxima`), e a fábrica constrói a N+1 |
 | ISSUE-007 (unificação com a issue #3, de outra sessão) | o outro fluxo não está em `main` (`.github/workflows` → 404 no ref `main`) e vive na issue #3; não foi tocado | gate devolve `2` de propósito: requer decisão do usuário |
 | YAML do workflow | não há PyYAML no ambiente de desenvolvimento; a checagem local é estrutural (indentação, tabulação, gatilhos, jobs) | **já validado**: o workflow rodou de verdade no Actions ([push](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [PR](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644)), 5/5 jobs verdes |
 | Permissão de escrita do bot | o job `executa-issue` só commita o backlog quando disparado com `marcar=true` (e o repositório precisa permitir "Read and write permissions" para o `GITHUB_TOKEN`) | conferir em **Settings → Actions → General → Workflow permissions** |

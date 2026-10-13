@@ -1,7 +1,7 @@
 {
   "nome": "backlog do projeto — consulta processual DataJud/DJEN",
   "gerado_por": "pipeline/factory.py 1.0.0 (SQLite ⇄ backlog.json)",
-  "gerado_em": "2026-10-13T21:00:31Z",
+  "gerado_em": "2026-10-13T21:53:46Z",
   "issues": [
     {
       "id": "ISSUE-001",
@@ -158,12 +158,33 @@
       "entregavel": "issue #3 com comentário apontando docs/04-decisao-unificacao.md, docs/INTEGRATION.md e o protocolo IGC (.session/WAL.md)",
       "instrucao_teste": "test -s docs/04-decisao-unificacao.md && test -s docs/INTEGRATION.md",
       "instrucao_desenvolvimento": "1) comentar na issue #3 (SESSION CONTINUITY CONTROL) com os links da decisão de unificação e do protocolo IGC da sessão (caminhos no entregavel desta issue); 2) rodar o gate (make gates) e o teste indicado em instrucao_teste; 3) marcar com `python3 pipeline/gate.py issue --id ISSUE-009 --marcar` (grava evidência e a data de conclusão)",
-      "status": "pendente",
+      "status": "concluida",
       "depende_de": [
         "ISSUE-008"
       ],
       "origem": "fábrica (próxima indexada)",
       "criada_em": "2026-10-13T21:00:31Z",
+      "concluida_em": "2026-10-13T21:53:46Z",
+      "evidencias": [
+        {
+          "sucesso": "COMPLETADA",
+          "quando": "2026-10-13T21:53:46Z"
+        }
+      ]
+    },
+    {
+      "id": "ISSUE-010",
+      "indice": 10,
+      "titulo": "pendência 10 (gerada pela fábrica)",
+      "entregavel": "entrega de ISSUE-010 executada conforme a instrução, com sucesso testado",
+      "instrucao_teste": "make testes",
+      "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
+      "status": "pendente",
+      "depende_de": [
+        "ISSUE-009"
+      ],
+      "origem": "fábrica (próxima indexada)",
+      "criada_em": "2026-10-13T21:53:46Z",
       "concluida_em": null,
       "evidencias": []
     }

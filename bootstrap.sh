@@ -11,7 +11,7 @@
 #    3. aplica TODAS as permissões (755 em scripts/testes, 644 em docs/dados)
 #    4. confere a integridade por SHA-256 de cada arquivo escrito
 #    5. valida a sintaxe (python -m py_compile, bash -n)
-#    6. roda as 3 suítes de teste offline (conformidade, main.py, datajud.sh)
+#    6. roda as 4 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline)
 #    7. imprime um relatório final com o código de saída de cada etapa
 #
 #  Uso:
@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 20 arquivos, 4507 linhas, 200 KiB.
+#  Conteúdo embutido: 29 arquivos, 6713 linhas, 309 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -98,7 +98,7 @@ if [[ "$SO_VERIFICAR" == "0" ]]; then
   fi
   mkdir -p "$DESTINO"
   chmod 755 "$DESTINO"
-  for d in docs docs/exemplo-saida scripts tests tools; do
+  for d in .github/workflows docs docs/exemplo-saida pipeline scripts tests tools; do
     mkdir -p "$DESTINO/$d"
     chmod 755 "$d" 2>/dev/null || true
     chmod 755 "$DESTINO/$d"
@@ -112,17 +112,25 @@ if [[ "$SO_VERIFICAR" == "0" ]]; then
     conteudo_arquivo "$caminho" > "$DESTINO/$caminho"
     chmod "$modo" "$DESTINO/$caminho"
   done <<'LISTA'
+644 .github/workflows/gates.yml
 644 .gitignore
 644 BOOTSTRAP.md
+644 ENTREGA.md
 644 Makefile
 644 README.md
 644 docs/01-api-datajud.md
 644 docs/02-receitas-curl-tjpe.md
+644 docs/03-pipeline-gates.md
 644 docs/exemplo-saida/agg-grau.tsv
 644 docs/exemplo-saida/agg-orgao-nome.csv
 644 docs/exemplo-saida/relatorio-processo-exemplo.md
 644 docs/exemplo-saida/relatorio-tjpe-exemplo.md
 755 main.py
+644 pipeline/.gitignore
+644 pipeline/backlog.json
+644 pipeline/blueprint.json
+755 pipeline/gate.py
+755 pipeline/verificar_cnj.py
 755 scripts/datajud.sh
 755 tests/mock_apis.py
 755 tests/mock_datajud.py
@@ -130,6 +138,7 @@ if [[ "$SO_VERIFICAR" == "0" ]]; then
 755 tests/testar_bootstrap.sh
 755 tests/testar_conformidade.py
 755 tests/testar_main.py
+755 tests/testar_pipeline.py
 755 tools/gerar_bootstrap.py
 LISTA
   if [[ -f "$0" && -r "$0" ]]; then
@@ -162,25 +171,34 @@ while read -r esperado caminho; do
     FALHA "hash diferente: $caminho"; falhas_hash=$((falhas_hash+1))
   fi
 done <<'MANIFESTO'
+0b07979fd3f8c913c8ece650184a545aa80369b95721ef5ddf85344c5b9f7cb4  ./.github/workflows/gates.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
-c690888c4f38fa72ce6aab9a9ceaff392e622b25a5c83a8ae00fec888ec1139c  ./BOOTSTRAP.md
-01fd1dc69c431f208756b13a060051c183136fb9ad8f41a0eb102038456fb339  ./Makefile
-93af2f1280fe5ce7d801145722acceaef187634cb7dc9351dec84d1693bc3114  ./README.md
+4b306003100e8ba1982697fa5f41e0a7e8853747ea9aaedd310194db4cc11087  ./BOOTSTRAP.md
+f35dd831e6152076b24d8f86b899fb24d0903efdc6899f700e9865e9df9cbe81  ./ENTREGA.md
+68ed5b0153318d3c8c66bff72248cd93bc9b3af8af82d74435d1b835c770413a  ./Makefile
+3b1ab982ed3dd509f5f3410be2d4095a7346f559ea7d2a93409751881cd89e7b  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
 5e8befc6e2434cb27c1404693dc775f7de8056893bcc94712e61644e40ddbc3f  ./docs/02-receitas-curl-tjpe.md
+b171fc3f4334c76d47064ace4115c415cd768ff776d1793d1e44981835160958  ./docs/03-pipeline-gates.md
 7c75c6c9e28b98ba45eb7ffdb7ad5165b2d002338c9e32dbbe61d02986e1fd06  ./docs/exemplo-saida/agg-grau.tsv
 8d95b990767a0c8a967f45ccce11471fccb2d6f875f494213f223f7a788a05d0  ./docs/exemplo-saida/agg-orgao-nome.csv
 e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo-saida/relatorio-processo-exemplo.md
 0988a9fe28376cca40c84bbbe73172203e1f4740695026e2f9408f1fd88bea0a  ./docs/exemplo-saida/relatorio-tjpe-exemplo.md
 c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
+4392304e7b6b15961c43e67e4d1acbd351ca41eaf235fc347d972f2c06d6b687  ./pipeline/.gitignore
+eca7fe60e2c3997e1a235de31ed49df8556b94d6e94220f81d1d64a1f543032a  ./pipeline/backlog.json
+e7846f8cfdb64b14fbfd4dfdfca19bb5fd0891b38e7805def94757f7dc33c3d5  ./pipeline/blueprint.json
+4e5e1ede5261d28b2003e7958f68c989b2241308b6d56c5504f33681abb9a005  ./pipeline/gate.py
+74fedbc6f554883485cac903bcf696cc7b77098233e315d812080f708d57a20e  ./pipeline/verificar_cnj.py
 dd78d8b6469b06e5ab67d11137eaac3891ac16b2856064bce8be6a801e67dea0  ./scripts/datajud.sh
 b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_apis.py
 54b84ce8348712a3e8d689f96d284d0f019e11bb2bcf888abeab2c147fe63baa  ./tests/mock_datajud.py
 3d917cdf5b4b7732d17ccf0f542987e8daded8b62f03c0e5c055a4988f329daa  ./tests/rodar-testes.sh
-3f114b81bd5c3271f6736e21871b998e17d19fc7a9918d0bd97745665b59ca83  ./tests/testar_bootstrap.sh
+273c83433da70daaf0e5f7e4585b180b79b2de6b6ac8866b18aa0ceea6bccd6d  ./tests/testar_bootstrap.sh
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
-cde15a62e6b30da7a635c1e63b8af44deb450061086c18c4369732830b0530af  ./tools/gerar_bootstrap.py
+e87a75c9fa395cd43f4f3fe6baafc7c6a75cce0f7b6d6e6615472078b814f9b7  ./tests/testar_pipeline.py
+fb2b5c775f6459108607466ec51d5a2a593af17c39ca5ce8e6d8bea8bab3b90c  ./tools/gerar_bootstrap.py
 MANIFESTO
 if [[ "$falhas_hash" == "0" ]]; then
   PASSO "todos os hashes conferem com o manifesto embutido"
@@ -198,18 +216,26 @@ while read -r modo caminho; do
     FALHA "$caminho: modo $real (esperado $modo)"; falhas_modo=$((falhas_modo+1))
   fi
 done <<'PERMISSOES'
+644 .github/workflows/gates.yml
 644 .gitignore
 644 BOOTSTRAP.md
+644 ENTREGA.md
 644 Makefile
 644 README.md
 755 bootstrap.sh
 644 docs/01-api-datajud.md
 644 docs/02-receitas-curl-tjpe.md
+644 docs/03-pipeline-gates.md
 644 docs/exemplo-saida/agg-grau.tsv
 644 docs/exemplo-saida/agg-orgao-nome.csv
 644 docs/exemplo-saida/relatorio-processo-exemplo.md
 644 docs/exemplo-saida/relatorio-tjpe-exemplo.md
 755 main.py
+644 pipeline/.gitignore
+644 pipeline/backlog.json
+644 pipeline/blueprint.json
+755 pipeline/gate.py
+755 pipeline/verificar_cnj.py
 755 scripts/datajud.sh
 755 tests/mock_apis.py
 755 tests/mock_datajud.py
@@ -217,6 +243,7 @@ done <<'PERMISSOES'
 755 tests/testar_bootstrap.sh
 755 tests/testar_conformidade.py
 755 tests/testar_main.py
+755 tests/testar_pipeline.py
 755 tools/gerar_bootstrap.py
 PERMISSOES
 if [[ "$falhas_modo" == "0" ]]; then
@@ -228,19 +255,19 @@ fi
 # --------------------------------------------------------- 6. validação estática ---
 TITULO "6/7 · Validação de sintaxe"
 ST_PY=0; ST_SH=0
-for arq in main.py tools/gerar_bootstrap.py tests/mock_apis.py tests/mock_datajud.py \
-           tests/testar_main.py tests/testar_conformidade.py; do
+for arq in main.py pipeline/gate.py pipeline/verificar_cnj.py tests/mock_apis.py tests/mock_datajud.py tests/testar_conformidade.py tests/testar_main.py tests/testar_pipeline.py tools/gerar_bootstrap.py; do
   python3 -m py_compile "$DESTINO/$arq" 2>/dev/null || { FALHA "python inválido: $arq"; ST_PY=1; }
 done
-rm -rf "$DESTINO"/__pycache__ "$DESTINO"/tests/__pycache__ "$DESTINO"/tools/__pycache__ 2>/dev/null || true
-[[ "$ST_PY" == "0" ]] && PASSO "Python: 6 arquivos compilam sem erro (py_compile)"
-for arq in scripts/datajud.sh tests/rodar-testes.sh tests/testar_bootstrap.sh bootstrap.sh; do
+rm -rf "$DESTINO"/__pycache__ "$DESTINO"/tests/__pycache__ "$DESTINO"/tools/__pycache__ \
+       "$DESTINO"/pipeline/__pycache__ 2>/dev/null || true
+[[ "$ST_PY" == "0" ]] && PASSO "Python: 9 arquivos compilam sem erro (py_compile)"
+for arq in bootstrap.sh scripts/datajud.sh tests/rodar-testes.sh tests/testar_bootstrap.sh; do
   bash -n "$DESTINO/$arq" 2>/dev/null || { FALHA "bash inválido: $arq"; ST_SH=1; }
 done
 [[ "$ST_SH" == "0" ]] && PASSO "Bash: 4 scripts sem erro de sintaxe (bash -n)"
 
 # ------------------------------------------------------------------ 7. testes ---
-ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"
+ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"
 if [[ "$SEM_TESTES" == "1" || "$SO_CRIAR" == "1" ]]; then
   TITULO "7/7 · Testes"
   ALERTA "suítes de teste não executadas (--so-criar/--sem-testes)"
@@ -260,25 +287,32 @@ else
     && ST_SH_T="ok" || ST_SH_T="FALHOU"
   tail -1 /tmp/bootstrap_sh.log | sed 's/^/     /' || true
   [[ "$ST_SH_T" == "ok" ]] && PASSO "scripts/datajud.sh (curl + jq)" || FALHA "testes do datajud.sh"
+
+  ( cd "$DESTINO" && python3 tests/testar_pipeline.py ) >/tmp/bootstrap_pipe.log 2>&1 \
+    && ST_PIPE="ok" || ST_PIPE="FALHOU"
+  grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_pipe.log | tail -2 | sed 's/^/     /' || true
+  [[ "$ST_PIPE" == "ok" ]] && PASSO "pipeline de gates (contrato JSON, 0/1/2)" || FALHA "testes do pipeline"
 fi
 
 # ------------------------------------------------------------------ resumo ---
 TITULO "Resultado do bootstrap"
 printf '  destino..... : %s\n' "$(cd "$DESTINO" && pwd)"
-printf '  arquivos.... : %s\n' "19 no manifesto SHA-256 (+ bootstrap.sh)"
+printf '  arquivos.... : %s\n' "28 no manifesto SHA-256 (+ bootstrap.sh)"
 printf '  permissões.. : 755 em scripts/testes, 644 em docs/dados\n'
 printf '  python...... : %s\n' "$([[ "$ST_PY" == "0" ]] && echo 'compila' || echo 'FALHOU')"
 printf '  bash........ : %s\n' "$([[ "$ST_SH" == "0" ]] && echo 'sem erro de sintaxe' || echo 'FALHOU')"
 printf '  teste conf.. : %s\n' "$ST_CONF"
 printf '  teste main.. : %s\n' "$ST_MAIN"
 printf '  teste shell. : %s\n' "$ST_SH_T"
+printf '  teste pipe.. : %s\n' "$ST_PIPE"
 printf '\n  Próximos passos:\n'
 printf '    cd %s\n' "$DESTINO"
 printf '    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)\n'
-printf '    make testes                                 # roda as 4 suítes de novo (112 verificações)\n\n'
+printf '    make gates                                  # veredito de continuidade do pipeline\n'
+printf '    make testes                                 # roda as 5 suítes de novo\n\n'
 
 if [[ "$ST_PY" != "0" || "$ST_SH" != "0" || "$ST_CONF" == "FALHOU" \
-      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" ]]; then
+      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" ]]; then
   FALHA "bootstrap concluiu com falhas (veja acima)"
   exit 1
 fi
@@ -292,6 +326,294 @@ exit 0
 
 # Heredoc não executado: mantém o payload fora da análise do bash.
 : <<'__PAYLOAD_FIM__'
+__ARQ__ .github/workflows/gates.yml
+# ==============================================================================
+#  gates.yml — pipeline orientado a gates (blueprint tipo BPMN) no GitHub Actions
+# ==============================================================================
+#  Planta: pipeline/blueprint.json  ·  Executor: pipeline/gate.py
+#
+#  Fluxo (cada gate devolve o JSON do contrato e o exit code = status):
+#
+#    [push|PR|issues|schedule|dispatch]
+#                 │
+#          ┌──────┴───────┬──────────────┐
+#          ▼              ▼              ▼
+#     gate-issues     gate-cicd     gate-testes
+#     (0/1/2)         (0/1/2)       (0/1/2)
+#          └──────┬───────┴──────────────┘
+#                 ▼
+#        gate-continuidade   ← positivo ⇔ 0 issues ∧ CI limpo ∧ testes verdes
+#           │        │
+#       (1) │        │ (0)        (2) → job FALHA (exige humano)
+#           ▼        ▼
+#      executa-    pipeline pode
+#       issue      encerrar
+#     (0/1/2) ── 0 ⇒ próxima issue · 1 ⇒ mesma issue · 2 ⇒ humano
+#
+#  Todo gate publica: JSON no stdout, anexo em pipeline/saida/,
+#  resumo no job summary e artifact para download.
+# ==============================================================================
+name: gates
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  issues:
+    types: [opened, closed, reopened, labeled]
+  schedule:
+    - cron: "0 12 * * 1-5"        # dias úteis, 12:00 UTC (09:00 em Brasília)
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "ID da issue do backlog a executar (vazio = próxima pendente)"
+        required: false
+        default: ""
+      marcar:
+        description: "Marcar a issue como concluída no backlog quando o teste passar"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  issues: read
+  actions: read
+
+env:
+  GATE_SAIDA_DIR: pipeline/saida
+  GH_TOKEN: ${{ github.token }}
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------- gate 1: issues
+  gate-issues:
+    name: "gate 1 · issues abertas"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Executar gate de issues
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py issues --repo "$GITHUB_REPOSITORY" \
+            --json-saida /tmp/gate-issues.json > /tmp/gate-issues.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-issues.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-issues.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-issues.json'))['continuidade']).lower())")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 1 · issues abertas — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-issues.json'))['mensagem'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "exit do gate: $codigo (0=sucesso, 1=continuidade, 2=indeterminado)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-issues
+          path: |
+            pipeline/saida/issue*.md
+            pipeline/saida/gate-issues-*.json
+          if-no-files-found: warn
+
+  # ------------------------------------------------------------------ gate 2: cicd
+  gate-cicd:
+    name: "gate 2 · CI/CD sem erros"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Executar gate de CI/CD
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py cicd --repo "$GITHUB_REPOSITORY" \
+            --json-saida /tmp/gate-cicd.json > /tmp/gate-cicd.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-cicd.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-cicd.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-cicd.json'))['continuidade']).lower())")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 2 · CI/CD — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-cicd.json'))['mensagem'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-cicd
+          path: |
+            pipeline/saida/execucoes-ci.md
+            pipeline/saida/gate-cicd-*.json
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------- gate 3: testes
+  gate-testes:
+    name: "gate 3 · testes presentes e verdes"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Executar gate de testes
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py testes --json-saida /tmp/gate-testes.json \
+            > /tmp/gate-testes.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-testes.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-testes.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-testes.json'))['continuidade']).lower())")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 3 · testes — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-testes.json'))['mensagem'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-testes
+          path: |
+            pipeline/saida/log-testes-*.txt
+            pipeline/saida/gate-testes-*.json
+          if-no-files-found: warn
+
+  # --------------------------------------------------------- gate 4: continuidade
+  gate-continuidade:
+    name: "gate 4 · veredito de continuidade"
+    runs-on: ubuntu-latest
+    needs: [gate-issues, gate-cicd, gate-testes]
+    if: always()
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+      next_issue: ${{ steps.gate.outputs.next_issue }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Agregar os três gates
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py continuidade \
+            --status-issues "${{ needs.gate-issues.outputs.status }}" \
+            --status-cicd "${{ needs.gate-cicd.outputs.status }}" \
+            --status-testes "${{ needs.gate-testes.outputs.status }}" \
+            --json-saida /tmp/gate-continuidade.json > /tmp/gate-continuidade.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-continuidade.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-continuidade.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-continuidade.json'))['continuidade']).lower())")
+          prox=$(python3 -c "import json;print(json.load(open('/tmp/gate-continuidade.json'))['next_issue'] or '')")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          echo "next_issue=$prox" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 4 · veredito — status \`$status\` (continuidade=\`$cont\`)"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-continuidade.json'))['mensagem'])"
+            echo
+            echo "Próxima issue do backlog: \`${prox:-—}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "2" ]; then
+            echo "::error::gate indeterminado (erro tipo 2) — exige intervenção humana"
+            exit 1
+          fi
+          if [ "$status" = "1" ]; then
+            echo "::notice::continuidade: há pendências — siga para a issue ${prox:-pendente}"
+          else
+            echo "::notice::gate positivo: nenhuma pendência, o pipeline pode encerrar"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-continuidade
+          path: |
+            pipeline/saida/veredito-continuidade.md
+            pipeline/saida/gate-continuidade-*.json
+          if-no-files-found: warn
+
+  # ------------------------------------------------- executa a issue (continuidade)
+  executa-issue:
+    name: "gate 5 · executa a issue (instrução → teste → próxima)"
+    runs-on: ubuntu-latest
+    needs: [gate-continuidade]
+    if: needs.gate-continuidade.outputs.continuidade == 'true'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Rodar a instrução da issue do backlog
+        id: issue
+        run: |
+          set +e
+          argumentos=""
+          [ -n "${{ inputs.issue }}" ] && argumentos="--id ${{ inputs.issue }}"
+          [ "${{ inputs.marcar }}" = "true" ] && argumentos="$argumentos --marcar"
+          python3 pipeline/gate.py issue $argumentos \
+            --json-saida /tmp/gate-issue.json > /tmp/gate-issue.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-issue.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['status'])")
+          prox=$(python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['next_issue'] or '')")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "next_issue=$prox" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 5 · issue — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['mensagem'])"
+            echo
+            echo "Próxima: \`${prox:-—}\` (instrução anexada em \`pipeline/saida/*-proxima-issue.md\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "2" ]; then exit 1; fi
+          if [ "$status" = "1" ]; then
+            echo "::warning::a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"
+          fi
+      - name: Versionar o backlog atualizado (somente com marcar=true)
+        if: inputs.marcar
+        run: |
+          if git diff --quiet -- pipeline/backlog.json; then
+            echo "backlog sem alterações"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pipeline/backlog.json
+          git commit -m "pipeline: issue ${{ steps.issue.outputs.next_issue || inputs.issue }} concluída (gate issue --marcar) [skip ci]"
+          git push
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-issue
+          path: |
+            pipeline/saida/*-log.txt
+            pipeline/saida/*-proxima-issue.md
+            pipeline/saida/gate-issue-*.json
+          if-no-files-found: warn
+__ARQ_EOF__
 __ARQ__ .gitignore
 # artefatos gerados pelas consultas
 saida/
@@ -307,7 +629,7 @@ __ARQ__ BOOTSTRAP.md
 Este é o **documento único** do projeto: ele descreve como o `bootstrap.sh` recria
 **tudo do zero** (todos os diretórios, todos os arquivos, todas as permissões), como
 ele **valida e testa** o resultado, e qual é exatamente a **saída esperada** de cada
-etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 19 arquivos embutido —
+etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 28 arquivos embutido —
 não precisa de internet, Git nem de nenhum arquivo externo.
 
 ```bash
@@ -392,11 +714,11 @@ o projeto inteiro roda com a biblioteca padrão do Python.
 | --- | --- | --- | --- |
 | 1 | Pré-requisitos | valida bash 4+, python 3.8+, detecta curl/jq | versão mínima não atingida (sai com 1) |
 | 2 | Diretórios | cria a raiz + `docs/`, `docs/exemplo-saida/`, `scripts/`, `tests/`, `tools/`; `chmod 755` | destino existe e não está vazio sem `--forcar` |
-| 3 | Arquivos | escreve os 19 arquivos a partir do conteúdo embutido; aplica `755`/`644` | execução via pipe (avisa que o `bootstrap.sh` não pôde ser copiado) |
+| 3 | Arquivos | escreve os 28 arquivos a partir do conteúdo embutido; aplica `755`/`644` | execução via pipe (avisa que o `bootstrap.sh` não pôde ser copiado) |
 | 4 | Integridade | recalcula `sha256sum` de cada arquivo e compara com o manifesto | qualquer byte diferente → não segue (sai com 1) |
 | 5 | Permissões | confere o modo de cada arquivo com `stat` | modo divergente → avisa (corrija com `chmod`) |
-| 6 | Sintaxe | `python3 -m py_compile` em 6 arquivos ; `bash -n` em 4 scripts | qualquer erro de sintaxe |
-| 7 | Testes | roda as 3 suítes offline e captura os códigos de saída | alguma suíte ≠ 0 |
+| 6 | Sintaxe | `python3 -m py_compile` em 9 arquivos ; `bash -n` em 4 scripts | qualquer erro de sintaxe |
+| 7 | Testes | roda as 4 suítes offline e captura os códigos de saída | alguma suíte ≠ 0 |
 
 O manifesto SHA-256 (na etapa 4) prova que o destino é **byte a byte** igual ao que o
 bootstrap promete. É o que separa "criei arquivos" de "criei *este* projeto".
@@ -438,28 +760,36 @@ advogados: **MNI** do PJe, com certificado digital.
 
 ## 6. Códigos de teste: o que cada suíte cobre e o resultado esperado
 
-Rode tudo de uma vez com `make testes` (90 testes) e `./tests/testar_bootstrap.sh`
-(22 verificações de recriação). Total: **112 verificações**, todas offline, contra mocks locais.
+Rode tudo de uma vez com `make testes`: são **5 suítes** e **151 verificações**, todas offline,
+contra mocks locais (nenhuma requisição real ao CNJ).
 
 | Suíte | Arquivo | Testes | Cobre | Saída esperada |
 | --- | --- | --- | --- | --- |
 | Conformidade | `tests/testar_conformidade.py` | **29** | itens da doc oficial (seção 5), ausência de dependências externas, shebang/permissões, sintaxe do shell | `Ran 29 tests` / `OK` / código **0** |
 | Consulta de processo | `tests/testar_main.py` | **29** | DV e estrutura do NUP (4 números oficiais), decodificação de tribunais, as 10 seções do relatório, DJEN, `--json`, `-o`, erros 400/401/404/429 | `Ran 29 tests` / `OK` / código **0** |
 | Consultas agregadas | `tests/rodar-testes.sh` | **32** | `contar`, `agregar` (com fallback de campo), `processo`, `paginar` (`search_after`), `relatorio`, tratamento de 401/404/429/rede, `--debug` | `32 passaram, 0 falharam` / código **0** |
-| Recriação | `tests/testar_bootstrap.sh` | **22** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
+| Pipeline de gates | `tests/testar_pipeline.py` | **36** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`), semântica 0/1/2, `next_issue` (mesma issue × próxima), `--marcar`, blueprint, backlog e o workflow do Actions | `Ran 36 tests` / `OK (skipped=1)` / código **0** |
+| Recriação | `tests/testar_bootstrap.sh` | **25** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
 
 Exemplo de saída final do `bootstrap.sh`:
 
 ```
 == Resultado do bootstrap ==
   destino..... : /caminho/projeto-datajud
-  arquivos.... : 19 no manifesto SHA-256 (+ bootstrap.sh)
+  arquivos.... : 28 no manifesto SHA-256 (+ bootstrap.sh)
   permissões.. : 755 em scripts/testes, 644 em docs/dados
   python...... : compila
   bash........ : sem erro de sintaxe
-  teste conf.. : ok  (código de saída: 0)
-  teste main.. : ok  (código de saída: 0)
-  teste shell. : ok  (código de saída: 0)
+  teste conf.. : ok
+  teste main.. : ok
+  teste shell. : ok
+  teste pipe.. : ok
+
+  Próximos passos:
+    cd /caminho/projeto-datajud
+    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)
+    make gates                                  # veredito de continuidade do pipeline
+    make testes                                 # roda as 5 suítes de novo
 
 Bootstrap concluído com sucesso.
 ```
@@ -530,6 +860,242 @@ Bootstrap concluído com sucesso.
 | Adicionou um arquivo novo | inclua-o em `ARQUIVOS` no `tools/gerar_bootstrap.py` (com a permissão) e regenere |
 | Quer só validar | `bash bootstrap.sh --destino . --verificar` |
 __ARQ_EOF__
+__ARQ__ ENTREGA.md
+# ENTREGA — branch `arena/ed79bd77-llm-arena-opencli`
+
+Relatório de entrega do branch: **o que foi solicitado → incrementado à solicitação (timeline)
+→ realizado → testado → validado → pronto para produção**.
+
+- **Repositório:** https://github.com/camillanapoles/llm-arena-opencli
+- **Branch:** `arena/ed79bd77-llm-arena-opencli` (base: `main` em `3d9b774`)
+- **Pull request:** https://github.com/camillanapoles/llm-arena-opencli/pull/2 — OPEN / MERGEABLE
+- **Data da entrega:** 13/10/2026
+- **Situação:** pronto para uso — `bash bootstrap.sh` recria o projeto inteiro do zero;
+  `make gates` diz se há pendências; `python3 main.py <processo>` consulta a Justiça de verdade.
+
+---
+
+## 1. Resumo executivo
+
+| # | Solicitado | Entregue | Evidência |
+| --- | --- | --- | --- |
+| 1 | Consultar processos e contar por órgão/grau no TJPE usando a **API pública do CNJ** por `curl` | `scripts/datajud.sh` (7 subcomandos, mesma semântica da wiki do CNJ) + `docs/01`, `docs/02` + exemplos de saída | 32 verificações |
+| 2 | Script **completo** em Python, na raiz, com **relatório em Markdown**, cobrindo "o processo, os anexos, tudo que puder" — e todo o público (DataJud + DJEN) | `main.py` (1 arquivo, sem dependências externas): DataJud + DJEN + montagem de número/validação de DV + relatório Markdown com anexos | 29 testes |
+| 3 | **Validar conforme a documentação** e um **bootstrap que auto-cria o projeto** (todos os arquivos, todas as permissões) **e valida os testes, verificando resultado e códigos de teste** | `tests/testar_conformidade.py` (conferência contra a wiki/CNJ) + `bootstrap.sh` autossuficiente (7 etapas, manifesto SHA-256, `py_compile`, `bash -n`, suítes) + `BOOTSTRAP.md` | 29 + 25 verificações |
+| 4 | **Gatilho** que só é positivo sem issues abertas, sem CI com erro e com testes verdes; **enquanto não positivo ⇒ continuidade**; cada issue testada e entregue com a instrução da seguinte; **toda action devolve JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`) | `pipeline/gate.py` + `pipeline/blueprint.json` (BPMN) + `pipeline/backlog.json` + `.github/workflows/gates.yml` + `docs/03` + esta `ENTREGA.md` | 36 testes |
+
+**Total: 151 verificações automatizadas**, todas offline, em 5 suítes (`make testes`).
+
+---
+
+## 2. Timeline completa
+
+### 2.1 Solicitado (o pedido original, em quatro blocos)
+
+| Data | Pedido |
+| --- | --- |
+| 11/10 | "consultar processos do TJPE pela API pública do CNJ, por curl; contar por órgão julgador e grau" |
+| 12/10 | "script **completo** em `main.py`, saída em **Markdown**, 'o processo, os anexos, tudo que puder' — todo o público (DataJud + DJEN)" |
+| 12/10 | "**validar conforme doc**" + "**bootstrap** que auto-**cria** o projeto completo (diretórios, arquivos, permissões), monta/configura tudo e **valida os testes, conferindo resultado e códigos de teste" |
+| 13/10 | "**RELATE O QUE ESTÁ ENTREGANDO NESTE BRANCH… DOCUMENTE**: solicitado, incrementado (TIMELINE), realizado, testado, validado ⇒ **PRODUÇÃO** (pronto para uso pelo usuário)" |
+
+### 2.2 Incrementado à solicitação (o que foi acrescentado ao pedido, e por quê)
+
+| Incremento | Origem | Por quê |
+| --- | --- | --- |
+| **DJEN (Res. CNJ 455/2022)** somado ao DataJud no mesmo relatório | pedido 2 ("todo o público") | DataJud dá metadados do processo; as *publicações* (intimações) só estão no Diário de Justiça Eletrônico Nacional. Sem DJEN o relatório ficaria pela metade |
+| Construção/validação do **número único CNJ** (`NNNNNNN-DD.AAAA.J.TR.OOOO`, Res. 65/2008) | necessidade prática | Sem isso, qualquer dígito trocado gera consulta vazia indistinguível de "processo sem publicação" |
+| **Glossário dos 15 campos** do DataJud em português + mapeamento `tjdft`→`tjdf`, `tre-*` | pedido 1 | Os códigos de tribunal da API não são óbvios; erro de sigla é o erro nº 1 de quem usa a API |
+| **Resiliência**: paginação por `search_after`, teto de 10.000 hits, agregações com fallback `.keyword`, respeito ao limite de 120 req/min | pedido 1 | Sem isso o kit quebra exatamente nos tribunais grandes |
+| **LGPD explícita**: nenhuma consulta por nome de parte ou CPF, nenhum campo de parte no relatório | Termo de Uso do CNJ | A API é pública mas restrita a metadados processuais; o teste proíbe esses campos |
+| **Bootstrap autossuficiente** com manifesto **SHA-256**, `py_compile`, `bash -n` e execução das suítes no destino | pedido 3 ("verificando resultado e **códigos de teste**") | Entrega não é "gerar arquivos": é provar que o que foi gerado funciona, e com código de saída verificável |
+| **Pipeline de gates** (blueprint tipo BPMN) + fila de issues **indexada** | pedido 4 | Transforma a entrega num fluxo que se auto-verifica a cada push/PR/issue, em vez de um relatório morto |
+| **Erro tipo 1 × erro tipo 2** no `status` | pedido 4 | Separar "pendência tratável, continue" de "não dá para avaliar, chame humano" é o que permite o gatilho decidir sem adivinhação |
+| `pipeline/verificar_cnj.py` como **instrução executável** da ISSUE-006 | pedido 4 | "Toda issue tem instrução de teste": até a validação ao vivo precisa ser um comando reprodutível com código de saída |
+
+### 2.3 Realizado (linha do tempo de execução)
+
+| Quando | Marco |
+| --- | --- |
+| 11/10 20:42 | `3d9b774` — commit inicial do repositório |
+| 12/10 21:33 | `3bd0cc4` — **kit de consulta à API Pública do DataJud** (curl + CLI + docs) |
+| 12/10 22:10 | `17b35aa` — **`main.py`**: consulta de processo com relatório completo em Markdown |
+| 12/10 22:11 | `aa5a5f4` — `__pycache__`/`.pyc` fora do versionamento |
+| 12/10 22:30 | `436253a` — **`bootstrap.sh` auto-criador + `BOOTSTRAP.md` + validação de conformidade** |
+| 12/10 22:4x | **PR #2** aberto (base `main` ← branch), +9.347/−1 em 20 arquivos |
+| 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
+
+### 2.4 Testado (5 suítes, 151 verificações, tudo offline)
+
+| Suíte | Verificações | O que cobre |
+| --- | --- | --- |
+| `tests/testar_conformidade.py` | 29 | conformidade com a doc oficial do CNJ: URL/rota/headers, aliases de tribunal, 15 campos do glossário, `search_after`, teto de 10.000, agregações com `.keyword`, 120 req/min, LGPD |
+| `tests/testar_main.py` | 29 | `main.py`: DV do número CNJ (`% 97 == 1`), montagem do número de 20 dígitos, DataJud + DJEN com mocks, relatório Markdown, anexos, exit codes |
+| `tests/rodar-testes.sh` | 32 | `scripts/datajud.sh`: chave pública, consulta, contagem, agregação, relatório, paginação, erros |
+| `tests/testar_pipeline.py` | 36 | contrato JSON em todos os gates, semântica 0/1/2, `next_issue`, `--marcar`, blueprint, backlog e o próprio workflow |
+| `tests/testar_bootstrap.sh` | 25 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 4 suítes rodando **dentro** do projeto recriado, gates rodando no projeto recriado, `--verificar`, proteção contra sobrescrita |
+
+### 2.5 Validado (como cada promessa foi conferida)
+
+| Validação | Comando | Resultado |
+| --- | --- | --- |
+| Conformidade com a documentação do CNJ | `python3 tests/testar_conformidade.py` | 29/29 OK |
+| Bootstrap recria o projeto **idêntico** | `bash tests/testar_bootstrap.sh` | 25/25 OK, `diff -r` sem diferenças, hashes conferem |
+| Planta BPMN × implementação | `python3 pipeline/gate.py blueprint` | `status "0"` — *5 gates, 15 transições* |
+| Gatilho de continuidade | `python3 pipeline/gate.py continuidade` | `status "1"` (há issue aberta) — **continuidade**, como manda a regra |
+| CI/CD | `python3 pipeline/gate.py cicd` | `status "0"` — 5 execuções, nenhuma com erro |
+| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 151 verificações aprovadas |
+| Sem fonte de dados (`gh` ausente) | `python3 pipeline/gate.py issues --sem-gh` | `status "2"` (erro tipo 2) — não inventa sucesso |
+| Projeto reconstruído funciona | `bash bootstrap.sh --destino /tmp/x` | 7/7 etapas ✔, exit 0 |
+
+### 2.6 Produção (pronto para uso)
+
+```bash
+git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli
+
+make testes        # 5 suítes, 151 verificações, offline
+make gates         # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
+make consultar NUMERO=0001234-43.2024.8.17.2001   # relatório Markdown do processo (rede real)
+bash bootstrap.sh --destino ./projeto-datajud      # recria o projeto inteiro do zero
+```
+
+---
+
+## 3. O que este branch entrega, arquivo por arquivo
+
+```
+main.py                     consulta de processo + relatório Markdown (DataJud + DJEN)
+scripts/datajud.sh          kit curl (chave|processo|contar|agregar|relatorio|paginar)
+docs/01-api-datajud.md      manual da API (endpoints, campos, limites, LGPD)
+docs/02-receitas-curl-tjpe.md  receitas prontas de curl para o TJPE
+docs/03-pipeline-gates.md   manual do pipeline de gates (contrato JSON, 0/1/2, BPMN)
+docs/exemplo-saida/         exemplos de relatórios e agregações já gerados
+
+pipeline/gate.py            executor dos gates (7 subcomandos) — o "gatilho"
+pipeline/blueprint.json     planta BPMN do fluxo (validada pelo próprio pipeline)
+pipeline/backlog.json       fila indexada de issues (instrução de teste por issue)
+pipeline/verificar_cnj.py   instrução executável da ISSUE-006 (validação ao vivo do CNJ)
+.github/workflows/gates.yml gatilho no GitHub Actions (5 jobs encadeados)
+
+bootstrap.sh                recria o projeto inteiro e prova que funciona
+tools/gerar_bootstrap.py    gerador/verificador do bootstrap (--conferir)
+BOOTSTRAP.md                manual do bootstrap
+ENTREGA.md                  este relatório
+
+tests/                      5 suítes, 151 verificações (offline, com mocks)
+```
+
+---
+
+## 4. O gatilho e o contrato JSON (pedido 4, em uma página)
+
+### 4.1 Regra do gatilho
+
+> O gate **só é positivo** quando, ao mesmo tempo: **(a)** não existe issue aberta,
+> **(b)** nenhuma execução de CI/CD terminou com erro e **(c)** os testes existem e passam.
+> **Enquanto não for positivo ⇒ `continuidade = true`** e o fluxo segue para a próxima
+> pendência do backlog. Se um check não puder nem ser avaliado, o status é `2` e o
+> pipeline **para** (exige humano) — nunca "chuta" sucesso.
+
+```bash
+python3 pipeline/gate.py continuidade \
+  --status-issues 0 --status-cicd 0 --status-testes 0   # ⇒ status "0", continuidade false
+```
+
+### 4.2 Toda action devolve o mesmo objeto
+
+```json
+{
+  "id": "gate-issue-20261013T141702Z-4c9ab1",
+  "gate": "issue",
+  "status": "0",
+  "codigo_saida": 0,
+  "mensagem": "ISSUE-005 testada com sucesso (código 0) — segue a issue ISSUE-006: ...",
+  "continuidade": true,
+  "next_issue": "ISSUE-006",
+  "anexos": [
+    {"path": "pipeline/saida/ISSUE-005-proxima-issue.md",
+     "filename": "ISSUE-005-proxima-issue.md",
+     "descricao": "instrução da issue seguinte do backlog"}
+  ],
+  "dados": {"criterio": ">= 1 issue aberta", "abertas": 1},
+  "timestamp": "2026-10-13T14:17:02Z",
+  "duracao_s": 0.31,
+  "versao": "1.0.0"
+}
+```
+
+| `status` | Significado | `continuidade` | `next_issue` |
+| --- | --- | --- | --- |
+| `"0"` | sucesso: nada pendente | `false` | próxima indexada (ou `null` se acabou) |
+| `"1"` | **erro tipo 1**: pendência conhecida e tratável | **`true`** | **a mesma issue** (falhou) |
+| `"2"` | **erro tipo 2**: não foi possível avaliar (exige humano) | `false` | `null` ou a issue bloqueada |
+
+O **exit code do processo é igual ao `status`**, então qualquer orquestrador (Actions,
+cron, Makefile) encadeia os gates sem parsear nada — e ainda assim recebe o JSON completo
+com `mensagem` (log/resumo) e `anexos` (`path` + `filename`).
+
+### 4.3 Como o fluxo fecha o ciclo
+
+1. Os gates 1–3 medem issues, CI/CD e testes **em paralelo**.
+2. O gate 4 agrega os três (recebendo os status por `--status-*`, sem reexecutar nada).
+3. Se `continuidade = true`, o gate 5 **executa a instrução da próxima issue do backlog**:
+   - passou ⇒ `next_issue` = **próxima indexada**, e o anexo `*-proxima-issue.md` traz a
+     instrução pronta (com o comando) para o ciclo seguinte;
+   - falhou ⇒ `next_issue` = **a mesma issue**, com o log anexado;
+   - com `--marcar`, a conclusão é persistida no `backlog.json` (o workflow commita com `[skip ci]`).
+4. Volta ao passo 1. O ciclo se repete enquanto houver pendência — é isso que significa
+   *gate-driven pipeline*.
+
+---
+
+## 5. Estado atual do pipeline (medido, não presumido)
+
+```text
+gate 1 · issues        → status "1"  (1 issue aberta: #3 SESSION CONTINUITY CONTROL)
+gate 2 · CI/CD         → status "0"  (5 execuções analisadas, 0 com erro)
+gate 3 · testes        → status "0"  (5 suítes aprovadas, 151 verificações)
+gate 4 · continuidade  → status "1"  ⇒ continua; próxima do backlog: ISSUE-006
+gate 5 · issue         → executa a ISSUE-006 quando o ambiente tiver internet
+```
+
+Backlog do projeto (`pipeline/backlog.json`):
+
+| Issue | Título | Status |
+| --- | --- | --- |
+| ISSUE-001 | Kit de consulta por `curl` (DataJud/TJPE) | concluída |
+| ISSUE-002 | `main.py` + relatório Markdown (DataJud + DJEN) | concluída |
+| ISSUE-003 | Bootstrap auto-criador do projeto | concluída |
+| ISSUE-004 | Validação de conformidade com a documentação do CNJ | concluída |
+| ISSUE-005 | Pipeline de gates (contrato JSON, 0/1/2) | concluída |
+| ISSUE-006 | Validação **ao vivo** contra o CNJ (`pipeline/verificar_cnj.py`) | **pendente** |
+| ISSUE-007 | Decidir unificação com o fluxo da issue #3 (outra sessão) | bloqueada (decisão humana) |
+
+---
+
+## 6. Limitações conhecidas e próximos passos
+
+| Limitação | Detalhe | Próximo passo |
+| --- | --- | --- |
+| Validação **ao vivo** do CNJ (ISSUE-006) | o ambiente de desenvolvimento não tem rota até `api-publica.datajud.cnj.jus.br` (TLS encerrado pelo proxy) — `pipeline/verificar_cnj.py` devolve honestamente `status "1"`/continuidade | rodar `python3 pipeline/verificar_cnj.py` numa máquina com internet; `status "0"` ⇒ `gate.py issue --id ISSUE-006 --marcar` |
+| ISSUE-007 (unificação com a issue #3, de outra sessão) | o outro fluxo não está em `main` (`.github/workflows` → 404 no ref `main`) e vive na issue #3; não foi tocado | gate devolve `2` de propósito: requer decisão do usuário |
+| YAML do workflow | não há PyYAML no ambiente de desenvolvimento; a checagem local é estrutural (indentação, tabulação, gatilhos, jobs) | a validação definitiva é a execução real do workflow no GitHub Actions — visível em **Actions → gates** |
+| Permissão de escrita do bot | o job `executa-issue` só commita o backlog quando disparado com `marcar=true` (e o repositório precisa permitir "Read and write permissions" para o `GITHUB_TOKEN`) | conferir em **Settings → Actions → General → Workflow permissions** |
+| Consulta pública do TJPE (Projudi/PJe) | as URLs do TJPE não respondem fora da rede da Justiça (`srv01…`, `pje.cloud…`) | usar o kit em rede compatível; o DataJud/DJEN cobrem o que é público nacional |
+
+---
+
+## 7. Checklist final de entrega
+
+- [x] **Solicitado** — os 4 pedidos implementados no branch (kit curl, `main.py` Markdown, conformidade + bootstrap, pipeline de gates documentado)
+- [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
+- [x] **Realizado** — 5 marcos de commit + 9 arquivos novos, tudo versionado no branch (seção 2.3)
+- [x] **Testado** — 5 suítes, **151 verificações**, todas offline e reprodutíveis (seção 2.4)
+- [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero (seção 2.5)
+- [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
+- [x] **Documentado** — `README.md` (visão geral), `BOOTSTRAP.md` (instalação), `docs/01-03` (API, receitas, pipeline) e esta `ENTREGA.md`
+- [ ] **Pendente do usuário** — rodar a validação ao vivo do CNJ (ISSUE-006) num ambiente com internet e decidir a ISSUE-007
+__ARQ_EOF__
 __ARQ__ Makefile
 # Atalhos para o kit DataJud (API Pública do CNJ)
 TRIBUNAL ?= tjpe
@@ -539,7 +1105,8 @@ LIMITE   ?= 1000
 NUMERO   ?= 0001234-43.2024.8.17.2001
 
 .PHONY: ajuda chave chave-publica consultar contar processo relatorio paginar testes limpar \
-        bootstrap regenerar-bootstrap verificar
+        bootstrap regenerar-bootstrap verificar \
+        gates gate-issues gate-cicd gate-testes gate-issue gate-situacao blueprint testes-pipeline
 
 ajuda: ## mostra o manual do script
 	@bash scripts/datajud.sh ajuda
@@ -565,11 +1132,36 @@ relatorio: ## gera o relatório em markdown/csv (SAIDA=saida)
 paginar: ## baixa processos em JSONL (LIMITE=1000)
 	@bash scripts/datajud.sh paginar --tribunal $(TRIBUNAL) --limite $(LIMITE) --saida processos-$(TRIBUNAL).jsonl
 
-testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + bootstrap)
+testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + pipeline + bootstrap)
 	@python3 tests/testar_conformidade.py
 	@python3 tests/testar_main.py
 	@bash tests/rodar-testes.sh
+	@python3 tests/testar_pipeline.py
 	@bash tests/testar_bootstrap.sh
+
+testes-pipeline: ## roda só a suíte do pipeline de gates (offline)
+	@python3 tests/testar_pipeline.py
+
+gates: ## veredito de continuidade (0=sem pendências, 1=continuidade, 2=humano)
+	@python3 pipeline/gate.py continuidade ; true
+
+gate-issues: ## gate 1 — existem issues abertas?
+	@python3 pipeline/gate.py issues ; true
+
+gate-cicd: ## gate 2 — há execução de CI/CD com erro?
+	@python3 pipeline/gate.py cicd ; true
+
+gate-testes: ## gate 3 — testes presentes e verdes?
+	@python3 pipeline/gate.py testes ; true
+
+gate-issue: ## executa a próxima issue do backlog (ISSUE=ISSUE-00N, MARCAR=--marcar)
+	@python3 pipeline/gate.py issue $$( [ -n "$(ISSUE)" ] && echo "--id $(ISSUE)" ) $(MARCAR) ; true
+
+gate-situacao: ## histórico do pipeline (últimos resultados gravados)
+	@python3 pipeline/gate.py situacao ; true
+
+blueprint: ## valida a planta BPMN do pipeline (pipeline/blueprint.json)
+	@python3 pipeline/gate.py blueprint ; true
 
 bootstrap: ## cria o projeto completo do zero (DIR=./projeto-datajud)
 	@bash bootstrap.sh --destino "$${DIR:-./projeto-datajud}"
@@ -604,9 +1196,13 @@ python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
 | `scripts/datajud.sh` | CLI `curl`+`jq`: contagens, agregações e relatórios **agregados** (por classe, vara, ano…) |
 | `docs/01-api-datajud.md` | referência da API do DataJud (acesso, campos, DSL, erros, regras) |
 | `docs/02-receitas-curl-tjpe.md` | receitas `curl` prontas para o TJPE |
+| `docs/03-pipeline-gates.md` | manual do **pipeline de gates** (contrato JSON, 0/1/2, planta BPMN) |
+| **`pipeline/gate.py`** + `pipeline/blueprint.json` + `pipeline/backlog.json` | **gatilho** de continuidade: mede issues/CI/testes, diz o que fazer agora e devolve JSON |
 | `docs/exemplo-saida/` | exemplo do relatório de processo e do relatório agregado |
-| `tests/` | mock local das APIs + 4 suítes de teste offline (112 verificações) |
+| `tests/` | mock local das APIs + 5 suítes de teste offline (**151 verificações**) |
 | **`bootstrap.sh`** + `BOOTSTRAP.md` | recriam/configuram o projeto inteiro (arquivos, permissões, hashes) e validam tudo |
+| `.github/workflows/gates.yml` | roda os gates no GitHub Actions (push, PR, issue, agenda, manual) |
+| **`ENTREGA.md`** | relatório de entrega do branch: solicitado → incrementado → realizado → testado → validado → produção |
 
 Requisitos: **Python 3.8+** (só biblioteca padrão) para o `main.py`; `bash`, `curl` e `jq` para o `scripts/datajud.sh`.
 
@@ -755,14 +1351,33 @@ Veja o formato em [`docs/exemplo-saida/relatorio-tjpe-exemplo.md`](docs/exemplo-
 O relatório registra endpoint, hora UTC, filtros usados e nº de requisições — e traz as notas do Termo de
 Uso (dados não garantidos pelo CNJ, uso não comercial, ciência ao CNJ ao divulgar, LGPD).
 
+## Pipeline de gates (o gatilho)
+
+```bash
+make gates          # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
+make gate-issues    # existem issues abertas?
+make gate-cicd      # alguma execução de CI/CD terminou com erro?
+make gate-testes    # os testes existem e passam?
+make gate-issue     # executa a próxima issue do backlog (ISSUE=ISSUE-006 MARCAR=--marcar)
+```
+
+Cada gate devolve **o mesmo objeto JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`…)
+e o **exit code é igual ao `status`**: `"0"` sucesso, `"1"` erro tipo 1 (pendência tratável ⇒
+**continuidade**), `"2"` erro tipo 2 (não foi possível avaliar ⇒ exige humano). O **gatilho só é
+positivo** quando não há issue aberta **e** o CI não tem erro **e** os testes passam; enquanto não
+for positivo, `continuidade = true` e o fluxo segue para a próxima issue indexada — cada issue
+entregue vem com a **instrução de teste** da seguinte. Detalhes, diagrama BPMN e contrato completo:
+[`docs/03-pipeline-gates.md`](docs/03-pipeline-gates.md). Entrega documentada: [`ENTREGA.md`](ENTREGA.md).
+
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as suítes (112 verificações)
+make testes                          # todas as 5 suítes (151 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
-./tests/testar_bootstrap.sh          # 22 — recria o projeto e compara byte a byte
+python3 tests/testar_pipeline.py     # 36 — contrato JSON dos gates, 0/1/2, blueprint, workflow
+./tests/testar_bootstrap.sh          # 25 — recria o projeto e compara byte a byte
 ```
 
 As suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam
@@ -771,7 +1386,7 @@ autenticação, erros 400/401/404/429, agregações e paginação. **Nenhuma req
 ### Reconstruir o projeto do zero
 
 ```bash
-bash bootstrap.sh                  # cria ./projeto-datajud, confere hashes e roda os 112 testes
+bash bootstrap.sh                  # cria ./projeto-datajud, confere hashes e roda as 4 suítes
 bash bootstrap.sh --verificar      # só valida uma cópia existente
 python3 tools/gerar_bootstrap.py   # regera o bootstrap após editar algum arquivo
 ```
@@ -1250,6 +1865,212 @@ exatamente o que foi enviado ao CNJ.
 - O CNJ **não garante** precisão/atualidade (item 3.6).
 - Divulgando relatório ao público: **dê ciência ao CNJ** (item 3.9).
 - **Não** coletar/cruzar dados pessoais (item 4.2 — LGPD).
+__ARQ_EOF__
+__ARQ__ docs/03-pipeline-gates.md
+# Pipeline orientado a gates (gate-driven pipeline / blueprint BPMN)
+
+Este projeto tem um **pipeline de portões (gates)** executável localmente **e** no
+GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **código de saída
+é igual ao `status`** — o que permite encadear gates com `if`/`needs` sem parsing extra.
+
+- Executor: [`pipeline/gate.py`](../pipeline/gate.py)
+- Planta (BPMN-like): [`pipeline/blueprint.json`](../pipeline/blueprint.json)
+- Fila indexada de issues: [`pipeline/backlog.json`](../pipeline/backlog.json)
+- Gatilho no GitHub Actions: [`.github/workflows/gates.yml`](../.github/workflows/gates.yml)
+- Testes: [`tests/testar_pipeline.py`](../tests/testar_pipeline.py) (36 testes, offline)
+
+---
+
+## 1. Contrato JSON (igual em todas as ações)
+
+```json
+{
+  "id": "gate-continuidade-20261013T141603Z-751a07",
+  "gate": "continuidade",
+  "status": "1",
+  "codigo_saida": 1,
+  "mensagem": "gate NÃO positivo — continuidade obrigatória. Pendências: issues (1)",
+  "continuidade": true,
+  "next_issue": "ISSUE-006",
+  "anexos": [
+    {"path": "pipeline/saida/issues-abertas.md", "filename": "issues-abertas.md",
+     "descricao": "lista de issues abertas consultadas pelo gate"},
+    {"path": "pipeline/saida/veredito-continuidade.md", "filename": "veredito-continuidade.md",
+     "descricao": "veredito do gate em Markdown (resumo para humanos)"}
+  ],
+  "dados": {"checks": {"issues": {"status": "1"}, "...": {}}, "gate_positivo": false},
+  "timestamp": "2026-10-13T14:16:03Z",
+  "duracao_s": 0.412,
+  "versao": "1.0.0"
+}
+```
+
+| Campo | Tipo | Regra |
+| --- | --- | --- |
+| `id` | string | único por execução (`gate-<nome>-<timestamp>-<hash>`) |
+| `gate` | string | qual gate gerou (`issues`, `cicd`, `testes`, `continuidade`, `issue`, `blueprint`, `situacao`) |
+| `status` | **string** | `"0"`, `"1"` ou `"2"` (ver tabela abaixo) |
+| `codigo_saida` | int | espelho do `status`; é o **exit code** do processo |
+| `mensagem` | **string** | mensagem pronta **ou** resumo/log da execução |
+| `continuidade` | bool | `true` ⇒ o pipeline **deve continuar** (trabalho pendente) |
+| `next_issue` | string \| null | a **mesma** issue se falhou; a **próxima** indexada se passou; `null` se acabou ou não se aplica |
+| `anexos` | array | `{path, filename, descricao}` — artefatos gerados (logs, listas, veredito, guia da próxima issue) |
+| `dados` | objeto | detalhes estruturados de cada gate |
+
+### Códigos
+
+| status | nome | significado | continuidade | exemplo |
+| --- | --- | --- | --- | --- |
+| `"0"` | **SUCESSO** | gate positivo: nada pendente | `false` | sem issues abertas, CI limpo, testes verdes |
+| `"1"` | **ERRO TIPO 1** | pendência **conhecida e tratável** | **`true`** | existe issue aberta; CI vermelho; teste ausente/reprovado; instrução da issue falhou |
+| `"2"` | **ERRO TIPO 2** | **não foi possível avaliar** | `false` | `gh` ausente/sem credencial; blueprint inconsistente; issue sem instrução; chave do CNJ recusada |
+
+> **Regra de ouro do projeto:** o gate só é **positivo** quando não há issue aberta **E**
+> o CI não tem execução com erro **E** existem testes presentes e aprovados.
+> **Enquanto não for positivo ⇒ `continuidade = true`** e `next_issue` aponta a próxima
+> pendência do backlog — é isso que mantém o fluxo andando sem sessão humana.
+
+---
+
+## 2. Fluxo (blueprint tipo BPMN)
+
+```mermaid
+flowchart TD
+    E["Eventos: push · pull_request · issues · schedule (dias úteis 09:00) · workflow_dispatch"] --> G1
+    G1{"gate 1<br/>issues abertas?"} -->|0 sem issues| G2
+    G1 -->|1 há issue aberta| G2
+    G1 -->|2 indeterminado| GC
+    G2{"gate 2<br/>CI/CD com erro?"} -->|0 limpo| G3
+    G2 -->|1 com erro| G3
+    G2 -->|2 indeterminado| GC
+    G3{"gate 3<br/>testes presentes e verdes?"} -->|0 verdes| GC
+    G3 -->|1 ausentes/reprovados| GC
+    G3 -->|2 erro de execução| GC
+    GC{"gate 4<br/>continuidade ⇒<br/>0 issues ∧ CI limpo ∧ testes verdes"}
+    GC -->|2 erro tipo 2| F["FIM: falha o job<br/>(exige humano)"]
+    GC -->|0 positivo| OK["FIM: pipeline pode encerrar<br/>(continuidade=false)"]
+    GC -->|1 continuidade| G5{"gate 5<br/>executa a issue do backlog"}
+    G5 -->|0 passou| NX["next_issue = PRÓXIMA indexada<br/>+ guia da próxima anexada"]
+    G5 -->|1 falhou| MS["next_issue = MESMA issue<br/>+ log do erro anexado"]
+    G5 -->|2 sem instrução| F
+    NX --> GC
+    MS --> G5
+```
+
+A mesma planta está em `pipeline/blueprint.json` (consumida pelo comando
+`gate.py blueprint`, que **falha com status 2** se a planta e a implementação divergirem —
+gate sem código, transição sem destino, etc.).
+
+---
+
+## 3. Comandos
+
+```bash
+# verificação isolada (cada um devolve JSON e sai com 0/1/2)
+python3 pipeline/gate.py issues        # existem issues abertas?      (gh issue list)
+python3 pipeline/gate.py cicd          # há execução de CI com erro?  (gh run list)
+python3 pipeline/gate.py testes        # testes presentes e verdes?   (make testes)
+python3 pipeline/gate.py blueprint     # a planta é consistente?
+
+# veredito agregado (o "gate" propriamente dito)
+python3 pipeline/gate.py continuidade
+
+# executa a instrução da issue: sucesso ⇒ próxima indexada; falha ⇒ mesma
+python3 pipeline/gate.py issue                  # próxima pendente do backlog
+python3 pipeline/gate.py issue --id ISSUE-006   # uma issue específica
+python3 pipeline/gate.py issue --marcar         # e persiste a conclusão no backlog
+
+# leitura do histórico
+python3 pipeline/gate.py situacao
+
+# modo offline/fixture (usado pelos testes e por quem não tem gh)
+python3 pipeline/gate.py issues --issues-json fixture.json
+python3 pipeline/gate.py cicd   --runs-json fixture.json
+python3 pipeline/gate.py issues --sem-gh        # ⇒ status 2 (erro tipo 2, sem fonte)
+```
+
+### Encadeando jobs (como o workflow faz)
+
+```bash
+python3 pipeline/gate.py continuidade \
+  --status-issues "$S_ISSUES" --status-cicd "$S_CICD" --status-testes "$S_TESTES"
+```
+
+Assim o agregador **não reexecuta** a suíte: ele recebe o resultado de cada job
+(`needs.<job>.outputs.status`), que é o padrão de `needs` do GitHub Actions.
+
+---
+
+## 4. Fila de issues (`pipeline/backlog.json`)
+
+Cada item tem `id` sequencial, `titulo`, `entregavel`, **`instrucao_teste` executável** e
+`status` (`concluida` | `pendente` | `bloqueada`). O gate `issue`:
+
+1. localiza a issue (informada ou a **primeira pendente**);
+2. roda a `instrucao_teste` e **anexa o log**;
+3. **código 0** ⇒ `status "0"`, `next_issue` = próxima indexada e anexa
+   `<ID>-proxima-issue.md` com a instrução da seguinte (com o comando pronto);
+   com `--marcar`, grava `status: concluida`, `concluida_em` e `evidencias`;
+4. **código ≠ 0** ⇒ `status "1"`, `next_issue` = **mesma issue**, log anexado
+   (continua tentando até ficar verde);
+5. **sem `instrucao_teste`** ⇒ `status "2"` (exige decisão humana — usado de propósito na
+   ISSUE-007, que depende de escolha do usuário).
+
+Situação atual do backlog: ISSUE-001…005 concluídas, **ISSUE-006 pendente** (validação ao
+vivo contra o CNJ — requer internet) e ISSUE-007 bloqueada (decisão humana).
+
+---
+
+## 5. O workflow (`.github/workflows/gates.yml`)
+
+| Job | Gate | Saída |
+| --- | --- | --- |
+| `gate-issues` | issues abertas | outputs `status`, `continuidade` + artifact |
+| `gate-cicd` | CI/CD com erro | outputs `status`, `continuidade` + artifact |
+| `gate-testes` | suíte completa | outputs + `log-testes-*.txt` |
+| `gate-continuidade` | veredito agregado | `status`, `continuidade`, `next_issue`; **falha o job se status 2** |
+| `executa-issue` | roda a próxima issue | executa a `instrucao_teste`, publica log/guia; com `marcar=true`, commita o backlog |
+
+Todo job publica o JSON no log, o veredito no **job summary** (`$GITHUB_STEP_SUMMARY`) e os
+artefatos via `actions/upload-artifact` — os "anexos" do contrato ficam baixáveis.
+
+Gatilhos: `push`, `pull_request`, `issues` (aberta/fechada/reaberta), `schedule` (dias úteis
+12:00 UTC) e `workflow_dispatch` (com os inputs `issue` e `marcar`).
+
+```bash
+# disparar manualmente (depois que o arquivo estiver na branch padrão)
+gh workflow run gates.yml -f issue=ISSUE-006 -f marcar=false
+gh run list --workflow=gates.yml
+```
+
+---
+
+## 6. Como os testes cobrem o pipeline
+
+`tests/testar_pipeline.py` (36 testes, offline) verifica:
+
+- **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
+  `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
+  existindo no disco, `--json-saida`;
+- **issues**: com pendência ⇒ `1`/continuidade; vazio ⇒ `0`; sem fonte ⇒ `2`;
+- **cicd**: `failure`, `timed_out`, `startup_failure`, `action_required`, `cancelled` ⇒ `1`;
+  sucesso e `in_progress` ⇒ `0`;
+- **testes**: comando OK ⇒ `0`; comando falho ⇒ `1` com o log anexado;
+- **continuidade**: pendência em qualquer check ⇒ `1` + `next_issue`; tudo limpo ⇒ `0`
+  (`next_issue: null`); `2` propaga; anexo do veredito em Markdown;
+- **issue**: sucesso avança para a próxima (e anexa a guia), falha mantém a mesma,
+  sem instrução ⇒ `2`, `--marcar` atualiza o backlog, `--marcar` ausente não altera;
+- **blueprint/backlog**: planta do projeto consistente, planta quebrada ⇒ `2`, backlog
+  íntegro (ids sequenciais, instruções apontando para arquivos existentes);
+- **workflow**: gatilhos exigidos, os 5 jobs, chamadas ao executor, publicação de JSON/
+  summary/artifacts, `status 2` derrubando o job, e checagem estrutural do YAML
+  (sem tabulação, indentação par) — a validação definitiva do YAML é a execução real no
+  Actions.
+
+```bash
+python3 tests/testar_pipeline.py         # 36 testes
+make gates                               # veredito de continuidade de verdade
+```
 __ARQ_EOF__
 __ARQ__ docs/exemplo-saida/agg-grau.tsv
 # campo: grau.keyword
@@ -2516,6 +3337,1007 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     try:  # evita UnicodeEncodeError em consoles Windows (cp1252)
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    sys.exit(main())
+__ARQ_EOF__
+__ARQ__ pipeline/.gitignore
+# artefatos do pipeline (JSONs e anexos por execução)
+saida/
+__ARQ_EOF__
+__ARQ__ pipeline/backlog.json
+{
+  "nome": "backlog do projeto — consulta processual DataJud/DJEN",
+  "descricao": "Fila indexada de issues. Cada item traz a instrução de teste executável do entregável; o gate `issue` roda essa instrução e, quando ela passa, marca o item como concluída e entrega a instrução da ISSUE SEGUINTE.",
+  "como_usar": [
+    "python3 pipeline/gate.py issue                 # roda a próxima pendente (sem marcar)",
+    "python3 pipeline/gate.py issue --marcar        # roda e marca concluída se passar",
+    "python3 pipeline/gate.py issue --id ISSUE-007  # roda uma issue específica"
+  ],
+  "status_possiveis": [
+    "concluida",
+    "pendente",
+    "bloqueada"
+  ],
+  "issues": [
+    {
+      "id": "ISSUE-001",
+      "titulo": "Kit curl para a API Pública do DataJud (TJPE)",
+      "entregavel": "scripts/datajud.sh + docs/01-api-datajud.md + docs/02-receitas-curl-tjpe.md",
+      "instrucao_teste": "bash tests/rodar-testes.sh",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [],
+      "evidencias": [
+        "32 verificações offline passando"
+      ]
+    },
+    {
+      "id": "ISSUE-002",
+      "titulo": "main.py — consulta um processo e gera relatório Markdown",
+      "entregavel": "main.py + tests/testar_main.py + tests/mock_apis.py",
+      "instrucao_teste": "python3 tests/testar_main.py",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-001"
+      ],
+      "evidencias": [
+        "29 testes: NUP/DV, seções do relatório, DJEN, erros 400/401/404/429"
+      ]
+    },
+    {
+      "id": "ISSUE-003",
+      "titulo": "Bootstrap auto-criador (estrutura, arquivos, permissões, hashes)",
+      "entregavel": "bootstrap.sh + BOOTSTRAP.md + tools/gerar_bootstrap.py",
+      "instrucao_teste": "bash tests/testar_bootstrap.sh",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-002"
+      ],
+      "evidencias": [
+        "22 verificações: recriação byte a byte (diff -r), permissões, SHA-256, --verificar"
+      ]
+    },
+    {
+      "id": "ISSUE-004",
+      "titulo": "Validação de conformidade com a documentação oficial do CNJ",
+      "entregavel": "tests/testar_conformidade.py + tabela de conformidade no BOOTSTRAP.md",
+      "instrucao_teste": "python3 tests/testar_conformidade.py",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-001"
+      ],
+      "evidencias": [
+        "29 testes contra a wiki do DataJud e o Termo de Uso v1.2"
+      ]
+    },
+    {
+      "id": "ISSUE-005",
+      "titulo": "Pipeline orientado a gates (JSON) + workflow do GitHub Actions",
+      "entregavel": "pipeline/gate.py + pipeline/blueprint.json + pipeline/backlog.json + .github/workflows/gates.yml",
+      "instrucao_teste": "python3 tests/testar_pipeline.py",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-003"
+      ],
+      "evidencias": [
+        "contrato JSON, status 0/1/2, continuidade, next_issue, anexos, blueprint e workflow validados"
+      ]
+    },
+    {
+      "id": "ISSUE-006",
+      "titulo": "Validar as consultas AO VIVO contra as APIs do CNJ (DataJud + DJEN)",
+      "entregavel": "relatório real de um processo do TJPE (a execução exige internet para api-publica.datajud.cnj.jus.br)",
+      "instrucao_teste": "python3 pipeline/verificar_cnj.py --timeout 20",
+      "status": "pendente",
+      "depende_de": [
+        "ISSUE-002"
+      ],
+      "observacao": "Instrução executável: consulta real e mínima ao DataJud (size=0). Devolve 0 se o CNJ responder 200, 1 se a rede não alcançar a API (continuidade — é o caso do ambiente de desenvolvimento atual) e 2 se a chave for recusada."
+    },
+    {
+      "id": "ISSUE-007",
+      "titulo": "Integrar o gate ao painel de continuidade da sessão (issue #3) e decidir sobre o fluxo da outra sessão",
+      "entregavel": "decisão do usuário: unificar os dois fluxos (npm/continuity da sessão d917b13b × python/pipeline desta sessão)",
+      "instrucao_teste": null,
+      "status": "bloqueada",
+      "depende_de": [
+        "ISSUE-005"
+      ],
+      "observacao": "Sem instrução de teste executável de propósito: o gate devolve status 2 (erro tipo 2) e exige decisão humana."
+    }
+  ]
+}
+__ARQ_EOF__
+__ARQ__ pipeline/blueprint.json
+{
+  "nome": "pipeline-datajud-gates",
+  "versao": "1.0.0",
+  "descricao": "Planta do pipeline orientado a gates (gate-driven pipeline), no formato de blueprint tipo BPMN. Cada gate devolve o objeto JSON do contrato {id, status, mensagem, next_issue, anexos, dados} com status 0 (sucesso), 1 (erro tipo 1 = continuidade) ou 2 (erro tipo 2 = indeterminado).",
+  "contrato": {
+    "campos_obrigatorios": ["id", "gate", "status", "mensagem", "next_issue", "anexos", "dados", "timestamp", "versao"],
+    "status": {
+      "0": "sucesso — gate positivo, nada pendente; continuidade=false",
+      "1": "erro tipo 1 — pendência conhecida e tratável (issue aberta, CI vermelho, teste ausente/reprovado); continuidade=true",
+      "2": "erro tipo 2 — não avaliável (gh ausente, fixture inválida, issue sem instrução); continuidade=false, exige humano"
+    },
+    "anexos": "lista de {path, filename, descricao} — artefatos gerados por cada gate"
+  },
+  "regra_de_continuidade": "positivo ⇔ (0 issues abertas) ∧ (CI sem execuções com erro) ∧ (testes presentes e aprovados). Enquanto NÃO for positivo ⇒ continuidade = true e next_issue aponta a próxima pendência do backlog.",
+  "inicio": "issues",
+  "gates": [
+    {
+      "id": "issues",
+      "tipo": "gateway-exclusivo",
+      "descricao": "Verifica a NÃO existência de issues abertas (gh issue list ou fixture).",
+      "entrada": ["evento do GitHub (push/PR/issues/dispatch)", "fixture opcional --issues-json"],
+      "saidas": {
+        "0": "nenhuma issue aberta",
+        "1": "existe issue aberta → continuidade",
+        "2": "não foi possível consultar (gh ausente/sem credencial)"
+      },
+      "implementacao": "pipeline/gate.py issues",
+      "evidencias": "pipeline/saida/issues-abertas.md"
+    },
+    {
+      "id": "cicd",
+      "tipo": "gateway-exclusivo",
+      "descricao": "Verifica se há execução de CI/CD concluída com erro (failure, timed_out, startup_failure, action_required, cancelled).",
+      "entrada": ["gh run list (30 mais recentes)", "fixture opcional --runs-json"],
+      "saidas": {
+        "0": "nenhuma execução com erro",
+        "1": "há execução com erro → continuidade",
+        "2": "não foi possível consultar"
+      },
+      "implementacao": "pipeline/gate.py cicd",
+      "evidencias": "pipeline/saida/execucoes-ci.md"
+    },
+    {
+      "id": "testes",
+      "tipo": "tarefa",
+      "descricao": "Confere a existência dos arquivos de teste e executa a suíte completa.",
+      "entrada": ["tests/*.py", "tests/*.sh", "--comando"],
+      "saidas": {
+        "0": "testes presentes e aprovados",
+        "1": "testes ausentes ou reprovados → continuidade",
+        "2": "erro de execução (timeout, comando inexistente)"
+      },
+      "implementacao": "pipeline/gate.py testes",
+      "evidencias": "pipeline/saida/log-testes-<ts>.txt"
+    },
+    {
+      "id": "continuidade",
+      "tipo": "gateway-inclusivo",
+      "descricao": "Agrega issues + cicd + testes no veredito. Só é positivo (0) quando os três são positivos; qualquer pendência conhecida ⇒ 1 (continuidade) com next_issue do backlog; qualquer indeterminação ⇒ 2.",
+      "entrada": ["issues", "cicd", "testes", "pipeline/backlog.json"],
+      "saidas": {
+        "0": "pipeline pode finalizar (continuidade=false, next_issue=null)",
+        "1": "pipeline DEVE continuar (continuidade=true, next_issue=<primeira pendente>)",
+        "2": "exige intervenção humana (continuidade=false)"
+      },
+      "implementacao": "pipeline/gate.py continuidade",
+      "evidencias": "pipeline/saida/veredito-continuidade.md"
+    },
+    {
+      "id": "issue",
+      "tipo": "tarefa",
+      "descricao": "Executa a instrução de teste da issue (ou da próxima pendente). Sucesso testado ⇒ marca concluída e entrega a instrução da ISSUE SEGUINTE indexada; falha ⇒ devolve a MESMA issue com o log do erro.",
+      "entrada": ["pipeline/backlog.json", "--id opcional", "--marcar"],
+      "saidas": {
+        "0": "instrução passou — next_issue = próxima pendente (ou null se acabou)",
+        "1": "instrução falhou — next_issue = a mesma issue (continuidade)",
+        "2": "issue sem instrucao_teste executável — requer decisão humana"
+      },
+      "implementacao": "pipeline/gate.py issue",
+      "evidencias": ["pipeline/saida/<ID>-log.txt", "pipeline/saida/<ID>-proxima-issue.md"]
+    }
+  ],
+  "transicoes": [
+    {"de": "issues", "para": "cicd", "quando_status": "0", "condicao": "sem issue aberta"},
+    {"de": "issues", "para": "cicd", "quando_status": "1", "condicao": "com issue aberta — ainda assim avalia o resto (o veredito sai no agregador)"},
+    {"de": "issues", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado — o agregador decide status 2"},
+    {"de": "cicd", "para": "testes", "quando_status": "0", "condicao": "CI limpo"},
+    {"de": "cicd", "para": "testes", "quando_status": "1", "condicao": "CI com erro — segue avaliando os testes"},
+    {"de": "cicd", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
+    {"de": "testes", "para": "continuidade", "quando_status": "0", "condicao": "testes verdes"},
+    {"de": "testes", "para": "continuidade", "quando_status": "1", "condicao": "testes vermelhos/ausentes"},
+    {"de": "testes", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
+    {"de": "continuidade", "para": "issue", "quando_status": "1", "condicao": "continuidade=true → executar a próxima issue do backlog"},
+    {"de": "continuidade", "para": "fim", "quando_status": "0", "condicao": "gate positivo — nada pendente, pipeline pode encerrar"},
+    {"de": "continuidade", "para": "fim", "quando_status": "2", "condicao": "erro tipo 2 — para e exige humano"},
+    {"de": "issue", "para": "issue", "quando_status": "1", "condicao": "falhou — repete a MESMA issue"},
+    {"de": "issue", "para": "continuidade", "quando_status": "0", "condicao": "passou — reavalia o gate agregado com a próxima issue"},
+    {"de": "issue", "para": "fim", "quando_status": "2", "condicao": "issue sem instrução executável — exige humano"}
+  ],
+  "gatilhos_github_actions": {
+    "arquivo": ".github/workflows/gates.yml",
+    "on": ["push", "pull_request", "issues (opened/closed/reopened)", "schedule (dias úteis 09:00)", "workflow_dispatch"],
+    "jobs": {
+      "gate-issues": "executa `gate.py issues`, publica o JSON e o anexo",
+      "gate-cicd": "executa `gate.py cicd`, publica o JSON e o anexo",
+      "gate-testes": "executa `gate.py testes` (suíte completa)",
+      "gate-continuidade": "agrega os três (needs) e decide: 0 finaliza, 1 continua, 2 falha o job",
+      "executa-issue": "roda a próxima issue do backlog quando continuidade=true (workflow_dispatch)"
+    },
+    "saidas": ["artifacts com pipeline/saida/*", "GITHUB_STEP_SUMMARY com o veredito", "exit code = status do gate"]
+  }
+}
+__ARQ_EOF__
+__ARQ__ pipeline/gate.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""gate.py — gates do pipeline (gate-driven pipeline / blueprint tipo BPMN).
+
+Cada ação deste pipeline devolve SEMPRE o mesmo objeto JSON no stdout:
+
+    {
+      "id":          "gate-continuidade-20261013T141500Z-8f3a1c",  # único
+      "gate":        "continuidade",
+      "status":      "0",              # string: 0=sucesso, 1=erro tipo 1, 2=erro tipo 2
+      "codigo_saida": 0,               # mesmo valor, como inteiro (exit code do processo)
+      "mensagem":    "...",            # string pronta OU resumo/log da execução
+      "continuidade": true,            # true = o pipeline DEVE continuar (trabalho pendente)
+      "next_issue":  "ISSUE-007",      # mesma issue se falhou; a próxima se passou
+      "anexos":      [{"path": "...", "filename": "...", "descricao": "..."}],
+      "dados":       { ... },          # detalhes estruturados de cada gate
+      "timestamp":   "2026-10-13T14:15:00Z",
+      "versao":      "1.0.0"
+    }
+
+Semântica dos códigos (contrato do projeto):
+
+  "0" SUCESSO      — o gate é positivo: nada pendente. `continuidade` = false.
+  "1" ERRO TIPO 1  — pendência CONHECIDA e tratável: issue aberta, CI vermelho ou
+                     teste ausente/reprovado. `continuidade` = true → o pipeline
+                     segue (é o "enquanto não positivo, significa continuidade").
+  "2" ERRO TIPO 2  — não foi possível avaliar (gh ausente/sem credencial, fixture
+                     inválida, issue sem instrução de teste). `continuidade` = false
+                     → exige intervenção humana; não continue automaticamente.
+
+O código de saída do processo é igual ao `status` (0, 1 ou 2), para uso direto em
+`if`/`|| true` dentro do GitHub Actions.
+
+Comandos:
+    gate.py issues        [--sem-gh|--issues-json F]      # existem issues abertas?
+    gate.py cicd          [--sem-gh|--runs-json F]        # há execução de CI com erro?
+    gate.py testes        [--comando "make testes"]       # os testes existem e passam?
+    gate.py continuidade                                  # agrega os três acima
+    gate.py issue [--id ISSUE-007] [--marcar]             # executa a instrução da issue
+    gate.py blueprint                                     # valida a planta (BPMN-like)
+    gate.py situacao                                      # lê os últimos JSONs gravados
+
+Opções comuns:
+    --json-saida ARQUIVO   grava o objeto JSON também em arquivo
+    --saida-dir DIR        diretório de anexos/JSON (padrão: pipeline/saida)
+    --backlog ARQUIVO      fila de issues (padrão: pipeline/backlog.json)
+    --repo OWNER/REPO      repositório para consultas via gh (padrão: o atual)
+    -q/--quieto            não imprime o JSON no stdout (só grava)
+
+Requisitos: Python 3.8+ (biblioteca padrão). `gh` é necessário para os gates
+`issues` e `cicd` fora do modo fixture.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import uuid
+from datetime import datetime, timezone
+
+VERSAO = "1.0.0"
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SAIDA_PADRAO = os.path.join(RAIZ, "pipeline", "saida")
+BACKLOG_PADRAO = os.path.join(RAIZ, "pipeline", "backlog.json")
+BLUEPRINT_PADRAO = os.path.join(RAIZ, "pipeline", "blueprint.json")
+
+STATUS_SUCESSO, STATUS_CONTINUIDADE, STATUS_INDETERMINADO = "0", "1", "2"
+
+# comandos de teste usados pelo gate `testes` e pela checagem de presença
+ARQUIVOS_DE_TESTE = [
+    "tests/testar_conformidade.py",
+    "tests/testar_main.py",
+    "tests/rodar-testes.sh",
+    "tests/testar_bootstrap.sh",
+    "tests/testar_pipeline.py",
+]
+COMANDO_TESTES_PADRAO = "make testes"
+
+
+class ErroGate(Exception):
+    """Falha do tipo 2 (não foi possível avaliar) com mensagem pronta."""
+
+
+# --------------------------------------------------------------------------- #
+# contrato JSON
+# --------------------------------------------------------------------------- #
+
+
+def agora() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def novo_id(gate: str) -> str:
+    carimbo = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return f"gate-{gate}-{carimbo}-{uuid.uuid4().hex[:6]}"
+
+
+def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
+           next_issue=None, continuidade=None, duracao: float = 0.0) -> dict:
+    """Monta o objeto JSON do contrato. Unico ponto de criação — garante o formato."""
+    if continuidade is None:
+        continuidade = status == STATUS_CONTINUIDADE
+    return {
+        "id": novo_id(gate),
+        "gate": gate,
+        "status": str(status),
+        "codigo_saida": int(status),
+        "mensagem": str(mensagem),
+        "continuidade": bool(continuidade),
+        "next_issue": next_issue,
+        "anexos": [
+            {"path": a.get("path"), "filename": os.path.basename(a.get("path") or ""),
+             "descricao": a.get("descricao", "")}
+            for a in (anexos or [])
+        ],
+        "dados": dados or {},
+        "timestamp": agora(),
+        "duracao_s": round(duracao, 3),
+        "versao": VERSAO,
+    }
+
+
+def gravar(objeto_json: dict, saida_dir: str) -> dict:
+    """Grava o objeto em pipeline/saida/<id>.json e devolve o registro do anexo."""
+    os.makedirs(saida_dir, exist_ok=True)
+    caminho = os.path.join(saida_dir, f"{objeto_json['id']}.json")
+    with open(caminho, "w", encoding="utf-8") as fh:
+        json.dump(objeto_json, fh, ensure_ascii=False, indent=2)
+        fh.write("\n")
+    return {"path": caminho, "filename": os.path.basename(caminho),
+            "descricao": f"objeto JSON do gate {objeto_json['gate']}"}
+
+
+def gravar_anexo(nome: str, conteudo: str, saida_dir: str, descricao: str) -> dict:
+    os.makedirs(saida_dir, exist_ok=True)
+    caminho = os.path.join(saida_dir, nome)
+    with open(caminho, "w", encoding="utf-8") as fh:
+        fh.write(conteudo)
+    return {"path": caminho, "filename": os.path.basename(caminho), "descricao": descricao}
+
+
+def executar(comando: str, tempo_limite: int = 1800) -> tuple:
+    """Roda um comando de shell e devolve (código, saída_completa)."""
+    processo = subprocess.run(["/bin/bash", "-lc", comando], capture_output=True,
+                              text=True, timeout=tempo_limite, cwd=RAIZ)
+    saida = (processo.stdout or "") + (processo.stderr or "")
+    return processo.returncode, saida
+
+
+# --------------------------------------------------------------------------- #
+# backlog (fila indexada de issues)
+# --------------------------------------------------------------------------- #
+
+
+def ler_backlog(caminho: str = BACKLOG_PADRAO) -> dict:
+    if not os.path.exists(caminho):
+        raise ErroGate(f"backlog não encontrado: {caminho}")
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except json.JSONDecodeError as e:
+        raise ErroGate(f"backlog inválido (JSON): {e}")
+    if not isinstance(dados.get("issues"), list) or not dados["issues"]:
+        raise ErroGate("backlog sem a lista 'issues' ou vazia")
+    return dados
+
+
+def ordenar(issues: list) -> list:
+    def chave(item):
+        m = re.search(r"(\d+)$", str(item.get("id", "")))
+        return int(m.group(1)) if m else 0
+    return sorted(issues, key=chave)
+
+
+def proxima_pendente(backlog: dict, excluir=None) -> dict | None:
+    """Primeira issue não concluída, ignorando ids em `excluir` (as já validadas na execução)."""
+    ignorar = set(excluir or ())
+    for item in ordenar(backlog["issues"]):
+        if item.get("id") in ignorar:
+            continue
+        if str(item.get("status", "")).lower() not in ("concluida", "concluída", "done"):
+            return item
+    return None
+
+
+def achar_issue(backlog: dict, identificador: str) -> dict | None:
+    for item in backlog["issues"]:
+        if item.get("id") == identificador:
+            return item
+    return None
+
+
+def marcar_concluida(backlog: dict, identificador: str, evidencias: dict) -> None:
+    item = achar_issue(backlog, identificador)
+    if item is None:
+        raise ErroGate(f"issue {identificador} não está no backlog")
+    item["status"] = "concluida"
+    item["concluida_em"] = agora()
+    item.setdefault("evidencias", [])
+    item["evidencias"].append(evidencias)
+
+
+# --------------------------------------------------------------------------- #
+# gates de verificação
+# --------------------------------------------------------------------------- #
+
+
+def _rodar_gh(argumentos: list) -> list:
+    if shutil.which("gh") is None:
+        raise ErroGate("o comando 'gh' não está instalado — não é possível avaliar "
+                       "issues/CI (use --issues-json/--runs-json ou --sem-gh)")
+    proc = subprocess.run(["gh", *argumentos], capture_output=True, text=True, cwd=RAIZ)
+    if proc.returncode != 0:
+        raise ErroGate(f"gh {' '.join(argumentos[:3])} falhou: "
+                       f"{(proc.stderr or proc.stdout).strip()[:300]}")
+    try:
+        return json.loads(proc.stdout or "[]")
+    except json.JSONDecodeError as e:
+        raise ErroGate(f"resposta do gh não é JSON: {e}")
+
+
+def gate_issues(args, saida_dir: str) -> dict:
+    inicio = time.time()
+    if args.issues_json:
+        with open(args.issues_json, encoding="utf-8") as fh:
+            abertas = json.load(fh)
+        fonte = f"fixture {args.issues_json}"
+    elif args.sem_gh:
+        raise ErroGate("modo --sem-gh exige --issues-json (sem fonte para avaliar issues)")
+    else:
+        consulta = ["issue", "list", "--state", "open", "--limit", "100",
+                    "--json", "number,title,url,labels,createdAt"]
+        if args.repo:
+            consulta += ["--repo", args.repo]
+        abertas = _rodar_gh(consulta)
+        fonte = "gh issue list"
+
+    linhas = [f"| #{i.get('number')} | {i.get('title','')} | {i.get('url','')} |" for i in abertas]
+    anexo = gravar_anexo("issues-abertas.md",
+                         "# Issues abertas\n\n| # | título | url |\n| --- | --- | --- |\n"
+                         + ("\n".join(linhas) or "| — | nenhuma | — |") + "\n",
+                         saida_dir, "lista de issues abertas consultadas pelo gate")
+
+    if abertas:
+        return objeto(
+            gate="issues", status=STATUS_CONTINUIDADE, continuidade=True,
+            mensagem=f"{len(abertas)} issue(s) aberta(s) — pendência conhecida: o pipeline "
+                     f"continua (fonte: {fonte})",
+            anexos=[anexo], dados={"fonte": fonte, "abertas": len(abertas), "issues": abertas},
+            duracao=time.time() - inicio)
+    return objeto(
+        gate="issues", status=STATUS_SUCESSO,
+        mensagem=f"nenhuma issue aberta (fonte: {fonte})",
+        anexos=[anexo], dados={"fonte": fonte, "abertas": 0, "issues": []},
+        duracao=time.time() - inicio)
+
+
+def gate_cicd(args, saida_dir: str) -> dict:
+    inicio = time.time()
+    if args.runs_json:
+        with open(args.runs_json, encoding="utf-8") as fh:
+            execucoes = json.load(fh)
+        fonte = f"fixture {args.runs_json}"
+    elif args.sem_gh:
+        raise ErroGate("modo --sem-gh exige --runs-json (sem fonte para avaliar o CI)")
+    else:
+        consulta = ["run", "list", "--limit", "30",
+                    "--json", "databaseId,workflowName,status,conclusion,headBranch,url"]
+        if args.repo:
+            consulta += ["--repo", args.repo]
+        execucoes = _rodar_gh(consulta)
+        fonte = "gh run list"
+
+    problematicas = [e for e in execucoes
+                     if str(e.get("conclusion") or "").lower() in
+                     ("failure", "timed_out", "startup_failure", "action_required", "cancelled")
+                     and str(e.get("status") or "completed") == "completed"]
+    pendentes = [e for e in execucoes if str(e.get("status") or "") in ("in_progress", "queued")]
+
+    linhas = [f"| {e.get('workflowName') or e.get('name')} | {e.get('status')} | "
+              f"{e.get('conclusion')} | {e.get('headBranch')} | {e.get('url','')} |"
+              for e in execucoes]
+    anexo = gravar_anexo("execucoes-ci.md",
+                         "# Execuções de CI/CD\n\n| workflow | status | conclusão | branch | url |\n"
+                         "| --- | --- | --- | --- | --- |\n"
+                         + ("\n".join(linhas) or "| — | — | — | — | — |") + "\n",
+                         saida_dir, "execuções de CI recentes consultadas pelo gate")
+
+    dados = {"fonte": fonte, "total": len(execucoes), "com_erro": len(problematicas),
+             "em_andamento": len(pendentes),
+             "workflows": sorted({str(e.get("workflowName") or e.get("name") or "?")
+                                  for e in execucoes})}
+    if problematicas:
+        nomes = ", ".join(sorted({str(e.get("workflowName") or "?") for e in problematicas}))
+        return objeto(
+            gate="cicd", status=STATUS_CONTINUIDADE, continuidade=True,
+            mensagem=f"{len(problematicas)} execução(ões) de CI com erro ({nomes}) — "
+                     "pendência conhecida: o pipeline continua",
+            anexos=[anexo], dados={**dados, "execucoes_com_erro": problematicas},
+            duracao=time.time() - inicio)
+    return objeto(
+        gate="cicd", status=STATUS_SUCESSO,
+        mensagem=(f"CI sem erros ({len(execucoes)} execução(ões) analisada(s)"
+                  + (f", {len(pendentes)} em andamento" if pendentes else "") + f"; fonte: {fonte})"),
+        anexos=[anexo], dados=dados, duracao=time.time() - inicio)
+
+
+def gate_testes(args, saida_dir: str) -> dict:
+    inicio = time.time()
+    faltando = [a for a in ARQUIVOS_DE_TESTE if not os.path.exists(os.path.join(RAIZ, a))]
+    comando = args.comando or COMANDO_TESTES_PADRAO
+
+    if faltando:
+        anexo = gravar_anexo("testes-ausentes.md",
+                             "# Testes ausentes\n\n" + "\n".join(f"- `{a}`" for a in faltando) + "\n",
+                             saida_dir, "arquivos de teste ausentes")
+        return objeto(
+            gate="testes", status=STATUS_CONTINUIDADE, continuidade=True,
+            mensagem=f"sem testes: {len(faltando)} arquivo(s) ausente(s) "
+                     f"({', '.join(faltando)}) — pendência conhecida",
+            anexos=[anexo], dados={"faltando": faltando, "comando": None},
+            duracao=time.time() - inicio)
+
+    codigo, saida = executar(comando)
+    anexo = gravar_anexo(f"log-testes-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.txt",
+                         f"$ {comando}\n(código de saída: {codigo})\n\n{saida}",
+                         saida_dir, "log completo da execução dos testes")
+    dados = {"comando": comando, "codigo_saida": codigo,
+             "arquivos_testados": ARQUIVOS_DE_TESTE,
+             "resumo": [l for l in saida.splitlines() if l.strip().startswith(
+                 ("Ran ", "OK", "FAILED", "Resultado"))][-4:]}
+
+    if codigo == 0:
+        return objeto(
+            gate="testes", status=STATUS_SUCESSO,
+            mensagem=f"testes presentes e aprovados (`{comando}`, código 0)",
+            anexos=[anexo], dados=dados, duracao=time.time() - inicio)
+    return objeto(
+        gate="testes", status=STATUS_CONTINUIDADE, continuidade=True,
+        mensagem=f"testes reprovados (`{comando}`, código {codigo}) — pendência conhecida: "
+                 "o pipeline continua até ficar verde",
+        anexos=[anexo], dados=dados, duracao=time.time() - inicio)
+
+
+def gate_continuidade(args, saida_dir: str) -> dict:
+    """Agrega issues + CI + testes na decisão de continuidade.
+
+    Regra do projeto: o gate só é POSITIVO quando não há issue aberta, não há CI
+    com erro e existem testes passando. Enquanto não for positivo ⇒ continuidade.
+    """
+    inicio = time.time()
+    parciais, anexos = {}, []
+
+    for nome, funcao, override in (("issues", gate_issues, getattr(args, "status_issues", None)),
+                                   ("cicd", gate_cicd, getattr(args, "status_cicd", None)),
+                                   ("testes", gate_testes, getattr(args, "status_testes", None))):
+        if override is not None:
+            # valor vindo de outro job do workflow (encadeamento por `needs`)
+            parciais[nome] = objeto(
+                gate=nome, status=str(override), continuidade=str(override) == STATUS_CONTINUIDADE,
+                mensagem=f"status {override} informado por outro job do pipeline "
+                         f"(--status-{nome.lstrip('-')})",
+                dados={"origem": "job anterior"})
+        else:
+            try:
+                parciais[nome] = funcao(args, saida_dir)
+            except ErroGate as e:
+                parciais[nome] = objeto(gate=nome, status=STATUS_INDETERMINADO,
+                                        continuidade=False, mensagem=str(e))
+        anexos.extend(parciais[nome]["anexos"])
+
+    # contexto: próxima issue do backlog (alimenta o campo next_issue)
+    try:
+        backlog = ler_backlog(args.backlog)
+        proxima = proxima_pendente(backlog)
+        contexto_backlog = {"proxima_pendente": (proxima or {}).get("id"),
+                            "titulo": (proxima or {}).get("titulo"),
+                            "instrucao_teste": (proxima or {}).get("instrucao_teste")}
+    except ErroGate as e:
+        proxima, contexto_backlog = None, {"erro": str(e)}
+
+    indeterminados = [n for n, p in parciais.items() if p["status"] == STATUS_INDETERMINADO]
+    pendentes = [n for n, p in parciais.items() if p["status"] == STATUS_CONTINUIDADE]
+
+    if indeterminados:
+        status = STATUS_INDETERMINADO
+        continuidade = False
+        mensagem = (f"não foi possível avaliar: {', '.join(indeterminados)} — "
+                    "exige intervenção (erro tipo 2): "
+                    + " | ".join(parciais[n]["mensagem"] for n in indeterminados))
+    elif pendentes:
+        status = STATUS_CONTINUIDADE
+        continuidade = True
+        mensagem = ("gate NÃO positivo — continuidade obrigatória. Pendências: "
+                    + "; ".join(f"{n} ({parciais[n]['dados'].get('abertas', parciais[n]['dados'].get('com_erro', '?'))})"
+                                for n in pendentes))
+    else:
+        status = STATUS_SUCESSO
+        continuidade = False
+        mensagem = "gate positivo: nenhuma issue aberta, CI sem erros e testes aprovados"
+
+    dados = {
+        "checks": {n: {"status": p["status"], "mensagem": p["mensagem"]} for n, p in parciais.items()},
+        "gate_positivo": status == STATUS_SUCESSO,
+        "regra": "positivo ⇔ (0 issues abertas) ∧ (CI sem erro) ∧ (testes presentes e verdes)",
+        "backlog": contexto_backlog,
+    }
+
+    resultado = objeto(
+        gate="continuidade", status=status, continuidade=continuidade, mensagem=mensagem,
+        next_issue=(proxima or {}).get("id") if continuidade else None,
+        anexos=anexos, dados=dados, duracao=time.time() - inicio)
+
+    # anexo consolidado em markdown (resumo humano do veredito)
+    resumo_md = [
+        "# Veredito do gate de continuidade", "",
+        f"- **status:** `{resultado['status']}` "
+        f"({'sucesso' if status == '0' else 'continuidade' if status == '1' else 'indeterminado'})",
+        f"- **continuidade:** `{str(continuidade).lower()}`",
+        f"- **next_issue:** `{resultado['next_issue'] or '—'}`",
+        f"- **timestamp:** {resultado['timestamp']}", "",
+        "| check | status | mensagem |", "| --- | --- | --- |",
+    ]
+    for nome, parcial in parciais.items():
+        resumo_md.append(f"| {nome} | {parcial['status']} | {parcial['mensagem']} |")
+    resultado["anexos"].append(gravar_anexo(
+        "veredito-continuidade.md", "\n".join(resumo_md) + "\n", saida_dir,
+        "veredito do gate em Markdown (resumo para humanos)"))
+    return resultado
+
+
+# --------------------------------------------------------------------------- #
+# gate de execução de issue (instrução → teste → próxima issue)
+# --------------------------------------------------------------------------- #
+
+
+def gate_issue(args, saida_dir: str) -> dict:
+    """Executa a instrução de teste da issue e devolve a PRÓXIMA indexada.
+
+    − sucesso testado (código 0): status 0, marca concluída (com --marcar) e o
+      `next_issue` passa a ser a próxima pendente, junto com a instrução dela;
+    − falha no teste: status 1 (continuidade), `next_issue` = a MESMA issue;
+    − issue sem instrução executável: status 2 (precisa de gente).
+    """
+    inicio = time.time()
+    backlog = ler_backlog(args.backlog)
+    identificador = args.id or (proxima_pendente(backlog) or {}).get("id")
+    if not identificador:
+        raise ErroGate("não há issue pendente no backlog e nenhuma foi informada em --id")
+
+    issue = achar_issue(backlog, identificador)
+    if issue is None:
+        raise ErroGate(f"issue {identificador} não existe no backlog ({args.backlog})")
+
+    instrucao = (issue.get("instrucao_teste") or "").strip()
+    if not instrucao:
+        return objeto(
+            gate="issue", status=STATUS_INDETERMINADO, continuidade=False,
+            next_issue=identificador,
+            mensagem=f"{identificador} (“{issue.get('titulo')}”) não tem instrucao_teste "
+                     "executável — requer decisão humana (erro tipo 2)",
+            dados={"issue": issue, "backlog": args.backlog}, duracao=time.time() - inicio)
+
+    codigo, saida = executar(instrucao)
+    anexo_log = gravar_anexo(f"{identificador}-log.txt",
+                             f"$ {instrucao}\n(código de saída: {codigo})\n\n{saida}",
+                             saida_dir, f"log da instrução de teste da {identificador}")
+    anexos = [anexo_log]
+
+    if codigo == 0:
+        if args.marcar:
+            marcar_concluida(backlog, identificador,
+                             {"teste": instrucao, "codigo_saida": 0, "quando": agora()})
+            with open(args.backlog, "w", encoding="utf-8") as fh:
+                json.dump(backlog, fh, ensure_ascii=False, indent=2)
+                fh.write("\n")
+        # a issue recém-validada não entra como "próxima" (mesmo sem --marcar)
+        proxima = proxima_pendente(backlog, excluir=[identificador])
+        if proxima:
+            guia = [
+                f"# Próxima issue: {proxima.get('id')} — {proxima.get('titulo')}", "",
+                f"- **entregável:** {proxima.get('entregavel', '—')}",
+                f"- **instrução de teste:** `{proxima.get('instrucao_teste') or '—'}`", "",
+                "## Como executar", "```bash",
+                f"python3 pipeline/gate.py issue --id {proxima.get('id')} --marcar",
+                "```", "",
+                f"_(depende de: {', '.join(proxima.get('depende_de', []) )or '—'})_",
+            ]
+            anexos.append(gravar_anexo(f"{identificador}-proxima-issue.md", "\n".join(guia) + "\n",
+                                       saida_dir,
+                                       f"instrução da issue seguinte ({proxima.get('id')})"))
+            mensagem = (f"{identificador} testada com sucesso (código 0) — "
+                        f"segue a issue {proxima.get('id')}: {proxima.get('titulo')}"
+                        + ("" if args.marcar else
+                           " (não marcada: use --marcar para persistir a conclusão no backlog)"))
+            next_issue = proxima.get("id")
+        else:
+            mensagem = (f"{identificador} testada com sucesso (código 0) — backlog sem pendências"
+                        + ("" if args.marcar else
+                           " (não marcada: use --marcar para persistir a conclusão no backlog)"))
+            next_issue = None
+        return objeto(
+            gate="issue", status=STATUS_SUCESSO, continuidade=bool(proxima),
+            mensagem=mensagem, next_issue=next_issue, anexos=anexos,
+            dados={"issue": identificador, "teste": instrucao, "codigo_saida": 0,
+                   "marcada_concluida": bool(args.marcar), "backlog": args.backlog,
+                   "resumo": saida[-1500:]},
+            duracao=time.time() - inicio)
+
+    return objeto(
+        gate="issue", status=STATUS_CONTINUIDADE, continuidade=True,
+        next_issue=identificador,
+        mensagem=f"{identificador} ainda não passa (`{instrucao}`, código {codigo}) — "
+                 "continuidade: repita/mesma issue até ficar verde",
+        anexos=anexos,
+        dados={"issue": identificador, "teste": instrucao, "codigo_saida": codigo,
+               "backlog": args.backlog, "resumo": saida[-1500:]},
+        duracao=time.time() - inicio)
+
+
+# --------------------------------------------------------------------------- #
+# blueprint e situação
+# --------------------------------------------------------------------------- #
+
+
+def gate_blueprint(args, saida_dir: str) -> dict:
+    inicio = time.time()
+    with open(args.blueprint, encoding="utf-8") as fh:
+        planta = json.load(fh)
+
+    falhas = []
+    gates_planta = {g["id"] for g in planta.get("gates", [])}
+    implementacao = {"issues", "cicd", "testes", "continuidade", "issue"}
+    if not gates_planta:
+        falhas.append("blueprint sem 'gates'")
+    if gates_planta - implementacao:
+        falhas.append(f"gates no blueprint sem implementação: {sorted(gates_planta - implementacao)}")
+    ligados = set()
+    for t in planta.get("transicoes", []):
+        for campo in ("de", "para", "quando_status"):
+            if campo not in t:
+                falhas.append(f"transição sem '{campo}': {t}")
+        ligados.add(t.get("de"))
+    if gates_planta - ligados - {"fim"}:
+        falhas.append(f"gates sem transição de saída: {sorted(gates_planta - ligados - {'fim'})}")
+
+    if falhas:
+        anexo = gravar_anexo("blueprint-erros.md", "# Falhas na planta\n\n"
+                             + "\n".join(f"- {f}" for f in falhas) + "\n", saida_dir,
+                             "falhas de consistência da planta")
+        return objeto(gate="blueprint", status=STATUS_INDETERMINADO, continuidade=False,
+                      mensagem="blueprint inconsistente: " + "; ".join(falhas),
+                      anexos=[anexo], dados={"falhas": falhas}, duracao=time.time() - inicio)
+
+    return objeto(gate="blueprint", status=STATUS_SUCESSO,
+                  mensagem=f"planta consistente: {len(gates_planta)} gates, "
+                           f"{len(planta.get('transicoes', []))} transições",
+                  dados={"gates": sorted(gates_planta),
+                         "transicoes": len(planta.get("transicoes", [])),
+                         "arquivo": args.blueprint}, duracao=time.time() - inicio)
+
+
+def gate_situacao(args, saida_dir: str) -> dict:
+    """Lê os últimos JSONs gravados e resume a situação do pipeline."""
+    inicio = time.time()
+    if not os.path.isdir(saida_dir):
+        return objeto(gate="situacao", status=STATUS_INDETERMINADO, continuidade=False,
+                      mensagem=f"sem histórico: {saida_dir} não existe", duracao=time.time() - inicio)
+    ultimos = {}
+    for nome in sorted(os.listdir(saida_dir)):
+        if not nome.endswith(".json"):
+            continue
+        with open(os.path.join(saida_dir, nome), encoding="utf-8") as fh:
+            try:
+                obj = json.load(fh)
+            except json.JSONDecodeError:
+                continue
+        ultimos[obj.get("gate", "?")] = obj
+
+    linhas = ["| gate | status | continuidade | next_issue | quando |",
+              "| --- | --- | --- | --- | --- |"]
+    for nome, obj in ultimos.items():
+        linhas.append(f"| {nome} | {obj.get('status')} | {obj.get('continuidade')} | "
+                      f"{obj.get('next_issue') or '—'} | {obj.get('timestamp')} |")
+    anexo = gravar_anexo("situacao.md", "# Situação dos gates\n\n" + "\n".join(linhas) + "\n",
+                         saida_dir, "tabela com o último resultado de cada gate")
+    return objeto(gate="situacao", status=STATUS_SUCESSO,
+                  mensagem=f"{len(ultimos)} gate(s) com histórico em {saida_dir}",
+                  anexos=[anexo], dados={"ultimos": {k: {"status": v["status"],
+                                                         "continuidade": v["continuidade"]}
+                                                     for k, v in ultimos.items()}},
+                  duracao=time.time() - inicio)
+
+
+# --------------------------------------------------------------------------- #
+# CLI
+# --------------------------------------------------------------------------- #
+
+
+def montar_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="gate.py",
+        description="Gates do pipeline (JSON sempre no stdout; código de saída = status).",
+        epilog="Status: 0=sucesso, 1=erro tipo 1/continuidade, 2=erro tipo 2/indeterminado.")
+    p.add_argument("gate", choices=["issues", "cicd", "testes", "continuidade", "issue",
+                                    "blueprint", "situacao"])
+    p.add_argument("--json-saida", help="arquivo extra para o objeto JSON")
+    p.add_argument("--saida-dir", default=os.environ.get("GATE_SAIDA_DIR") or SAIDA_PADRAO)
+    p.add_argument("--backlog", default=BACKLOG_PADRAO)
+    p.add_argument("--blueprint", default=BLUEPRINT_PADRAO)
+    p.add_argument("--repo", default=os.environ.get("GATE_REPO"))
+    p.add_argument("--id", help="(gate issue) identificador da issue, ex.: ISSUE-007")
+    p.add_argument("--marcar", action="store_true",
+                   help="(gate issue) marca a issue como concluída no backlog quando passa")
+    p.add_argument("--comando", help=f"(gate testes) comando a executar (padrão: {COMANDO_TESTES_PADRAO})")
+    p.add_argument("--issues-json", help="(gates issues/continuidade) fixture de issues abertas")
+    p.add_argument("--runs-json", help="(gates cicd/continuidade) fixture de execuções de CI")
+    p.add_argument("--sem-gh", action="store_true", help="não chamar gh (usa apenas fixtures)")
+    for _nome in ("issues", "cicd", "testes"):
+        p.add_argument(f"--status-{_nome}", choices=["0", "1", "2"],
+                       help=f"(continuidade) usa este status para '{_nome}' em vez de avaliar "
+                            "— encadeamento de jobs do workflow")
+    p.add_argument("-q", "--quieto", action="store_true", help="não imprime o JSON no stdout")
+    p.add_argument("-V", "--versao", action="version", version=f"gate.py {VERSAO}")
+    return p
+
+
+def main(argv=None) -> int:
+    args = montar_parser().parse_args(argv)
+    funcoes = {"issues": gate_issues, "cicd": gate_cicd, "testes": gate_testes,
+               "continuidade": gate_continuidade, "issue": gate_issue,
+               "blueprint": gate_blueprint, "situacao": gate_situacao}
+    try:
+        resultado = funcoes[args.gate](args, args.saida_dir)
+    except ErroGate as e:
+        resultado = objeto(gate=args.gate, status=STATUS_INDETERMINADO, continuidade=False,
+                           mensagem=f"erro tipo 2: {e}")
+    except subprocess.TimeoutExpired:
+        resultado = objeto(gate=args.gate, status=STATUS_INDETERMINADO, continuidade=False,
+                           mensagem="erro tipo 2: tempo limite excedido na execução")
+    except FileNotFoundError as e:
+        resultado = objeto(gate=args.gate, status=STATUS_INDETERMINADO, continuidade=False,
+                           mensagem=f"erro tipo 2: arquivo não encontrado ({e})")
+
+    if args.saida_dir:
+        resultado["anexos"].append(gravar(resultado, args.saida_dir))
+    if args.json_saida:
+        os.makedirs(os.path.dirname(os.path.abspath(args.json_saida)), exist_ok=True)
+        with open(args.json_saida, "w", encoding="utf-8") as fh:
+            json.dump(resultado, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+    if not args.quieto:
+        print(json.dumps(resultado, ensure_ascii=False, indent=2))
+    return int(resultado["status"])
+
+
+if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    sys.exit(main())
+__ARQ_EOF__
+__ARQ__ pipeline/verificar_cnj.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""verificar_cnj.py — instrução executável da ISSUE-006 (validação ao vivo do CNJ).
+
+Faz uma consulta real e mínima à API Pública do DataJud e responde com o MESMO
+objeto JSON do contrato do pipeline (id, mensagem, anexos, status, next_issue).
+
+Códigos (contrato do projeto):
+    0 — a API respondeu 200 com JSON válido: acesso ao CNJ confirmado
+    1 — não foi possível alcançar a API (rede restrita/timeout): continuidade,
+        precisa rodar num ambiente com internet
+    2 — a API respondeu, mas de forma inesperada (ex.: 401 — chave trocada;
+        precisa de decisão humana)
+
+Uso:
+    python3 pipeline/verificar_cnj.py [--tribunal tjpe] [--timeout 20] [--json-saida F]
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+
+CHAVE_PADRAO = "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw=="
+BASE = os.environ.get("DATAJUD_BASE_URL", "https://api-publica.datajud.cnj.jus.br")
+
+
+def objeto(status: str, mensagem: str, dados: dict, id_gate: str = "verificar-cnj") -> dict:
+    return {
+        "id": f"{id_gate}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+        "gate": id_gate,
+        "status": str(status),
+        "codigo_saida": int(status),
+        "mensagem": mensagem,
+        "continuidade": str(status) == "1",
+        "next_issue": "ISSUE-006" if str(status) != "0" else None,
+        "anexos": [],
+        "dados": dados,
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "versao": "1.0.0",
+    }
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(description="Validação ao vivo da API Pública do DataJud")
+    p.add_argument("--tribunal", default="tjpe")
+    p.add_argument("--timeout", type=int, default=20)
+    p.add_argument("--chave", default=os.environ.get("DATAJUD_API_KEY", CHAVE_PADRAO))
+    p.add_argument("--json-saida")
+    args = p.parse_args(argv)
+
+    url = f"{BASE.rstrip('/')}/api_publica_{args.tribunal}/_search"
+    corpo = json.dumps({"query": {"match_all": {}}, "size": 0, "track_total_hits": True}).encode()
+    requisicao = urllib.request.Request(
+        url, data=corpo, method="POST",
+        headers={"Authorization": f"APIKey {args.chave}", "Content-Type": "application/json",
+                 "Accept": "application/json", "User-Agent": "pipeline-gates/1.0"})
+
+    inicio = time.time()
+    try:
+        with urllib.request.urlopen(requisicao, timeout=args.timeout) as resposta:
+            bruto = resposta.read()
+            dados = json.loads(bruto.decode("utf-8", errors="replace"))
+            total = (((dados.get("hits") or {}).get("total") or {}).get("value"))
+            resultado = objeto("0", f"API do CNJ acessível: HTTP {resposta.status}, "
+                                    f"índice api_publica_{args.tribunal}, "
+                                    f"hits.total={total} — acesso confirmado",
+                               {"url": url, "http": resposta.status, "took_ms": dados.get("took"),
+                                "total": total, "duracao_s": round(time.time() - inicio, 2)})
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            resultado = objeto("2", f"HTTP {e.code}: chave pública recusada pelo CNJ — "
+                                    "atualize a chave (python3 main.py --chave-publica) "
+                                    "(erro tipo 2: exige decisão humana)",
+                               {"url": url, "http": e.code})
+        else:
+            resultado = objeto("1", f"HTTP {e.code} do CNJ — situação inesperada; "
+                                    "continuidade: tente novamente",
+                               {"url": url, "http": e.code})
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        resultado = objeto("1", f"não foi possível alcançar {BASE} ({e.__class__.__name__}: "
+                                f"{str(e)[:160]}) — continuidade: rode num ambiente com internet",
+                           {"url": url, "erro": str(e)[:300],
+                            "duracao_s": round(time.time() - inicio, 2)})
+
+    if args.json_saida:
+        with open(args.json_saida, "w", encoding="utf-8") as fh:
+            json.dump(resultado, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+    print(json.dumps(resultado, ensure_ascii=False, indent=2))
+    return int(resultado["status"])
+
+
+if __name__ == "__main__":
+    try:
         sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
     except Exception:
         pass
@@ -3829,7 +5651,7 @@ __ARQ__ tests/testar_bootstrap.sh
 #    2. bash bootstrap.sh cria o projeto num diretório temporário
 #    3. a árvore criada é comparada com o repositório (diff -r, exceto .git)
 #    4. as permissões conferem (755 em scripts/testes, 644 em docs/dados)
-#    5. as 3 suítes de teste rodam DENTRO do projeto recriado
+#    5. as 4 suítes de teste rodam DENTRO do projeto recriado
 #    6. `bootstrap.sh --verificar` reconhece o projeto como íntegro
 #
 #  Uso: ./tests/testar_bootstrap.sh
@@ -3880,8 +5702,11 @@ else
   ruim 'há diferenças entre o projeto criado e o repositório:'
   sed 's/^/      /' "$TMP/diff.log" | head -20
 fi
-qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' | wc -l | tr -d ' ')
-qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' | wc -l | tr -d ' ')
+# diretórios gerados em tempo de execução (saida/, __pycache__) não entram na contagem
+qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
+             -not -path '*/saida/*' | wc -l | tr -d ' ')
+qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
+             -not -path '*/saida/*' | wc -l | tr -d ' ')
 if [[ "$qtd_repo" == "$qtd_novo" ]]; then
   ok "mesma quantidade de arquivos ($qtd_novo)"
 else
@@ -3916,6 +5741,22 @@ if ( cd "$TMP/projeto" && bash tests/rodar-testes.sh >/dev/null 2>&1 ); then
   ok 'suíte do datajud.sh passa no projeto recriado'
 else
   ruim 'suíte do datajud.sh falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 tests/testar_pipeline.py >/dev/null 2>&1 ); then
+  ok 'suíte do pipeline de gates passa no projeto recriado'
+else
+  ruim 'suíte do pipeline falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 pipeline/gate.py blueprint >/dev/null 2>&1 ); then
+  ok 'gate blueprint roda no projeto recriado (planta consistente)'
+else
+  ruim 'gate blueprint falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 pipeline/gate.py continuidade --status-issues 0 \
+       --status-cicd 0 --status-testes 0 --saida-dir "$TMP/projeto/pipeline/saida" >/dev/null 2>&1 ); then
+  ok 'gate continuidade devolve 0 quando os três checks estão limpos'
+else
+  ruim 'gate continuidade não reconheceu o estado limpo'
 fi
 
 titulo '6. Verificação de integridade (--verificar)'
@@ -4432,6 +6273,399 @@ if __name__ == "__main__":
     finally:
         SERVIDOR.shutdown()
 __ARQ_EOF__
+__ARQ__ tests/testar_pipeline.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Testes do pipeline de gates (pipeline/gate.py, blueprint, backlog e workflow).
+
+Roda 100% offline: as consultas ao `gh` são substituídas por fixtures
+(`--issues-json`/`--runs-json`) e as instruções de teste usam comandos triviais.
+
+Uso:  python3 tests/testar_pipeline.py
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import unittest
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(RAIZ, "pipeline"))
+
+import gate  # noqa: E402  (módulo do pipeline)
+
+GATE = os.path.join(RAIZ, "pipeline", "gate.py")
+BACKLOG = os.path.join(RAIZ, "pipeline", "backlog.json")
+BLUEPRINT = os.path.join(RAIZ, "pipeline", "blueprint.json")
+WORKFLOW = os.path.join(RAIZ, ".github", "workflows", "gates.yml")
+
+CHAVES_OBRIGATORIAS = {"id", "gate", "status", "mensagem", "next_issue", "anexos",
+                       "continuidade", "codigo_saida", "dados", "timestamp", "versao"}
+
+
+def rodar(*argumentos, saida_dir=None):
+    """Executa o gate.py e devolve (código_de_saída, objeto_json, stdout_bruto)."""
+    cmd = [sys.executable, GATE, *argumentos]
+    if saida_dir:
+        cmd += ["--saida-dir", saida_dir]
+    proc = subprocess.run(cmd, capture_output=True, text=True, cwd=RAIZ)
+    try:
+        obj = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        obj = None
+    return proc.returncode, obj, proc.stdout + proc.stderr
+
+
+def fixture(pasta, nome, conteudo):
+    caminho = os.path.join(pasta, nome)
+    with open(caminho, "w", encoding="utf-8") as fh:
+        json.dump(conteudo, fh, ensure_ascii=False)
+    return caminho
+
+
+class CasoBase(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = self.tmp.name
+        self.saida = os.path.join(self.dir, "saida")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+
+class TesteContrato(CasoBase):
+    """O objeto JSON do contrato precisa ser igual em TODOS os gates."""
+
+    def test_chaves_obrigatorias_e_tipos(self):
+        for argumentos in (["blueprint"], ["issues", "--sem-gh"], ["situacao"]):
+            codigo, obj, bruto = rodar(*argumentos, saida_dir=self.saida)
+            with self.subTest(gate=argumentos[0]):
+                self.assertIsNotNone(obj, f"saída não é JSON: {bruto[:200]}")
+                self.assertTrue(CHAVES_OBRIGATORIAS <= set(obj), "faltam chaves do contrato")
+                self.assertIsInstance(obj["id"], str)
+                self.assertTrue(obj["id"].startswith("gate-"))
+                self.assertIn(obj["status"], {"0", "1", "2"}, "status é string 0/1/2")
+                self.assertIsInstance(obj["mensagem"], str)
+                self.assertIsInstance(obj["continuidade"], bool)
+                self.assertIsInstance(obj["anexos"], list)
+                self.assertIsInstance(obj["dados"], dict)
+                for anexo in obj["anexos"]:
+                    self.assertEqual({"path", "filename", "descricao"}, set(anexo))
+
+    def test_codigo_de_saida_igual_ao_status(self):
+        casos = [(["blueprint"], "0"), (["issues", "--sem-gh"], "2")]
+        for argumentos, esperado in casos:
+            codigo, obj, _ = rodar(*argumentos, saida_dir=self.saida)
+            with self.subTest(gate=argumentos[0]):
+                self.assertEqual(obj["status"], esperado)
+                self.assertEqual(codigo, int(esperado), "exit code deve espelhar o status")
+                self.assertEqual(obj["codigo_saida"], codigo)
+
+    def test_anexos_gravados_no_disco(self):
+        codigo, obj, _ = rodar("blueprint", saida_dir=self.saida)
+        for anexo in obj["anexos"]:
+            self.assertTrue(os.path.exists(anexo["path"]), f"anexo ausente: {anexo}")
+            self.assertEqual(anexo["filename"], os.path.basename(anexo["path"]))
+
+    def test_json_saida_grava_arquivo(self):
+        destino = os.path.join(self.dir, "resultado.json")
+        codigo, obj, _ = rodar("blueprint", "--json-saida", destino, saida_dir=self.saida)
+        self.assertTrue(os.path.exists(destino))
+        with open(destino, encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["status"], obj["status"])
+
+
+class TesteGateIssues(CasoBase):
+    def test_com_issue_aberta_e_continuidade(self):
+        fx = fixture(self.dir, "issues.json", [
+            {"number": 3, "title": "SESSION CONTINUITY CONTROL", "url": "https://x/3"}])
+        codigo, obj, _ = rodar("issues", "--issues-json", fx, saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("1", 1, True))
+        self.assertEqual(obj["dados"]["abertas"], 1)
+        self.assertIn("continua", obj["mensagem"])
+
+    def test_sem_issue_aberta_e_sucesso(self):
+        fx = fixture(self.dir, "issues.json", [])
+        codigo, obj, _ = rodar("issues", "--issues-json", fx, saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("0", 0, False))
+        self.assertIsNone(obj["next_issue"])
+
+    def test_sem_fonte_e_erro_tipo_2(self):
+        codigo, obj, _ = rodar("issues", "--sem-gh", saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("2", 2, False))
+
+
+class TesteGateCicd(CasoBase):
+    def test_ci_com_erro_e_continuidade(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 1, "workflowName": "ci", "status": "completed",
+             "conclusion": "failure", "headBranch": "main", "url": "https://x/1"}])
+        codigo, obj, _ = rodar("cicd", "--runs-json", fx, saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("1", 1, True))
+        self.assertEqual(obj["dados"]["com_erro"], 1)
+
+    def test_ci_limpo_e_sucesso(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 1, "workflowName": "ci", "status": "completed",
+             "conclusion": "success", "headBranch": "main", "url": "https://x/1"}])
+        codigo, obj, _ = rodar("cicd", "--runs-json", fx, saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+
+    def test_execucao_em_andamento_nao_e_erro(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 2, "workflowName": "gates", "status": "in_progress",
+             "conclusion": None, "headBranch": "x", "url": "https://x/2"}])
+        codigo, obj, _ = rodar("cicd", "--runs-json", fx, saida_dir=self.saida)
+        self.assertEqual(obj["status"], "0")
+        self.assertEqual(obj["dados"]["em_andamento"], 1)
+
+    def test_conclusoes_problematicas_detectadas(self):
+        for conclusao in ("failure", "timed_out", "startup_failure", "action_required", "cancelled"):
+            fx = fixture(self.dir, f"runs-{conclusao}.json", [
+                {"databaseId": 3, "workflowName": "ci", "status": "completed",
+                 "conclusion": conclusao, "headBranch": "x", "url": "https://x/3"}])
+            codigo, obj, _ = rodar("cicd", "--runs-json", fx, saida_dir=self.saida)
+            with self.subTest(conclusao=conclusao):
+                self.assertEqual(obj["status"], "1", f"{conclusao} deveria ser erro de CI")
+
+
+class TesteGateTestes(CasoBase):
+    def test_comando_que_passa(self):
+        codigo, obj, _ = rodar("testes", "--comando", "true", saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+        self.assertIn("aprovados", obj["mensagem"])
+
+    def test_comando_que_falha_e_continuidade(self):
+        codigo, obj, _ = rodar("testes", "--comando", "exit 3", saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("1", 1, True))
+        self.assertEqual(obj["dados"]["codigo_saida"], 3)
+        log = [a for a in obj["anexos"] if a["filename"].startswith("log-testes")]
+        self.assertTrue(log, "o gate precisa anexar o log dos testes")
+        self.assertIn("código de saída: 3", open(log[0]["path"], encoding="utf-8").read())
+
+
+class TesteGateContinuidade(CasoBase):
+    def test_pendencia_em_qualquer_check_vira_continuidade(self):
+        codigo, obj, _ = rodar("continuidade", "--status-issues", "1", "--status-cicd", "0",
+                               "--status-testes", "0", "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("1", 1, True))
+        self.assertIsNotNone(obj["next_issue"], "com pendência deve apontar a próxima issue")
+        self.assertIn("NÃO positivo", obj["mensagem"])
+        self.assertFalse(obj["dados"]["gate_positivo"])
+
+    def test_tudo_limpo_vira_sucesso(self):
+        codigo, obj, _ = rodar("continuidade", "--status-issues", "0", "--status-cicd", "0",
+                               "--status-testes", "0", "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("0", 0, False))
+        self.assertIsNone(obj["next_issue"])
+        self.assertTrue(obj["dados"]["gate_positivo"])
+
+    def test_indeterminado_propaga_erro_tipo_2(self):
+        codigo, obj, _ = rodar("continuidade", "--status-issues", "2", "--status-cicd", "0",
+                               "--status-testes", "0", "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("2", 2, False))
+        self.assertIn("intervenção", obj["mensagem"])
+
+    def test_regra_documentada_no_objeto(self):
+        _, obj, _ = rodar("continuidade", "--status-issues", "0", "--status-cicd", "0",
+                          "--status-testes", "0", "--saida-dir", self.saida)
+        self.assertIn("positivo", obj["dados"]["regra"])
+
+    def test_anexo_do_veredito_em_markdown(self):
+        _, obj, _ = rodar("continuidade", "--status-issues", "1", "--status-cicd", "0",
+                          "--status-testes", "0", "--saida-dir", self.saida)
+        veredito = [a for a in obj["anexos"] if a["filename"] == "veredito-continuidade.md"]
+        self.assertTrue(veredito, "falta o anexo do veredito")
+        texto = open(veredito[0]["path"], encoding="utf-8").read()
+        self.assertIn("continuidade", texto)
+        self.assertIn("| issues |", texto)
+
+
+class TesteGateIssue(CasoBase):
+    def _backlog(self, itens):
+        return fixture(self.dir, "backlog.json", {"nome": "teste", "issues": itens})
+
+    def test_sucesso_entrega_a_proxima_indexada(self):
+        caminho = self._backlog([
+            {"id": "ISSUE-001", "titulo": "primeira", "instrucao_teste": "true", "status": "pendente"},
+            {"id": "ISSUE-002", "titulo": "segunda", "instrucao_teste": "true", "status": "pendente"}])
+        codigo, obj, _ = rodar("issue", "--backlog", caminho, "--id", "ISSUE-001",
+                               "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], codigo, obj["next_issue"]), ("0", 0, "ISSUE-002"))
+        self.assertTrue(obj["continuidade"], "há próxima pendente ⇒ continuidade")
+        guias = [a for a in obj["anexos"] if a["filename"].endswith("proxima-issue.md")]
+        self.assertTrue(guias, "deve anexar a instrução da issue seguinte")
+        self.assertIn("ISSUE-002", open(guias[0]["path"], encoding="utf-8").read())
+
+    def test_falha_mantem_a_mesma_issue(self):
+        caminho = self._backlog([
+            {"id": "ISSUE-001", "titulo": "quebrada", "instrucao_teste": "exit 7", "status": "pendente"}])
+        codigo, obj, _ = rodar("issue", "--backlog", caminho, "--id", "ISSUE-001",
+                               "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], codigo, obj["next_issue"]), ("1", 1, "ISSUE-001"))
+        self.assertTrue(obj["continuidade"])
+        log = open([a for a in obj["anexos"] if a["filename"].endswith("-log.txt")][0]["path"],
+                   encoding="utf-8").read()
+        self.assertIn("código de saída: 7", log)
+
+    def test_issue_sem_instrucao_e_erro_tipo_2(self):
+        caminho = self._backlog([
+            {"id": "ISSUE-001", "titulo": "sem instrução", "instrucao_teste": None,
+             "status": "bloqueada"}])
+        codigo, obj, _ = rodar("issue", "--backlog", caminho, saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo, obj["continuidade"]), ("2", 2, False))
+        self.assertIn("instrucao_teste", obj["mensagem"])
+
+    def test_ultima_pendente_encerra_o_pipeline(self):
+        caminho = self._backlog([
+            {"id": "ISSUE-001", "titulo": "única", "instrucao_teste": "true", "status": "pendente"}])
+        codigo, obj, _ = rodar("issue", "--backlog", caminho, saida_dir=self.saida)
+        self.assertEqual((obj["status"], obj["next_issue"], obj["continuidade"]), ("0", None, False))
+
+    def test_marcar_concluida_atualiza_o_backlog(self):
+        caminho = self._backlog([
+            {"id": "ISSUE-001", "titulo": "a", "instrucao_teste": "true", "status": "pendente"},
+            {"id": "ISSUE-002", "titulo": "b", "instrucao_teste": "true", "status": "pendente"}])
+        codigo, obj, _ = rodar("issue", "--backlog", caminho, "--id", "ISSUE-001",
+                               "--marcar", saida_dir=self.saida)
+        with open(caminho, encoding="utf-8") as fh:
+            dados = json.load(fh)
+        primeira = dados["issues"][0]
+        self.assertEqual(primeira["status"], "concluida")
+        self.assertIn("concluida_em", primeira)
+        self.assertTrue(primeira["evidencias"])
+        self.assertTrue(obj["dados"]["marcada_concluida"])
+
+    def test_sem_marcar_nao_altera_o_backlog(self):
+        caminho = self._backlog([
+            {"id": "ISSUE-001", "titulo": "a", "instrucao_teste": "true", "status": "pendente"}])
+        antes = open(caminho, encoding="utf-8").read()
+        rodar("issue", "--backlog", caminho, saida_dir=self.saida)
+        self.assertEqual(antes, open(caminho, encoding="utf-8").read())
+
+    def test_escolhe_a_proxima_pendente_sem_id(self):
+        caminho = self._backlog([
+            {"id": "ISSUE-001", "titulo": "feita", "instrucao_teste": "true", "status": "concluida"},
+            {"id": "ISSUE-002", "titulo": "próxima", "instrucao_teste": "true", "status": "pendente"}])
+        codigo, obj, _ = rodar("issue", "--backlog", caminho, saida_dir=self.saida)
+        self.assertEqual(obj["dados"]["issue"], "ISSUE-002")
+
+
+class TesteBlueprintEBacklog(CasoBase):
+    def test_blueprint_do_projeto_e_consistente(self):
+        codigo, obj, _ = rodar("blueprint", saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+        self.assertEqual(obj["dados"]["gates"],
+                         ["cicd", "continuidade", "issue", "issues", "testes"])
+
+    def test_blueprint_inconsistente_e_erro_tipo_2(self):
+        caminho = fixture(self.dir, "planta.json", {
+            "gates": [{"id": "issues"}, {"id": "gate-fantasma"}],
+            "transicoes": [{"de": "issues", "para": "fim", "quando_status": "0"}]})
+        codigo, obj, _ = rodar("blueprint", "--blueprint", caminho, saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo), ("2", 2))
+        self.assertIn("sem implementação", obj["mensagem"])
+
+    def test_backlog_do_projeto_e_integro(self):
+        with open(BACKLOG, encoding="utf-8") as fh:
+            backlog = json.load(fh)
+        ids, numeros = [], []
+        for item in backlog["issues"]:
+            ids.append(item["id"])
+            numeros.append(int(re.search(r"(\d+)$", item["id"]).group(1)))
+            self.assertIn(item["status"], {"concluida", "pendente", "bloqueada"}, item["id"])
+            self.assertTrue(item["titulo"].strip(), item["id"])
+            self.assertTrue(item["entregavel"].strip(), item["id"])
+            instrucao = item.get("instrucao_teste")
+            if instrucao:
+                for arquivo in re.findall(r"[\w/\.\-]+\.(?:py|sh)", instrucao):
+                    self.assertTrue(os.path.exists(os.path.join(RAIZ, arquivo)),
+                                    f"{item['id']}: instrução aponta para {arquivo} inexistente")
+        self.assertEqual(len(ids), len(set(ids)), "ids duplicados no backlog")
+        self.assertEqual(numeros, list(range(1, len(numeros) + 1)),
+                         "ids devem ser sequenciais (ISSUE-001, ISSUE-002, …)")
+
+    def test_funcoes_do_modulo(self):
+        backlog = gate.ler_backlog(BACKLOG)
+        proxima = gate.proxima_pendente(backlog)
+        self.assertIsNotNone(proxima, "o backlog precisa manter a próxima pendência")
+        self.assertEqual(proxima["id"], "ISSUE-006")
+        bagunçado = [{"id": "ISSUE-010", "status": "pendente"},
+                     {"id": "ISSUE-002", "status": "concluida"},
+                     {"id": "ISSUE-007", "status": "pendente"}]
+        self.assertEqual([i["id"] for i in gate.ordenar(bagunçado)],
+                         ["ISSUE-002", "ISSUE-007", "ISSUE-010"], "ordenação por índice")
+        self.assertEqual(gate.proxima_pendente({"issues": bagunçado})["id"], "ISSUE-007")
+        self.assertEqual(gate.proxima_pendente({"issues": bagunçado}, excluir=["ISSUE-007"])["id"],
+                         "ISSUE-010", "issue validada não deve voltar como próxima")
+        self.assertNotEqual(gate.novo_id("x"), gate.novo_id("x"), "id deve ser único")
+
+
+class TesteSituacao(CasoBase):
+    def test_situacao_resume_o_historico(self):
+        rodar("blueprint", saida_dir=self.saida)
+        rodar("issues", "--issues-json", fixture(self.dir, "i.json", []), saida_dir=self.saida)
+        codigo, obj, _ = rodar("situacao", saida_dir=self.saida)
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+        self.assertIn("blueprint", obj["dados"]["ultimos"])
+        self.assertIn("issues", obj["dados"]["ultimos"])
+
+
+class TesteWorkflow(unittest.TestCase):
+    def setUp(self):
+        with open(WORKFLOW, encoding="utf-8") as fh:
+            self.texto = fh.read()
+
+    def test_gatilhos_exigidos(self):
+        for gatilho in ("push:", "pull_request:", "issues:", "schedule:", "workflow_dispatch:"):
+            self.assertIn(gatilho, self.texto, f"falta o gatilho {gatilho}")
+
+    def test_cinco_gates_encadeados(self):
+        for job in ("gate-issues", "gate-cicd", "gate-testes", "gate-continuidade", "executa-issue"):
+            self.assertRegex(self.texto, rf"(?m)^\s{{2}}{job}:", f"falta o job {job}")
+        self.assertRegex(self.texto, r"needs: \[gate-issues, gate-cicd, gate-testes\]")
+
+    def test_jobs_chamam_o_executor(self):
+        chamadas = re.findall(r"python3 pipeline/gate\.py (\w+)", self.texto)
+        for gate_nome in ("issues", "cicd", "testes", "continuidade", "issue"):
+            self.assertIn(gate_nome, chamadas, f"o job do gate {gate_nome} não chama gate.py")
+
+    def test_publica_json_resumo_e_artefatos(self):
+        self.assertIn("GITHUB_STEP_SUMMARY", self.texto)
+        self.assertIn("actions/upload-artifact", self.texto)
+        self.assertIn("--json-saida", self.texto)
+        self.assertIn("GATE_SAIDA_DIR", self.texto)
+
+    def test_status_2_derruba_o_job(self):
+        self.assertIn('if [ "$status" = "2" ]; then', self.texto)
+        self.assertIn("exit 1", self.texto)
+
+    def test_yaml_estrutural(self):
+        """Checagem estrutural mínima (sem PyYAML, que não está instalado aqui)."""
+        self.assertNotIn("\t", self.texto, "YAML não aceita tabulação para indentação")
+        with open(WORKFLOW, encoding="utf-8") as fh:
+            linhas = fh.read().splitlines()
+        self.assertTrue(linhas[0].startswith("#") or linhas[0].startswith("name:"),
+                        "o arquivo precisa começar com comentário ou name:")
+        for linha in linhas:
+            if re.match(r"^\s*[\w\-\.\$\{\}'\"/]+\s*:", linha) and not linha.lstrip().startswith("#"):
+                indent = len(linha) - len(linha.lstrip(" "))
+                self.assertEqual(indent % 2, 0, f"indentação ímpar em: {linha!r}")
+        try:
+            import yaml  # type: ignore
+        except ImportError:
+            self.skipTest("PyYAML indisponível — a validação definitiva é a execução no Actions")
+        dados = yaml.safe_load(self.texto)
+        self.assertIn("jobs", dados)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
+__ARQ_EOF__
 __ARQ__ tools/gerar_bootstrap.py
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -4463,17 +6697,25 @@ MARCADOR = "__ARQ_EOF__"
 # Arquivos do projeto (caminho relativo -> bool executável)
 ARQUIVOS = {
     ".gitignore": False,
+    ".github/workflows/gates.yml": False,
     "Makefile": False,
     "README.md": False,
     "BOOTSTRAP.md": False,
+    "ENTREGA.md": False,
     "main.py": True,
     "bootstrap.sh": True,          # copiado de $0 em tempo de execução
     "docs/01-api-datajud.md": False,
     "docs/02-receitas-curl-tjpe.md": False,
+    "docs/03-pipeline-gates.md": False,
     "docs/exemplo-saida/agg-grau.tsv": False,
     "docs/exemplo-saida/agg-orgao-nome.csv": False,
     "docs/exemplo-saida/relatorio-processo-exemplo.md": False,
     "docs/exemplo-saida/relatorio-tjpe-exemplo.md": False,
+    "pipeline/.gitignore": False,
+    "pipeline/backlog.json": False,
+    "pipeline/blueprint.json": False,
+    "pipeline/gate.py": True,
+    "pipeline/verificar_cnj.py": True,
     "scripts/datajud.sh": True,
     "tests/mock_apis.py": True,
     "tests/mock_datajud.py": True,
@@ -4481,6 +6723,7 @@ ARQUIVOS = {
     "tests/testar_bootstrap.sh": True,
     "tests/testar_conformidade.py": True,
     "tests/testar_main.py": True,
+    "tests/testar_pipeline.py": True,
     "tools/gerar_bootstrap.py": True,
 }
 
@@ -4514,7 +6757,7 @@ CORPO_SCRIPT = r"""#!/usr/bin/env bash
 #    3. aplica TODAS as permissões (755 em scripts/testes, 644 em docs/dados)
 #    4. confere a integridade por SHA-256 de cada arquivo escrito
 #    5. valida a sintaxe (python -m py_compile, bash -n)
-#    6. roda as 3 suítes de teste offline (conformidade, main.py, datajud.sh)
+#    6. roda as 4 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline)
 #    7. imprime um relatório final com o código de saída de cada etapa
 #
 #  Uso:
@@ -4676,19 +6919,19 @@ fi
 # --------------------------------------------------------- 6. validação estática ---
 TITULO "6/7 · Validação de sintaxe"
 ST_PY=0; ST_SH=0
-for arq in main.py tools/gerar_bootstrap.py tests/mock_apis.py tests/mock_datajud.py \
-           tests/testar_main.py tests/testar_conformidade.py; do
+for arq in @@LISTA_PY@@; do
   python3 -m py_compile "$DESTINO/$arq" 2>/dev/null || { FALHA "python inválido: $arq"; ST_PY=1; }
 done
-rm -rf "$DESTINO"/__pycache__ "$DESTINO"/tests/__pycache__ "$DESTINO"/tools/__pycache__ 2>/dev/null || true
-[[ "$ST_PY" == "0" ]] && PASSO "Python: 6 arquivos compilam sem erro (py_compile)"
-for arq in scripts/datajud.sh tests/rodar-testes.sh tests/testar_bootstrap.sh bootstrap.sh; do
+rm -rf "$DESTINO"/__pycache__ "$DESTINO"/tests/__pycache__ "$DESTINO"/tools/__pycache__ \
+       "$DESTINO"/pipeline/__pycache__ 2>/dev/null || true
+[[ "$ST_PY" == "0" ]] && PASSO "Python: @@N_PY@@ arquivos compilam sem erro (py_compile)"
+for arq in @@LISTA_SH@@; do
   bash -n "$DESTINO/$arq" 2>/dev/null || { FALHA "bash inválido: $arq"; ST_SH=1; }
 done
-[[ "$ST_SH" == "0" ]] && PASSO "Bash: 4 scripts sem erro de sintaxe (bash -n)"
+[[ "$ST_SH" == "0" ]] && PASSO "Bash: @@N_SH@@ scripts sem erro de sintaxe (bash -n)"
 
 # ------------------------------------------------------------------ 7. testes ---
-ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"
+ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"
 if [[ "$SEM_TESTES" == "1" || "$SO_CRIAR" == "1" ]]; then
   TITULO "7/7 · Testes"
   ALERTA "suítes de teste não executadas (--so-criar/--sem-testes)"
@@ -4708,6 +6951,11 @@ else
     && ST_SH_T="ok" || ST_SH_T="FALHOU"
   tail -1 /tmp/bootstrap_sh.log | sed 's/^/     /' || true
   [[ "$ST_SH_T" == "ok" ]] && PASSO "scripts/datajud.sh (curl + jq)" || FALHA "testes do datajud.sh"
+
+  ( cd "$DESTINO" && python3 tests/testar_pipeline.py ) >/tmp/bootstrap_pipe.log 2>&1 \
+    && ST_PIPE="ok" || ST_PIPE="FALHOU"
+  grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_pipe.log | tail -2 | sed 's/^/     /' || true
+  [[ "$ST_PIPE" == "ok" ]] && PASSO "pipeline de gates (contrato JSON, 0/1/2)" || FALHA "testes do pipeline"
 fi
 
 # ------------------------------------------------------------------ resumo ---
@@ -4720,13 +6968,15 @@ printf '  bash........ : %s\n' "$([[ "$ST_SH" == "0" ]] && echo 'sem erro de sin
 printf '  teste conf.. : %s\n' "$ST_CONF"
 printf '  teste main.. : %s\n' "$ST_MAIN"
 printf '  teste shell. : %s\n' "$ST_SH_T"
+printf '  teste pipe.. : %s\n' "$ST_PIPE"
 printf '\n  Próximos passos:\n'
 printf '    cd %s\n' "$DESTINO"
 printf '    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)\n'
-printf '    make testes                                 # roda as 4 suítes de novo (112 verificações)\n\n'
+printf '    make gates                                  # veredito de continuidade do pipeline\n'
+printf '    make testes                                 # roda as 5 suítes de novo\n\n'
 
 if [[ "$ST_PY" != "0" || "$ST_SH" != "0" || "$ST_CONF" == "FALHOU" \
-      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" ]]; then
+      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" ]]; then
   FALHA "bootstrap concluiu com falhas (veja acima)"
   exit 1
 fi
@@ -4781,6 +7031,10 @@ def gerar() -> str:
     stats = (f"{len(ARQUIVOS)} arquivos, {total_linhas} linhas, "
              f"{total_bytes // 1024} KiB")
 
+    # arquivos validados na etapa 6 (sintaxe) — listas dinâmicas
+    lista_py = [a for a in sorted(ARQUIVOS) if a.endswith(".py") and a not in FORA_DO_MANIFESTO]
+    lista_sh = sorted({a for a in ARQUIVOS if a.endswith(".sh")} | {"bootstrap.sh"})
+
     corpo = "".join([
         CORPO_SCRIPT
         .replace("@@DIRS@@", " ".join(dirs))
@@ -4788,6 +7042,10 @@ def gerar() -> str:
         .replace("@@MANIFESTO@@", manifesto)
         .replace("@@LISTA_PERMISSOES@@", lista_permissoes)
         .replace("@@STATS@@", stats)
+        .replace("@@LISTA_PY@@", " ".join(lista_py))
+        .replace("@@N_PY@@", str(len(lista_py)))
+        .replace("@@LISTA_SH@@", " ".join(lista_sh))
+        .replace("@@N_SH@@", str(len(lista_sh)))
         .replace("@@TOTAL_ARQUIVOS@@", f"{len(conteudos)} no manifesto SHA-256 (+ bootstrap.sh)"),
         *_blocos_embutidos(conteudos),
     ])

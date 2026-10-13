@@ -1,0 +1,106 @@
+{
+  "nome": "backlog do projeto — consulta processual DataJud/DJEN",
+  "descricao": "Fila indexada de issues. Cada item traz a instrução de teste executável do entregável; o gate `issue` roda essa instrução e, quando ela passa, marca o item como concluída e entrega a instrução da ISSUE SEGUINTE.",
+  "como_usar": [
+    "python3 pipeline/gate.py issue                 # roda a próxima pendente (sem marcar)",
+    "python3 pipeline/gate.py issue --marcar        # roda e marca concluída se passar",
+    "python3 pipeline/gate.py issue --id ISSUE-007  # roda uma issue específica"
+  ],
+  "status_possiveis": [
+    "concluida",
+    "pendente",
+    "bloqueada"
+  ],
+  "issues": [
+    {
+      "id": "ISSUE-001",
+      "titulo": "Kit curl para a API Pública do DataJud (TJPE)",
+      "entregavel": "scripts/datajud.sh + docs/01-api-datajud.md + docs/02-receitas-curl-tjpe.md",
+      "instrucao_teste": "bash tests/rodar-testes.sh",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [],
+      "evidencias": [
+        "32 verificações offline passando"
+      ]
+    },
+    {
+      "id": "ISSUE-002",
+      "titulo": "main.py — consulta um processo e gera relatório Markdown",
+      "entregavel": "main.py + tests/testar_main.py + tests/mock_apis.py",
+      "instrucao_teste": "python3 tests/testar_main.py",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-001"
+      ],
+      "evidencias": [
+        "29 testes: NUP/DV, seções do relatório, DJEN, erros 400/401/404/429"
+      ]
+    },
+    {
+      "id": "ISSUE-003",
+      "titulo": "Bootstrap auto-criador (estrutura, arquivos, permissões, hashes)",
+      "entregavel": "bootstrap.sh + BOOTSTRAP.md + tools/gerar_bootstrap.py",
+      "instrucao_teste": "bash tests/testar_bootstrap.sh",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-002"
+      ],
+      "evidencias": [
+        "22 verificações: recriação byte a byte (diff -r), permissões, SHA-256, --verificar"
+      ]
+    },
+    {
+      "id": "ISSUE-004",
+      "titulo": "Validação de conformidade com a documentação oficial do CNJ",
+      "entregavel": "tests/testar_conformidade.py + tabela de conformidade no BOOTSTRAP.md",
+      "instrucao_teste": "python3 tests/testar_conformidade.py",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-001"
+      ],
+      "evidencias": [
+        "29 testes contra a wiki do DataJud e o Termo de Uso v1.2"
+      ]
+    },
+    {
+      "id": "ISSUE-005",
+      "titulo": "Pipeline orientado a gates (JSON) + workflow do GitHub Actions",
+      "entregavel": "pipeline/gate.py + pipeline/blueprint.json + pipeline/backlog.json + .github/workflows/gates.yml",
+      "instrucao_teste": "python3 tests/testar_pipeline.py",
+      "status": "concluida",
+      "concluida_em": "2026-10-13T00:00:00Z",
+      "depende_de": [
+        "ISSUE-003"
+      ],
+      "evidencias": [
+        "contrato JSON, status 0/1/2, continuidade, next_issue, anexos, blueprint e workflow validados"
+      ]
+    },
+    {
+      "id": "ISSUE-006",
+      "titulo": "Validar as consultas AO VIVO contra as APIs do CNJ (DataJud + DJEN)",
+      "entregavel": "relatório real de um processo do TJPE (a execução exige internet para api-publica.datajud.cnj.jus.br)",
+      "instrucao_teste": "python3 pipeline/verificar_cnj.py --timeout 20",
+      "status": "pendente",
+      "depende_de": [
+        "ISSUE-002"
+      ],
+      "observacao": "Instrução executável: consulta real e mínima ao DataJud (size=0). Devolve 0 se o CNJ responder 200, 1 se a rede não alcançar a API (continuidade — é o caso do ambiente de desenvolvimento atual) e 2 se a chave for recusada."
+    },
+    {
+      "id": "ISSUE-007",
+      "titulo": "Integrar o gate ao painel de continuidade da sessão (issue #3) e decidir sobre o fluxo da outra sessão",
+      "entregavel": "decisão do usuário: unificar os dois fluxos (npm/continuity da sessão d917b13b × python/pipeline desta sessão)",
+      "instrucao_teste": null,
+      "status": "bloqueada",
+      "depende_de": [
+        "ISSUE-005"
+      ],
+      "observacao": "Sem instrução de teste executável de propósito: o gate devolve status 2 (erro tipo 2) e exige decisão humana."
+    }
+  ]
+}

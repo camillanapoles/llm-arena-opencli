@@ -18,9 +18,13 @@ python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
 | `scripts/datajud.sh` | CLI `curl`+`jq`: contagens, agregações e relatórios **agregados** (por classe, vara, ano…) |
 | `docs/01-api-datajud.md` | referência da API do DataJud (acesso, campos, DSL, erros, regras) |
 | `docs/02-receitas-curl-tjpe.md` | receitas `curl` prontas para o TJPE |
+| `docs/03-pipeline-gates.md` | manual do **pipeline de gates** (contrato JSON, 0/1/2, planta BPMN) |
+| **`pipeline/gate.py`** + `pipeline/blueprint.json` + `pipeline/backlog.json` | **gatilho** de continuidade: mede issues/CI/testes, diz o que fazer agora e devolve JSON |
 | `docs/exemplo-saida/` | exemplo do relatório de processo e do relatório agregado |
-| `tests/` | mock local das APIs + 4 suítes de teste offline (112 verificações) |
+| `tests/` | mock local das APIs + 5 suítes de teste offline (**151 verificações**) |
 | **`bootstrap.sh`** + `BOOTSTRAP.md` | recriam/configuram o projeto inteiro (arquivos, permissões, hashes) e validam tudo |
+| `.github/workflows/gates.yml` | roda os gates no GitHub Actions (push, PR, issue, agenda, manual) |
+| **`ENTREGA.md`** | relatório de entrega do branch: solicitado → incrementado → realizado → testado → validado → produção |
 
 Requisitos: **Python 3.8+** (só biblioteca padrão) para o `main.py`; `bash`, `curl` e `jq` para o `scripts/datajud.sh`.
 
@@ -169,14 +173,33 @@ Veja o formato em [`docs/exemplo-saida/relatorio-tjpe-exemplo.md`](docs/exemplo-
 O relatório registra endpoint, hora UTC, filtros usados e nº de requisições — e traz as notas do Termo de
 Uso (dados não garantidos pelo CNJ, uso não comercial, ciência ao CNJ ao divulgar, LGPD).
 
+## Pipeline de gates (o gatilho)
+
+```bash
+make gates          # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
+make gate-issues    # existem issues abertas?
+make gate-cicd      # alguma execução de CI/CD terminou com erro?
+make gate-testes    # os testes existem e passam?
+make gate-issue     # executa a próxima issue do backlog (ISSUE=ISSUE-006 MARCAR=--marcar)
+```
+
+Cada gate devolve **o mesmo objeto JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`…)
+e o **exit code é igual ao `status`**: `"0"` sucesso, `"1"` erro tipo 1 (pendência tratável ⇒
+**continuidade**), `"2"` erro tipo 2 (não foi possível avaliar ⇒ exige humano). O **gatilho só é
+positivo** quando não há issue aberta **e** o CI não tem erro **e** os testes passam; enquanto não
+for positivo, `continuidade = true` e o fluxo segue para a próxima issue indexada — cada issue
+entregue vem com a **instrução de teste** da seguinte. Detalhes, diagrama BPMN e contrato completo:
+[`docs/03-pipeline-gates.md`](docs/03-pipeline-gates.md). Entrega documentada: [`ENTREGA.md`](ENTREGA.md).
+
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as suítes (112 verificações)
+make testes                          # todas as 5 suítes (151 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
-./tests/testar_bootstrap.sh          # 22 — recria o projeto e compara byte a byte
+python3 tests/testar_pipeline.py     # 36 — contrato JSON dos gates, 0/1/2, blueprint, workflow
+./tests/testar_bootstrap.sh          # 25 — recria o projeto e compara byte a byte
 ```
 
 As suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam
@@ -185,7 +208,7 @@ autenticação, erros 400/401/404/429, agregações e paginação. **Nenhuma req
 ### Reconstruir o projeto do zero
 
 ```bash
-bash bootstrap.sh                  # cria ./projeto-datajud, confere hashes e roda os 112 testes
+bash bootstrap.sh                  # cria ./projeto-datajud, confere hashes e roda as 4 suítes
 bash bootstrap.sh --verificar      # só valida uma cópia existente
 python3 tools/gerar_bootstrap.py   # regera o bootstrap após editar algum arquivo
 ```

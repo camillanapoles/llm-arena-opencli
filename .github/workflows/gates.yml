@@ -1,0 +1,286 @@
+# ==============================================================================
+#  gates.yml — pipeline orientado a gates (blueprint tipo BPMN) no GitHub Actions
+# ==============================================================================
+#  Planta: pipeline/blueprint.json  ·  Executor: pipeline/gate.py
+#
+#  Fluxo (cada gate devolve o JSON do contrato e o exit code = status):
+#
+#    [push|PR|issues|schedule|dispatch]
+#                 │
+#          ┌──────┴───────┬──────────────┐
+#          ▼              ▼              ▼
+#     gate-issues     gate-cicd     gate-testes
+#     (0/1/2)         (0/1/2)       (0/1/2)
+#          └──────┬───────┴──────────────┘
+#                 ▼
+#        gate-continuidade   ← positivo ⇔ 0 issues ∧ CI limpo ∧ testes verdes
+#           │        │
+#       (1) │        │ (0)        (2) → job FALHA (exige humano)
+#           ▼        ▼
+#      executa-    pipeline pode
+#       issue      encerrar
+#     (0/1/2) ── 0 ⇒ próxima issue · 1 ⇒ mesma issue · 2 ⇒ humano
+#
+#  Todo gate publica: JSON no stdout, anexo em pipeline/saida/,
+#  resumo no job summary e artifact para download.
+# ==============================================================================
+name: gates
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  issues:
+    types: [opened, closed, reopened, labeled]
+  schedule:
+    - cron: "0 12 * * 1-5"        # dias úteis, 12:00 UTC (09:00 em Brasília)
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "ID da issue do backlog a executar (vazio = próxima pendente)"
+        required: false
+        default: ""
+      marcar:
+        description: "Marcar a issue como concluída no backlog quando o teste passar"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  issues: read
+  actions: read
+
+env:
+  GATE_SAIDA_DIR: pipeline/saida
+  GH_TOKEN: ${{ github.token }}
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------- gate 1: issues
+  gate-issues:
+    name: "gate 1 · issues abertas"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Executar gate de issues
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py issues --repo "$GITHUB_REPOSITORY" \
+            --json-saida /tmp/gate-issues.json > /tmp/gate-issues.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-issues.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-issues.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-issues.json'))['continuidade']).lower())")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 1 · issues abertas — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-issues.json'))['mensagem'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "exit do gate: $codigo (0=sucesso, 1=continuidade, 2=indeterminado)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-issues
+          path: |
+            pipeline/saida/issue*.md
+            pipeline/saida/gate-issues-*.json
+          if-no-files-found: warn
+
+  # ------------------------------------------------------------------ gate 2: cicd
+  gate-cicd:
+    name: "gate 2 · CI/CD sem erros"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Executar gate de CI/CD
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py cicd --repo "$GITHUB_REPOSITORY" \
+            --json-saida /tmp/gate-cicd.json > /tmp/gate-cicd.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-cicd.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-cicd.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-cicd.json'))['continuidade']).lower())")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 2 · CI/CD — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-cicd.json'))['mensagem'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-cicd
+          path: |
+            pipeline/saida/execucoes-ci.md
+            pipeline/saida/gate-cicd-*.json
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------- gate 3: testes
+  gate-testes:
+    name: "gate 3 · testes presentes e verdes"
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Executar gate de testes
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py testes --json-saida /tmp/gate-testes.json \
+            > /tmp/gate-testes.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-testes.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-testes.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-testes.json'))['continuidade']).lower())")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 3 · testes — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-testes.json'))['mensagem'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-testes
+          path: |
+            pipeline/saida/log-testes-*.txt
+            pipeline/saida/gate-testes-*.json
+          if-no-files-found: warn
+
+  # --------------------------------------------------------- gate 4: continuidade
+  gate-continuidade:
+    name: "gate 4 · veredito de continuidade"
+    runs-on: ubuntu-latest
+    needs: [gate-issues, gate-cicd, gate-testes]
+    if: always()
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+      next_issue: ${{ steps.gate.outputs.next_issue }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Agregar os três gates
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py continuidade \
+            --status-issues "${{ needs.gate-issues.outputs.status }}" \
+            --status-cicd "${{ needs.gate-cicd.outputs.status }}" \
+            --status-testes "${{ needs.gate-testes.outputs.status }}" \
+            --json-saida /tmp/gate-continuidade.json > /tmp/gate-continuidade.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-continuidade.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-continuidade.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-continuidade.json'))['continuidade']).lower())")
+          prox=$(python3 -c "import json;print(json.load(open('/tmp/gate-continuidade.json'))['next_issue'] or '')")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          echo "next_issue=$prox" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 4 · veredito — status \`$status\` (continuidade=\`$cont\`)"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-continuidade.json'))['mensagem'])"
+            echo
+            echo "Próxima issue do backlog: \`${prox:-—}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "2" ]; then
+            echo "::error::gate indeterminado (erro tipo 2) — exige intervenção humana"
+            exit 1
+          fi
+          if [ "$status" = "1" ]; then
+            echo "::notice::continuidade: há pendências — siga para a issue ${prox:-pendente}"
+          else
+            echo "::notice::gate positivo: nenhuma pendência, o pipeline pode encerrar"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-continuidade
+          path: |
+            pipeline/saida/veredito-continuidade.md
+            pipeline/saida/gate-continuidade-*.json
+          if-no-files-found: warn
+
+  # ------------------------------------------------- executa a issue (continuidade)
+  executa-issue:
+    name: "gate 5 · executa a issue (instrução → teste → próxima)"
+    runs-on: ubuntu-latest
+    needs: [gate-continuidade]
+    if: needs.gate-continuidade.outputs.continuidade == 'true'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Rodar a instrução da issue do backlog
+        id: issue
+        run: |
+          set +e
+          argumentos=""
+          [ -n "${{ inputs.issue }}" ] && argumentos="--id ${{ inputs.issue }}"
+          [ "${{ inputs.marcar }}" = "true" ] && argumentos="$argumentos --marcar"
+          python3 pipeline/gate.py issue $argumentos \
+            --json-saida /tmp/gate-issue.json > /tmp/gate-issue.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-issue.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['status'])")
+          prox=$(python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['next_issue'] or '')")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "next_issue=$prox" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 5 · issue — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['mensagem'])"
+            echo
+            echo "Próxima: \`${prox:-—}\` (instrução anexada em \`pipeline/saida/*-proxima-issue.md\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "2" ]; then exit 1; fi
+          if [ "$status" = "1" ]; then
+            echo "::warning::a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"
+          fi
+      - name: Versionar o backlog atualizado (somente com marcar=true)
+        if: inputs.marcar
+        run: |
+          if git diff --quiet -- pipeline/backlog.json; then
+            echo "backlog sem alterações"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pipeline/backlog.json
+          git commit -m "pipeline: issue ${{ steps.issue.outputs.next_issue || inputs.issue }} concluída (gate issue --marcar) [skip ci]"
+          git push
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-issue
+          path: |
+            pipeline/saida/*-log.txt
+            pipeline/saida/*-proxima-issue.md
+            pipeline/saida/gate-issue-*.json
+          if-no-files-found: warn

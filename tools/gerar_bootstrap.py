@@ -28,17 +28,25 @@ MARCADOR = "__ARQ_EOF__"
 # Arquivos do projeto (caminho relativo -> bool executável)
 ARQUIVOS = {
     ".gitignore": False,
+    ".github/workflows/gates.yml": False,
     "Makefile": False,
     "README.md": False,
     "BOOTSTRAP.md": False,
+    "ENTREGA.md": False,
     "main.py": True,
     "bootstrap.sh": True,          # copiado de $0 em tempo de execução
     "docs/01-api-datajud.md": False,
     "docs/02-receitas-curl-tjpe.md": False,
+    "docs/03-pipeline-gates.md": False,
     "docs/exemplo-saida/agg-grau.tsv": False,
     "docs/exemplo-saida/agg-orgao-nome.csv": False,
     "docs/exemplo-saida/relatorio-processo-exemplo.md": False,
     "docs/exemplo-saida/relatorio-tjpe-exemplo.md": False,
+    "pipeline/.gitignore": False,
+    "pipeline/backlog.json": False,
+    "pipeline/blueprint.json": False,
+    "pipeline/gate.py": True,
+    "pipeline/verificar_cnj.py": True,
     "scripts/datajud.sh": True,
     "tests/mock_apis.py": True,
     "tests/mock_datajud.py": True,
@@ -46,6 +54,7 @@ ARQUIVOS = {
     "tests/testar_bootstrap.sh": True,
     "tests/testar_conformidade.py": True,
     "tests/testar_main.py": True,
+    "tests/testar_pipeline.py": True,
     "tools/gerar_bootstrap.py": True,
 }
 
@@ -79,7 +88,7 @@ CORPO_SCRIPT = r"""#!/usr/bin/env bash
 #    3. aplica TODAS as permissões (755 em scripts/testes, 644 em docs/dados)
 #    4. confere a integridade por SHA-256 de cada arquivo escrito
 #    5. valida a sintaxe (python -m py_compile, bash -n)
-#    6. roda as 3 suítes de teste offline (conformidade, main.py, datajud.sh)
+#    6. roda as 4 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline)
 #    7. imprime um relatório final com o código de saída de cada etapa
 #
 #  Uso:
@@ -241,19 +250,19 @@ fi
 # --------------------------------------------------------- 6. validação estática ---
 TITULO "6/7 · Validação de sintaxe"
 ST_PY=0; ST_SH=0
-for arq in main.py tools/gerar_bootstrap.py tests/mock_apis.py tests/mock_datajud.py \
-           tests/testar_main.py tests/testar_conformidade.py; do
+for arq in @@LISTA_PY@@; do
   python3 -m py_compile "$DESTINO/$arq" 2>/dev/null || { FALHA "python inválido: $arq"; ST_PY=1; }
 done
-rm -rf "$DESTINO"/__pycache__ "$DESTINO"/tests/__pycache__ "$DESTINO"/tools/__pycache__ 2>/dev/null || true
-[[ "$ST_PY" == "0" ]] && PASSO "Python: 6 arquivos compilam sem erro (py_compile)"
-for arq in scripts/datajud.sh tests/rodar-testes.sh tests/testar_bootstrap.sh bootstrap.sh; do
+rm -rf "$DESTINO"/__pycache__ "$DESTINO"/tests/__pycache__ "$DESTINO"/tools/__pycache__ \
+       "$DESTINO"/pipeline/__pycache__ 2>/dev/null || true
+[[ "$ST_PY" == "0" ]] && PASSO "Python: @@N_PY@@ arquivos compilam sem erro (py_compile)"
+for arq in @@LISTA_SH@@; do
   bash -n "$DESTINO/$arq" 2>/dev/null || { FALHA "bash inválido: $arq"; ST_SH=1; }
 done
-[[ "$ST_SH" == "0" ]] && PASSO "Bash: 4 scripts sem erro de sintaxe (bash -n)"
+[[ "$ST_SH" == "0" ]] && PASSO "Bash: @@N_SH@@ scripts sem erro de sintaxe (bash -n)"
 
 # ------------------------------------------------------------------ 7. testes ---
-ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"
+ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"
 if [[ "$SEM_TESTES" == "1" || "$SO_CRIAR" == "1" ]]; then
   TITULO "7/7 · Testes"
   ALERTA "suítes de teste não executadas (--so-criar/--sem-testes)"
@@ -273,6 +282,11 @@ else
     && ST_SH_T="ok" || ST_SH_T="FALHOU"
   tail -1 /tmp/bootstrap_sh.log | sed 's/^/     /' || true
   [[ "$ST_SH_T" == "ok" ]] && PASSO "scripts/datajud.sh (curl + jq)" || FALHA "testes do datajud.sh"
+
+  ( cd "$DESTINO" && python3 tests/testar_pipeline.py ) >/tmp/bootstrap_pipe.log 2>&1 \
+    && ST_PIPE="ok" || ST_PIPE="FALHOU"
+  grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_pipe.log | tail -2 | sed 's/^/     /' || true
+  [[ "$ST_PIPE" == "ok" ]] && PASSO "pipeline de gates (contrato JSON, 0/1/2)" || FALHA "testes do pipeline"
 fi
 
 # ------------------------------------------------------------------ resumo ---
@@ -285,13 +299,15 @@ printf '  bash........ : %s\n' "$([[ "$ST_SH" == "0" ]] && echo 'sem erro de sin
 printf '  teste conf.. : %s\n' "$ST_CONF"
 printf '  teste main.. : %s\n' "$ST_MAIN"
 printf '  teste shell. : %s\n' "$ST_SH_T"
+printf '  teste pipe.. : %s\n' "$ST_PIPE"
 printf '\n  Próximos passos:\n'
 printf '    cd %s\n' "$DESTINO"
 printf '    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)\n'
-printf '    make testes                                 # roda as 4 suítes de novo (112 verificações)\n\n'
+printf '    make gates                                  # veredito de continuidade do pipeline\n'
+printf '    make testes                                 # roda as 5 suítes de novo\n\n'
 
 if [[ "$ST_PY" != "0" || "$ST_SH" != "0" || "$ST_CONF" == "FALHOU" \
-      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" ]]; then
+      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" ]]; then
   FALHA "bootstrap concluiu com falhas (veja acima)"
   exit 1
 fi
@@ -346,6 +362,10 @@ def gerar() -> str:
     stats = (f"{len(ARQUIVOS)} arquivos, {total_linhas} linhas, "
              f"{total_bytes // 1024} KiB")
 
+    # arquivos validados na etapa 6 (sintaxe) — listas dinâmicas
+    lista_py = [a for a in sorted(ARQUIVOS) if a.endswith(".py") and a not in FORA_DO_MANIFESTO]
+    lista_sh = sorted({a for a in ARQUIVOS if a.endswith(".sh")} | {"bootstrap.sh"})
+
     corpo = "".join([
         CORPO_SCRIPT
         .replace("@@DIRS@@", " ".join(dirs))
@@ -353,6 +373,10 @@ def gerar() -> str:
         .replace("@@MANIFESTO@@", manifesto)
         .replace("@@LISTA_PERMISSOES@@", lista_permissoes)
         .replace("@@STATS@@", stats)
+        .replace("@@LISTA_PY@@", " ".join(lista_py))
+        .replace("@@N_PY@@", str(len(lista_py)))
+        .replace("@@LISTA_SH@@", " ".join(lista_sh))
+        .replace("@@N_SH@@", str(len(lista_sh)))
         .replace("@@TOTAL_ARQUIVOS@@", f"{len(conteudos)} no manifesto SHA-256 (+ bootstrap.sh)"),
         *_blocos_embutidos(conteudos),
     ])

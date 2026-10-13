@@ -1,0 +1,112 @@
+{
+  "nome": "pipeline-datajud-gates",
+  "versao": "1.0.0",
+  "descricao": "Planta do pipeline orientado a gates (gate-driven pipeline), no formato de blueprint tipo BPMN. Cada gate devolve o objeto JSON do contrato {id, status, mensagem, next_issue, anexos, dados} com status 0 (sucesso), 1 (erro tipo 1 = continuidade) ou 2 (erro tipo 2 = indeterminado).",
+  "contrato": {
+    "campos_obrigatorios": ["id", "gate", "status", "mensagem", "next_issue", "anexos", "dados", "timestamp", "versao"],
+    "status": {
+      "0": "sucesso — gate positivo, nada pendente; continuidade=false",
+      "1": "erro tipo 1 — pendência conhecida e tratável (issue aberta, CI vermelho, teste ausente/reprovado); continuidade=true",
+      "2": "erro tipo 2 — não avaliável (gh ausente, fixture inválida, issue sem instrução); continuidade=false, exige humano"
+    },
+    "anexos": "lista de {path, filename, descricao} — artefatos gerados por cada gate"
+  },
+  "regra_de_continuidade": "positivo ⇔ (0 issues abertas) ∧ (CI sem execuções com erro) ∧ (testes presentes e aprovados). Enquanto NÃO for positivo ⇒ continuidade = true e next_issue aponta a próxima pendência do backlog.",
+  "inicio": "issues",
+  "gates": [
+    {
+      "id": "issues",
+      "tipo": "gateway-exclusivo",
+      "descricao": "Verifica a NÃO existência de issues abertas (gh issue list ou fixture).",
+      "entrada": ["evento do GitHub (push/PR/issues/dispatch)", "fixture opcional --issues-json"],
+      "saidas": {
+        "0": "nenhuma issue aberta",
+        "1": "existe issue aberta → continuidade",
+        "2": "não foi possível consultar (gh ausente/sem credencial)"
+      },
+      "implementacao": "pipeline/gate.py issues",
+      "evidencias": "pipeline/saida/issues-abertas.md"
+    },
+    {
+      "id": "cicd",
+      "tipo": "gateway-exclusivo",
+      "descricao": "Verifica se há execução de CI/CD concluída com erro (failure, timed_out, startup_failure, action_required, cancelled).",
+      "entrada": ["gh run list (30 mais recentes)", "fixture opcional --runs-json"],
+      "saidas": {
+        "0": "nenhuma execução com erro",
+        "1": "há execução com erro → continuidade",
+        "2": "não foi possível consultar"
+      },
+      "implementacao": "pipeline/gate.py cicd",
+      "evidencias": "pipeline/saida/execucoes-ci.md"
+    },
+    {
+      "id": "testes",
+      "tipo": "tarefa",
+      "descricao": "Confere a existência dos arquivos de teste e executa a suíte completa.",
+      "entrada": ["tests/*.py", "tests/*.sh", "--comando"],
+      "saidas": {
+        "0": "testes presentes e aprovados",
+        "1": "testes ausentes ou reprovados → continuidade",
+        "2": "erro de execução (timeout, comando inexistente)"
+      },
+      "implementacao": "pipeline/gate.py testes",
+      "evidencias": "pipeline/saida/log-testes-<ts>.txt"
+    },
+    {
+      "id": "continuidade",
+      "tipo": "gateway-inclusivo",
+      "descricao": "Agrega issues + cicd + testes no veredito. Só é positivo (0) quando os três são positivos; qualquer pendência conhecida ⇒ 1 (continuidade) com next_issue do backlog; qualquer indeterminação ⇒ 2.",
+      "entrada": ["issues", "cicd", "testes", "pipeline/backlog.json"],
+      "saidas": {
+        "0": "pipeline pode finalizar (continuidade=false, next_issue=null)",
+        "1": "pipeline DEVE continuar (continuidade=true, next_issue=<primeira pendente>)",
+        "2": "exige intervenção humana (continuidade=false)"
+      },
+      "implementacao": "pipeline/gate.py continuidade",
+      "evidencias": "pipeline/saida/veredito-continuidade.md"
+    },
+    {
+      "id": "issue",
+      "tipo": "tarefa",
+      "descricao": "Executa a instrução de teste da issue (ou da próxima pendente). Sucesso testado ⇒ marca concluída e entrega a instrução da ISSUE SEGUINTE indexada; falha ⇒ devolve a MESMA issue com o log do erro.",
+      "entrada": ["pipeline/backlog.json", "--id opcional", "--marcar"],
+      "saidas": {
+        "0": "instrução passou — next_issue = próxima pendente (ou null se acabou)",
+        "1": "instrução falhou — next_issue = a mesma issue (continuidade)",
+        "2": "issue sem instrucao_teste executável — requer decisão humana"
+      },
+      "implementacao": "pipeline/gate.py issue",
+      "evidencias": ["pipeline/saida/<ID>-log.txt", "pipeline/saida/<ID>-proxima-issue.md"]
+    }
+  ],
+  "transicoes": [
+    {"de": "issues", "para": "cicd", "quando_status": "0", "condicao": "sem issue aberta"},
+    {"de": "issues", "para": "cicd", "quando_status": "1", "condicao": "com issue aberta — ainda assim avalia o resto (o veredito sai no agregador)"},
+    {"de": "issues", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado — o agregador decide status 2"},
+    {"de": "cicd", "para": "testes", "quando_status": "0", "condicao": "CI limpo"},
+    {"de": "cicd", "para": "testes", "quando_status": "1", "condicao": "CI com erro — segue avaliando os testes"},
+    {"de": "cicd", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
+    {"de": "testes", "para": "continuidade", "quando_status": "0", "condicao": "testes verdes"},
+    {"de": "testes", "para": "continuidade", "quando_status": "1", "condicao": "testes vermelhos/ausentes"},
+    {"de": "testes", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
+    {"de": "continuidade", "para": "issue", "quando_status": "1", "condicao": "continuidade=true → executar a próxima issue do backlog"},
+    {"de": "continuidade", "para": "fim", "quando_status": "0", "condicao": "gate positivo — nada pendente, pipeline pode encerrar"},
+    {"de": "continuidade", "para": "fim", "quando_status": "2", "condicao": "erro tipo 2 — para e exige humano"},
+    {"de": "issue", "para": "issue", "quando_status": "1", "condicao": "falhou — repete a MESMA issue"},
+    {"de": "issue", "para": "continuidade", "quando_status": "0", "condicao": "passou — reavalia o gate agregado com a próxima issue"},
+    {"de": "issue", "para": "fim", "quando_status": "2", "condicao": "issue sem instrução executável — exige humano"}
+  ],
+  "gatilhos_github_actions": {
+    "arquivo": ".github/workflows/gates.yml",
+    "on": ["push", "pull_request", "issues (opened/closed/reopened)", "schedule (dias úteis 09:00)", "workflow_dispatch"],
+    "jobs": {
+      "gate-issues": "executa `gate.py issues`, publica o JSON e o anexo",
+      "gate-cicd": "executa `gate.py cicd`, publica o JSON e o anexo",
+      "gate-testes": "executa `gate.py testes` (suíte completa)",
+      "gate-continuidade": "agrega os três (needs) e decide: 0 finaliza, 1 continua, 2 falha o job",
+      "executa-issue": "roda a próxima issue do backlog quando continuidade=true (workflow_dispatch)"
+    },
+    "saidas": ["artifacts com pipeline/saida/*", "GITHUB_STEP_SUMMARY com o veredito", "exit code = status do gate"]
+  }
+}

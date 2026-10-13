@@ -3,7 +3,7 @@
 Este é o **documento único** do projeto: ele descreve como o `bootstrap.sh` recria
 **tudo do zero** (todos os diretórios, todos os arquivos, todas as permissões), como
 ele **valida e testa** o resultado, e qual é exatamente a **saída esperada** de cada
-etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 19 arquivos embutido —
+etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 28 arquivos embutido —
 não precisa de internet, Git nem de nenhum arquivo externo.
 
 ```bash
@@ -88,11 +88,11 @@ o projeto inteiro roda com a biblioteca padrão do Python.
 | --- | --- | --- | --- |
 | 1 | Pré-requisitos | valida bash 4+, python 3.8+, detecta curl/jq | versão mínima não atingida (sai com 1) |
 | 2 | Diretórios | cria a raiz + `docs/`, `docs/exemplo-saida/`, `scripts/`, `tests/`, `tools/`; `chmod 755` | destino existe e não está vazio sem `--forcar` |
-| 3 | Arquivos | escreve os 19 arquivos a partir do conteúdo embutido; aplica `755`/`644` | execução via pipe (avisa que o `bootstrap.sh` não pôde ser copiado) |
+| 3 | Arquivos | escreve os 28 arquivos a partir do conteúdo embutido; aplica `755`/`644` | execução via pipe (avisa que o `bootstrap.sh` não pôde ser copiado) |
 | 4 | Integridade | recalcula `sha256sum` de cada arquivo e compara com o manifesto | qualquer byte diferente → não segue (sai com 1) |
 | 5 | Permissões | confere o modo de cada arquivo com `stat` | modo divergente → avisa (corrija com `chmod`) |
-| 6 | Sintaxe | `python3 -m py_compile` em 6 arquivos ; `bash -n` em 4 scripts | qualquer erro de sintaxe |
-| 7 | Testes | roda as 3 suítes offline e captura os códigos de saída | alguma suíte ≠ 0 |
+| 6 | Sintaxe | `python3 -m py_compile` em 9 arquivos ; `bash -n` em 4 scripts | qualquer erro de sintaxe |
+| 7 | Testes | roda as 4 suítes offline e captura os códigos de saída | alguma suíte ≠ 0 |
 
 O manifesto SHA-256 (na etapa 4) prova que o destino é **byte a byte** igual ao que o
 bootstrap promete. É o que separa "criei arquivos" de "criei *este* projeto".
@@ -134,28 +134,36 @@ advogados: **MNI** do PJe, com certificado digital.
 
 ## 6. Códigos de teste: o que cada suíte cobre e o resultado esperado
 
-Rode tudo de uma vez com `make testes` (90 testes) e `./tests/testar_bootstrap.sh`
-(22 verificações de recriação). Total: **112 verificações**, todas offline, contra mocks locais.
+Rode tudo de uma vez com `make testes`: são **5 suítes** e **151 verificações**, todas offline,
+contra mocks locais (nenhuma requisição real ao CNJ).
 
 | Suíte | Arquivo | Testes | Cobre | Saída esperada |
 | --- | --- | --- | --- | --- |
 | Conformidade | `tests/testar_conformidade.py` | **29** | itens da doc oficial (seção 5), ausência de dependências externas, shebang/permissões, sintaxe do shell | `Ran 29 tests` / `OK` / código **0** |
 | Consulta de processo | `tests/testar_main.py` | **29** | DV e estrutura do NUP (4 números oficiais), decodificação de tribunais, as 10 seções do relatório, DJEN, `--json`, `-o`, erros 400/401/404/429 | `Ran 29 tests` / `OK` / código **0** |
 | Consultas agregadas | `tests/rodar-testes.sh` | **32** | `contar`, `agregar` (com fallback de campo), `processo`, `paginar` (`search_after`), `relatorio`, tratamento de 401/404/429/rede, `--debug` | `32 passaram, 0 falharam` / código **0** |
-| Recriação | `tests/testar_bootstrap.sh` | **22** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
+| Pipeline de gates | `tests/testar_pipeline.py` | **36** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`), semântica 0/1/2, `next_issue` (mesma issue × próxima), `--marcar`, blueprint, backlog e o workflow do Actions | `Ran 36 tests` / `OK (skipped=1)` / código **0** |
+| Recriação | `tests/testar_bootstrap.sh` | **25** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
 
 Exemplo de saída final do `bootstrap.sh`:
 
 ```
 == Resultado do bootstrap ==
   destino..... : /caminho/projeto-datajud
-  arquivos.... : 19 no manifesto SHA-256 (+ bootstrap.sh)
+  arquivos.... : 28 no manifesto SHA-256 (+ bootstrap.sh)
   permissões.. : 755 em scripts/testes, 644 em docs/dados
   python...... : compila
   bash........ : sem erro de sintaxe
-  teste conf.. : ok  (código de saída: 0)
-  teste main.. : ok  (código de saída: 0)
-  teste shell. : ok  (código de saída: 0)
+  teste conf.. : ok
+  teste main.. : ok
+  teste shell. : ok
+  teste pipe.. : ok
+
+  Próximos passos:
+    cd /caminho/projeto-datajud
+    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)
+    make gates                                  # veredito de continuidade do pipeline
+    make testes                                 # roda as 5 suítes de novo
 
 Bootstrap concluído com sucesso.
 ```

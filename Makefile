@@ -6,7 +6,8 @@ LIMITE   ?= 1000
 NUMERO   ?= 0001234-43.2024.8.17.2001
 
 .PHONY: ajuda chave chave-publica consultar contar processo relatorio paginar testes limpar \
-        bootstrap regenerar-bootstrap verificar
+        bootstrap regenerar-bootstrap verificar \
+        gates gate-issues gate-cicd gate-testes gate-issue gate-situacao blueprint testes-pipeline
 
 ajuda: ## mostra o manual do script
 	@bash scripts/datajud.sh ajuda
@@ -32,11 +33,36 @@ relatorio: ## gera o relatório em markdown/csv (SAIDA=saida)
 paginar: ## baixa processos em JSONL (LIMITE=1000)
 	@bash scripts/datajud.sh paginar --tribunal $(TRIBUNAL) --limite $(LIMITE) --saida processos-$(TRIBUNAL).jsonl
 
-testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + bootstrap)
+testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + pipeline + bootstrap)
 	@python3 tests/testar_conformidade.py
 	@python3 tests/testar_main.py
 	@bash tests/rodar-testes.sh
+	@python3 tests/testar_pipeline.py
 	@bash tests/testar_bootstrap.sh
+
+testes-pipeline: ## roda só a suíte do pipeline de gates (offline)
+	@python3 tests/testar_pipeline.py
+
+gates: ## veredito de continuidade (0=sem pendências, 1=continuidade, 2=humano)
+	@python3 pipeline/gate.py continuidade ; true
+
+gate-issues: ## gate 1 — existem issues abertas?
+	@python3 pipeline/gate.py issues ; true
+
+gate-cicd: ## gate 2 — há execução de CI/CD com erro?
+	@python3 pipeline/gate.py cicd ; true
+
+gate-testes: ## gate 3 — testes presentes e verdes?
+	@python3 pipeline/gate.py testes ; true
+
+gate-issue: ## executa a próxima issue do backlog (ISSUE=ISSUE-00N, MARCAR=--marcar)
+	@python3 pipeline/gate.py issue $$( [ -n "$(ISSUE)" ] && echo "--id $(ISSUE)" ) $(MARCAR) ; true
+
+gate-situacao: ## histórico do pipeline (últimos resultados gravados)
+	@python3 pipeline/gate.py situacao ; true
+
+blueprint: ## valida a planta BPMN do pipeline (pipeline/blueprint.json)
+	@python3 pipeline/gate.py blueprint ; true
 
 bootstrap: ## cria o projeto completo do zero (DIR=./projeto-datajud)
 	@bash bootstrap.sh --destino "$${DIR:-./projeto-datajud}"

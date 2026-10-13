@@ -7,7 +7,7 @@
 #    2. bash bootstrap.sh cria o projeto num diretório temporário
 #    3. a árvore criada é comparada com o repositório (diff -r, exceto .git)
 #    4. as permissões conferem (755 em scripts/testes, 644 em docs/dados)
-#    5. as 3 suítes de teste rodam DENTRO do projeto recriado
+#    5. as 4 suítes de teste rodam DENTRO do projeto recriado
 #    6. `bootstrap.sh --verificar` reconhece o projeto como íntegro
 #
 #  Uso: ./tests/testar_bootstrap.sh
@@ -58,8 +58,11 @@ else
   ruim 'há diferenças entre o projeto criado e o repositório:'
   sed 's/^/      /' "$TMP/diff.log" | head -20
 fi
-qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' | wc -l | tr -d ' ')
-qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' | wc -l | tr -d ' ')
+# diretórios gerados em tempo de execução (saida/, __pycache__) não entram na contagem
+qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
+             -not -path '*/saida/*' | wc -l | tr -d ' ')
+qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
+             -not -path '*/saida/*' | wc -l | tr -d ' ')
 if [[ "$qtd_repo" == "$qtd_novo" ]]; then
   ok "mesma quantidade de arquivos ($qtd_novo)"
 else
@@ -94,6 +97,22 @@ if ( cd "$TMP/projeto" && bash tests/rodar-testes.sh >/dev/null 2>&1 ); then
   ok 'suíte do datajud.sh passa no projeto recriado'
 else
   ruim 'suíte do datajud.sh falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 tests/testar_pipeline.py >/dev/null 2>&1 ); then
+  ok 'suíte do pipeline de gates passa no projeto recriado'
+else
+  ruim 'suíte do pipeline falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 pipeline/gate.py blueprint >/dev/null 2>&1 ); then
+  ok 'gate blueprint roda no projeto recriado (planta consistente)'
+else
+  ruim 'gate blueprint falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 pipeline/gate.py continuidade --status-issues 0 \
+       --status-cicd 0 --status-testes 0 --saida-dir "$TMP/projeto/pipeline/saida" >/dev/null 2>&1 ); then
+  ok 'gate continuidade devolve 0 quando os três checks estão limpos'
+else
+  ruim 'gate continuidade não reconheceu o estado limpo'
 fi
 
 titulo '6. Verificação de integridade (--verificar)'

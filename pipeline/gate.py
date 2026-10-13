@@ -12,6 +12,8 @@ Cada ação deste pipeline devolve SEMPRE o mesmo objeto JSON no stdout:
       "mensagem":    "...",            # string pronta OU resumo/log da execução
       "continuidade": true,            # true = o pipeline DEVE continuar (trabalho pendente)
       "next_issue":  "ISSUE-007",      # mesma issue se falhou; a próxima se passou
+      "direcao":     "proxima",        # para onde ir: continuar|corrigir|depurar|proxima|encerrar|humano
+      "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-007 --marcar",
       "anexos":      [{"path": "...", "filename": "...", "descricao": "..."}],
       "dados":       { ... },          # detalhes estruturados de cada gate
       "timestamp":   "2026-10-13T14:15:00Z",
@@ -38,6 +40,7 @@ Comandos:
     gate.py continuidade                                  # agrega os três acima
     gate.py issue [--id ISSUE-007] [--marcar]             # executa a instrução da issue
     gate.py blueprint                                     # valida a planta (BPMN-like)
+    gate.py fabrica                                       # verifica a fábrica de issues
     gate.py situacao                                      # lê os últimos JSONs gravados
 
 Opções comuns:
@@ -78,8 +81,67 @@ ARQUIVOS_DE_TESTE = [
     "tests/rodar-testes.sh",
     "tests/testar_bootstrap.sh",
     "tests/testar_pipeline.py",
+    "tests/testar_fabrica.py",
 ]
 COMANDO_TESTES_PADRAO = "make testes"
+
+
+# Direções de continuidade: para ONDE o pipeline deve ir depois desta ação.
+# (equivalentes em inglês usados nos comentários: continuar=continue, corrigir=fix,
+#  depurar=debug, proxima=continue to next issue, encerrar=done, humano=needs human)
+DIRECOES = {
+    "continuar": "seguir o fluxo — há trabalho pendente tratável",
+    "corrigir": "corrigir (fix) — resolver a pendência para o gate ficar positivo",
+    "depurar": "depurar (debug) — investigar a execução de CI/CD que terminou com erro",
+    "proxima": "avançar para a próxima issue indexada do backlog",
+    "encerrar": "nada pendente — o pipeline pode encerrar",
+    "humano": "erro tipo 2 — exige decisão humana; NÃO continue automaticamente",
+}
+
+# (gate, status) → direção. O gate `issue` ajusta para "encerrar" quando não há próxima.
+MAPA_DIRECAO = {
+    ("issues", "0"): "continuar", ("issues", "1"): "corrigir", ("issues", "2"): "humano",
+    ("cicd", "0"): "continuar", ("cicd", "1"): "depurar", ("cicd", "2"): "humano",
+    ("testes", "0"): "continuar", ("testes", "1"): "corrigir", ("testes", "2"): "humano",
+    ("continuidade", "0"): "encerrar", ("continuidade", "1"): "continuar",
+    ("continuidade", "2"): "humano",
+    ("issue", "0"): "proxima", ("issue", "1"): "corrigir", ("issue", "2"): "humano",
+    ("blueprint", "0"): "continuar", ("blueprint", "1"): "corrigir", ("blueprint", "2"): "humano",
+    ("fabrica", "0"): "continuar", ("fabrica", "1"): "corrigir", ("fabrica", "2"): "humano",
+    ("situacao", "0"): "continuar", ("situacao", "1"): "corrigir", ("situacao", "2"): "humano",
+}
+
+
+def direcao_de(gate: str, status: str, next_issue=None) -> str:
+    """Direção de continuidade sugerida pelo resultado do gate."""
+    if gate == "issue" and status == "0" and not next_issue:
+        return "encerrar"
+    return MAPA_DIRECAO.get((gate, str(status)), "continuar" if str(status) == "0" else "humano")
+
+
+def proximo_passo_de(gate: str, status: str, next_issue=None, identificador=None) -> str:
+    """Comando literal que o operador (ou o próximo job) deve executar."""
+    if str(status) == "2":
+        return ("revisar o erro tipo 2 (decisão humana) — "
+                f"python3 pipeline/gate.py {gate}")
+    if gate == "issues":
+        return ("gh issue list --state open   # tratar/fechar as issues abertas"
+                if str(status) == "1" else "python3 pipeline/gate.py continuidade")
+    if gate == "cicd":
+        return ("gh run list --limit 10   # abrir a execução com erro (gh run view --log-failed)"
+                if str(status) == "1" else "python3 pipeline/gate.py continuidade")
+    if gate == "testes":
+        return "make testes" if str(status) == "1" else "python3 pipeline/gate.py continuidade"
+    if gate == "continuidade":
+        return (f"python3 pipeline/gate.py issue --id {next_issue}" if next_issue
+                else "python3 pipeline/gate.py issue")
+    if gate == "issue":
+        if str(status) == "1":
+            return f"python3 pipeline/gate.py issue --id {identificador}"
+        if next_issue:
+            return f"python3 pipeline/gate.py issue --id {next_issue} --marcar"
+        return "python3 pipeline/gate.py situacao   # nada pendente"
+    return "python3 pipeline/gate.py situacao"
 
 
 class ErroGate(Exception):
@@ -101,10 +163,15 @@ def novo_id(gate: str) -> str:
 
 
 def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
-           next_issue=None, continuidade=None, duracao: float = 0.0) -> dict:
+           next_issue=None, continuidade=None, duracao: float = 0.0,
+           direcao=None, proximo_passo=None, identificador=None) -> dict:
     """Monta o objeto JSON do contrato. Unico ponto de criação — garante o formato."""
     if continuidade is None:
         continuidade = status == STATUS_CONTINUIDADE
+    if direcao is None:
+        direcao = direcao_de(gate, status, next_issue)
+    if proximo_passo is None:
+        proximo_passo = proximo_passo_de(gate, status, next_issue, identificador)
     return {
         "id": novo_id(gate),
         "gate": gate,
@@ -113,6 +180,8 @@ def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
         "mensagem": str(mensagem),
         "continuidade": bool(continuidade),
         "next_issue": next_issue,
+        "direcao": direcao,
+        "proximo_passo": proximo_passo,
         "anexos": [
             {"path": a.get("path"), "filename": os.path.basename(a.get("path") or ""),
              "descricao": a.get("descricao", "")}
@@ -183,7 +252,8 @@ def proxima_pendente(backlog: dict, excluir=None) -> dict | None:
     for item in ordenar(backlog["issues"]):
         if item.get("id") in ignorar:
             continue
-        if str(item.get("status", "")).lower() not in ("concluida", "concluída", "done"):
+        if str(item.get("status", "")).lower() not in ("concluida", "concluída",
+                                                       "completada", "done"):
             return item
     return None
 
@@ -276,10 +346,25 @@ def gate_cicd(args, saida_dir: str) -> dict:
         execucoes = _rodar_gh(consulta)
         fonte = "gh run list"
 
-    problematicas = [e for e in execucoes
-                     if str(e.get("conclusion") or "").lower() in
-                     ("failure", "timed_out", "startup_failure", "action_required", "cancelled")
-                     and str(e.get("status") or "completed") == "completed"]
+    CONCLUSAO_COM_ERRO = ("failure", "timed_out", "startup_failure",
+                          "action_required", "cancelled")
+
+    def com_erro(execucao: dict) -> bool:
+        return (str(execucao.get("conclusion") or "").lower() in CONCLUSAO_COM_ERRO
+                and str(execucao.get("status") or "completed") == "completed")
+
+    # Aplica o veredito à execução MAIS RECENTE de cada (workflow, branch): um erro
+    # antigo já superado por execução verde não é pendência — vira histórico.
+    por_fluxo = {}
+    for execucao in execucoes:
+        chave = (str(execucao.get("workflowName") or execucao.get("name") or "?"),
+                 str(execucao.get("headBranch") or "?"))
+        atual = por_fluxo.get(chave)
+        if atual is None or (execucao.get("databaseId") or 0) > (atual.get("databaseId") or 0):
+            por_fluxo[chave] = execucao
+
+    problematicas = [e for e in por_fluxo.values() if com_erro(e)]
+    historicas = [e for e in execucoes if com_erro(e) and e not in problematicas]
     pendentes = [e for e in execucoes if str(e.get("status") or "") in ("in_progress", "queued")]
 
     linhas = [f"| {e.get('workflowName') or e.get('name')} | {e.get('status')} | "
@@ -293,20 +378,32 @@ def gate_cicd(args, saida_dir: str) -> dict:
 
     dados = {"fonte": fonte, "total": len(execucoes), "com_erro": len(problematicas),
              "em_andamento": len(pendentes),
+             "historicos_com_erro": len(historicas),
+             "historico_superado": [
+                 {"workflow": e.get("workflowName"), "branch": e.get("headBranch"),
+                  "conclusao": e.get("conclusion"), "url": e.get("url")}
+                 for e in historicas],
+             "criterio": "veredito da execução MAIS RECENTE de cada (workflow, branch); "
+                         "erros antigos já superados por execução verde entram em "
+                         "'historico_superado' e não são pendência",
              "workflows": sorted({str(e.get("workflowName") or e.get("name") or "?")
                                   for e in execucoes})}
     if problematicas:
         nomes = ", ".join(sorted({str(e.get("workflowName") or "?") for e in problematicas}))
         return objeto(
             gate="cicd", status=STATUS_CONTINUIDADE, continuidade=True,
-            mensagem=f"{len(problematicas)} execução(ões) de CI com erro ({nomes}) — "
-                     "pendência conhecida: o pipeline continua",
+            mensagem=f"{len(problematicas)} fluxo(s) de CI com erro na execução mais recente "
+                     f"({nomes}) — pendência conhecida: o pipeline continua"
+                     + (f" ({len(historicas)} erro(s) antigo(s) já superado(s))"
+                        if historicas else ""),
             anexos=[anexo], dados={**dados, "execucoes_com_erro": problematicas},
             duracao=time.time() - inicio)
     return objeto(
         gate="cicd", status=STATUS_SUCESSO,
         mensagem=(f"CI sem erros ({len(execucoes)} execução(ões) analisada(s)"
-                  + (f", {len(pendentes)} em andamento" if pendentes else "") + f"; fonte: {fonte})"),
+                  + (f", {len(pendentes)} em andamento" if pendentes else "")
+                  + (f"; {len(historicas)} erro(s) antigo(s) já superado(s) por execução verde"
+                     if historicas else "") + f"; fonte: {fonte})"),
         anexos=[anexo], dados=dados, duracao=time.time() - inicio)
 
 
@@ -358,7 +455,8 @@ def gate_continuidade(args, saida_dir: str) -> dict:
 
     for nome, funcao, override in (("issues", gate_issues, getattr(args, "status_issues", None)),
                                    ("cicd", gate_cicd, getattr(args, "status_cicd", None)),
-                                   ("testes", gate_testes, getattr(args, "status_testes", None))):
+                                   ("testes", gate_testes, getattr(args, "status_testes", None)),
+                                   ("fabrica", gate_fabrica, getattr(args, "status_fabrica", None))):
         if override is not None:
             # valor vindo de outro job do workflow (encadeamento por `needs`)
             parciais[nome] = objeto(
@@ -402,12 +500,15 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     else:
         status = STATUS_SUCESSO
         continuidade = False
-        mensagem = "gate positivo: nenhuma issue aberta, CI sem erros e testes aprovados"
+        mensagem = ("gate positivo: nenhuma issue aberta, CI sem erros, testes aprovados "
+                    "e fábrica íntegra")
 
     dados = {
         "checks": {n: {"status": p["status"], "mensagem": p["mensagem"]} for n, p in parciais.items()},
         "gate_positivo": status == STATUS_SUCESSO,
-        "regra": "positivo ⇔ (0 issues abertas) ∧ (CI sem erro) ∧ (testes presentes e verdes)",
+        "regra": "positivo ⇔ (0 issues abertas) ∧ (CI sem erro) ∧ (testes presentes e "
+                 "verdes) ∧ (fábrica de issues íntegra, com instrução de desenvolvimento "
+                 "em todas as issues)",
         "backlog": contexto_backlog,
     }
 
@@ -461,7 +562,7 @@ def gate_issue(args, saida_dir: str) -> dict:
     if not instrucao:
         return objeto(
             gate="issue", status=STATUS_INDETERMINADO, continuidade=False,
-            next_issue=identificador,
+            next_issue=identificador, identificador=identificador,
             mensagem=f"{identificador} (“{issue.get('titulo')}”) não tem instrucao_teste "
                      "executável — requer decisão humana (erro tipo 2)",
             dados={"issue": issue, "backlog": args.backlog}, duracao=time.time() - inicio)
@@ -475,7 +576,10 @@ def gate_issue(args, saida_dir: str) -> dict:
     if codigo == 0:
         if args.marcar:
             marcar_concluida(backlog, identificador,
-                             {"teste": instrucao, "codigo_saida": 0, "quando": agora()})
+                             {"teste": instrucao, "codigo_saida": 0, "quando": agora(),
+                              "evidencia": "log anexado em pipeline/saida/"
+                                           f"{identificador}-log.txt",
+                              "sucesso": "COMPLETADA"})
             with open(args.backlog, "w", encoding="utf-8") as fh:
                 json.dump(backlog, fh, ensure_ascii=False, indent=2)
                 fh.write("\n")
@@ -506,7 +610,8 @@ def gate_issue(args, saida_dir: str) -> dict:
             next_issue = None
         return objeto(
             gate="issue", status=STATUS_SUCESSO, continuidade=bool(proxima),
-            mensagem=mensagem, next_issue=next_issue, anexos=anexos,
+            mensagem=mensagem, next_issue=next_issue, identificador=identificador,
+            anexos=anexos,
             dados={"issue": identificador, "teste": instrucao, "codigo_saida": 0,
                    "marcada_concluida": bool(args.marcar), "backlog": args.backlog,
                    "resumo": saida[-1500:]},
@@ -514,7 +619,7 @@ def gate_issue(args, saida_dir: str) -> dict:
 
     return objeto(
         gate="issue", status=STATUS_CONTINUIDADE, continuidade=True,
-        next_issue=identificador,
+        next_issue=identificador, identificador=identificador,
         mensagem=f"{identificador} ainda não passa (`{instrucao}`, código {codigo}) — "
                  "continuidade: repita/mesma issue até ficar verde",
         anexos=anexos,
@@ -535,7 +640,7 @@ def gate_blueprint(args, saida_dir: str) -> dict:
 
     falhas = []
     gates_planta = {g["id"] for g in planta.get("gates", [])}
-    implementacao = {"issues", "cicd", "testes", "continuidade", "issue"}
+    implementacao = {"issues", "cicd", "testes", "continuidade", "issue", "fabrica"}
     if not gates_planta:
         falhas.append("blueprint sem 'gates'")
     if gates_planta - implementacao:
@@ -563,6 +668,84 @@ def gate_blueprint(args, saida_dir: str) -> dict:
                   dados={"gates": sorted(gates_planta),
                          "transicoes": len(planta.get("transicoes", [])),
                          "arquivo": args.blueprint}, duracao=time.time() - inicio)
+
+
+def gate_fabrica(args, saida_dir: str) -> dict:
+    """Verifica a fábrica de issues (POO + SQLite + eventos) e o padrão do blueprint.
+
+    É um gate de verificação: importa a fábrica, cria o esquema SQLite num banco
+    temporário, confere o modelo de issue do blueprint, exige instrução de
+    desenvolvimento em todas as issues do backlog e faz um smoke real (cria uma
+    issue pelo padrão, registra o evento e faz round-trip export/import).
+
+    − 0: fábrica íntegra e capaz de construir a próxima issue indexada;
+    − 1: pendência conhecida (issue sem instrução de desenvolvimento no backlog);
+    − 2: não foi possível avaliar (módulo/blueprint ausente ou inválido).
+    """
+    import tempfile
+    inicio = time.time()
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        import factory  # módulo irmão em pipeline/
+    except Exception as e:  # pragma: no cover - só em ambiente quebrado
+        raise ErroGate(f"não foi possível importar pipeline/factory.py: {e}")
+
+    pasta = tempfile.mkdtemp(prefix="fabrica-gate-")
+    try:
+        repositorio = factory.Repositorio(os.path.join(pasta, "gate.db"))
+        tabelas = repositorio.tabelas()
+        padrao = factory.PadraoBPMN(args.blueprint)
+        padrao.validar()
+        sintetica = padrao.modelo(indice=900, titulo="smoke da fábrica (gate)",
+                                  anterior="ISSUE-899")
+        repositorio.salvar_issue(sintetica)
+        repositorio.registrar_evento(factory.Evento("gate.fabrica.smoke",
+                                                     {"issue": sintetica.id}))
+        exportado = os.path.join(pasta, "backlog-export.json")
+        repositorio.exportar_backlog(exportado)
+        reimportado = factory.Repositorio(os.path.join(pasta, "gate2.db"))
+        reimportado.sincronizar_backlog(exportado)
+        round_trip = [i.id for i in reimportado.listar_issues()] == [sintetica.id]
+        eventos = repositorio.listar_eventos()
+    except factory.ErroFabrica as e:
+        raise ErroGate(f"fábrica inconsistente: {e}")
+    except (OSError, json.JSONDecodeError) as e:
+        raise ErroGate(f"não foi possível avaliar a fábrica: {e}")
+
+    try:
+        backlog = ler_backlog(args.backlog)
+    except ErroGate as e:
+        raise ErroGate(str(e))
+    sem_instrucao = [i.get("id") for i in ordenar(backlog["issues"])
+                     if not str(i.get("instrucao_desenvolvimento") or "").strip()]
+
+    linhas = ["# Verificação da fábrica de issues", "",
+              f"- classes: {', '.join(sorted(factory.CLASSES))}",
+              f"- tabelas SQLite: {', '.join(tabelas)}",
+              f"- eventos registrados no smoke: {len(eventos)}",
+              f"- round-trip export/import (backlog.json ⇄ SQLite): "
+              f"{'ok' if round_trip else 'FALHOU'}",
+              f"- issues sem instrução de desenvolvimento: {len(sem_instrucao)}", ""]
+    anexo = gravar_anexo("fabrica-verificacao.md", "\n".join(linhas) + "\n", saida_dir,
+                         "verificação da fábrica de issues (POO + SQLite + eventos)")
+    dados = {"classes": sorted(factory.CLASSES), "tabelas": tabelas,
+             "blueprint": args.blueprint, "modelo_campos": sorted(sintetica.para_dict()),
+             "round_trip": round_trip, "eventos_smoke": len(eventos),
+             "sem_instrucao_desenvolvimento": sem_instrucao}
+
+    if sem_instrucao:
+        return objeto(
+            gate="fabrica", status=STATUS_CONTINUIDADE, continuidade=True,
+            mensagem=f"fábrica íntegra, mas {len(sem_instrucao)} issue(s) sem "
+                     f"instrução de desenvolvimento ({', '.join(sem_instrucao)}) — "
+                     "pendência conhecida: a fábrica precisa da instrução para "
+                     "construir a próxima",
+            anexos=[anexo], dados=dados, duracao=time.time() - inicio)
+    return objeto(
+        gate="fabrica", status=STATUS_SUCESSO,
+        mensagem=f"fábrica íntegra: {len(factory.CLASSES)} classes, tabelas "
+                 f"{'/'.join(tabelas)}, modelo validado e round-trip SQLite ⇄ backlog.json ok",
+        anexos=[anexo], dados=dados, duracao=time.time() - inicio)
 
 
 def gate_situacao(args, saida_dir: str) -> dict:
@@ -608,7 +791,7 @@ def montar_parser() -> argparse.ArgumentParser:
         description="Gates do pipeline (JSON sempre no stdout; código de saída = status).",
         epilog="Status: 0=sucesso, 1=erro tipo 1/continuidade, 2=erro tipo 2/indeterminado.")
     p.add_argument("gate", choices=["issues", "cicd", "testes", "continuidade", "issue",
-                                    "blueprint", "situacao"])
+                                    "blueprint", "fabrica", "situacao"])
     p.add_argument("--json-saida", help="arquivo extra para o objeto JSON")
     p.add_argument("--saida-dir", default=os.environ.get("GATE_SAIDA_DIR") or SAIDA_PADRAO)
     p.add_argument("--backlog", default=BACKLOG_PADRAO)
@@ -621,7 +804,7 @@ def montar_parser() -> argparse.ArgumentParser:
     p.add_argument("--issues-json", help="(gates issues/continuidade) fixture de issues abertas")
     p.add_argument("--runs-json", help="(gates cicd/continuidade) fixture de execuções de CI")
     p.add_argument("--sem-gh", action="store_true", help="não chamar gh (usa apenas fixtures)")
-    for _nome in ("issues", "cicd", "testes"):
+    for _nome in ("issues", "cicd", "testes", "fabrica"):
         p.add_argument(f"--status-{_nome}", choices=["0", "1", "2"],
                        help=f"(continuidade) usa este status para '{_nome}' em vez de avaliar "
                             "— encadeamento de jobs do workflow")
@@ -634,7 +817,8 @@ def main(argv=None) -> int:
     args = montar_parser().parse_args(argv)
     funcoes = {"issues": gate_issues, "cicd": gate_cicd, "testes": gate_testes,
                "continuidade": gate_continuidade, "issue": gate_issue,
-               "blueprint": gate_blueprint, "situacao": gate_situacao}
+               "blueprint": gate_blueprint, "fabrica": gate_fabrica,
+               "situacao": gate_situacao}
     try:
         resultado = funcoes[args.gate](args, args.saida_dir)
     except ErroGate as e:

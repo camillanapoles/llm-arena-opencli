@@ -4,12 +4,17 @@
   "como_usar": [
     "python3 pipeline/gate.py issue                 # roda a próxima pendente (sem marcar)",
     "python3 pipeline/gate.py issue --marcar        # roda e marca concluída se passar",
-    "python3 pipeline/gate.py issue --id ISSUE-007  # roda uma issue específica"
+    "python3 pipeline/gate.py issue --id ISSUE-007  # roda uma issue específica",
+    "python3 pipeline/gate.py fabrica                 # verifica a fábrica (padrão + SQLite + instruções)",
+    "python3 pipeline/factory.py --sincronizar        # traz o backlog.json para o SQLite",
+    "python3 pipeline/factory.py --instruir --exportar backlog.json   # cria instrução onde faltar",
+    "python3 pipeline/factory.py --evento \"ci_falhou|run=123\" --listar  # evento → issue (event-driven)"
   ],
   "status_possiveis": [
-    "concluida",
+    "concluida (COMPLETADA — sucesso testado; sinônimos: completada/done)",
     "pendente",
-    "bloqueada"
+    "bloqueada (exige humano)",
+    "cancelada"
   ],
   "issues": [
     {
@@ -22,7 +27,9 @@
       "depende_de": [],
       "evidencias": [
         "32 verificações offline passando"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao alterar o kit curl, rodar `bash tests/rodar-testes.sh` (32 verificações) e conferir as receitas em docs/02; qualquer rota/param novo entra na doc antes do código.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-002",
@@ -36,7 +43,9 @@
       ],
       "evidencias": [
         "29 testes: NUP/DV, seções do relatório, DJEN, erros 400/401/404/429"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mexer no relatório, rodar `python3 tests/testar_main.py` (29) e regerar um exemplo em docs/exemplo-saida/ com `python3 main.py 0001234-43.2024.8.17.2001 -o docs/exemplo-saida/relatorio-processo-exemplo.md`.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-003",
@@ -50,7 +59,9 @@
       ],
       "evidencias": [
         "22 verificações: recriação byte a byte (diff -r), permissões, SHA-256, --verificar"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: depois de criar/renomear arquivo, incluir no ARQUIVOS de tools/gerar_bootstrap.py, rodar `python3 tools/gerar_bootstrap.py` e `bash tests/testar_bootstrap.sh` (25 verificações; o diff -r precisa voltar vazio).",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-004",
@@ -64,7 +75,9 @@
       ],
       "evidencias": [
         "29 testes contra a wiki do DataJud e o Termo de Uso v1.2"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar contrato/limite da API, atualizar docs/01 e `python3 tests/testar_conformidade.py` (29) no mesmo commit — a conformidade é o teste que quebra primeiro.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-005",
@@ -78,7 +91,9 @@
       ],
       "evidencias": [
         "contrato JSON, status 0/1/2, continuidade, next_issue, anexos, blueprint e workflow validados"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar o contrato JSON, atualizar `pipeline/blueprint.json` (contrato + transições) e `python3 tests/testar_pipeline.py` (36); rodar `python3 pipeline/gate.py blueprint` antes de commitar.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-006",
@@ -89,7 +104,9 @@
       "depende_de": [
         "ISSUE-002"
       ],
-      "observacao": "Instrução executável: consulta real e mínima ao DataJud (size=0). Devolve 0 se o CNJ responder 200, 1 se a rede não alcançar a API (continuidade — é o caso do ambiente de desenvolvimento atual) e 2 se a chave for recusada."
+      "observacao": "Instrução executável: consulta real e mínima ao DataJud (size=0). Devolve 0 se o CNJ responder 200, 1 se a rede não alcançar a API (continuidade — é o caso do ambiente de desenvolvimento atual) e 2 se a chave for recusada.",
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO: 1) rodar `python3 pipeline/verificar_cnj.py --timeout 20` numa máquina com internet; 2) se devolver status 0 (HTTP 200), executar `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` e commitar o backlog; 3) se devolver 1, é a rede (continuidade — repetir em outro ambiente); 4) se devolver 2 (HTTP 401/403), trocar a chave com `python3 main.py --chave-publica`, atualizar docs/01 e revalidar.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-007",
@@ -100,7 +117,10 @@
       "depende_de": [
         "ISSUE-005"
       ],
-      "observacao": "Sem instrução de teste executável de propósito: o gate devolve status 2 (erro tipo 2) e exige decisão humana."
+      "observacao": "Sem instrução de teste executável de propósito: o gate devolve status 2 (erro tipo 2) e exige decisão humana.",
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO (decisão humana): 1) ler a issue #3 (SESSION CONTINUITY CONTROL) e o fluxo da outra sessão (`arena/d917b13b-llm-arena-opencli`); 2) escolher explicitamente (a) unificar no pipeline de gates desta sessão, (b) manter os dois fluxos separados, ou (c) portar os gates para o fluxo da outra sessão; 3) registrar a decisão aqui e, se for (a)/(c), abrir a issue de implementação com instrução de teste executável; 4) enquanto não houver decisão, o gate devolve status 2 de propósito.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     }
-  ]
+  ],
+  "modelo": "Padrão: pipeline/blueprint.json → modelo_issue. A fábrica (pipeline/factory.py) é quem constrói a próxima indexada a partir de eventos, em SQLite, e mantém este arquivo como espelho."
 }

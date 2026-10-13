@@ -7,7 +7,8 @@ NUMERO   ?= 0001234-43.2024.8.17.2001
 
 .PHONY: ajuda chave chave-publica consultar contar processo relatorio paginar testes limpar \
         bootstrap regenerar-bootstrap verificar \
-        gates gate-issues gate-cicd gate-testes gate-issue gate-situacao blueprint testes-pipeline
+        gates gate-issues gate-cicd gate-testes gate-fabrica gate-issue gate-situacao blueprint \
+        testes-pipeline fabrica fabrica-estado fabrica-proxima fabrica-instruir
 
 ajuda: ## mostra o manual do script
 	@bash scripts/datajud.sh ajuda
@@ -33,15 +34,17 @@ relatorio: ## gera o relatório em markdown/csv (SAIDA=saida)
 paginar: ## baixa processos em JSONL (LIMITE=1000)
 	@bash scripts/datajud.sh paginar --tribunal $(TRIBUNAL) --limite $(LIMITE) --saida processos-$(TRIBUNAL).jsonl
 
-testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + pipeline + bootstrap)
+testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + pipeline + fábrica + bootstrap)
 	@python3 tests/testar_conformidade.py
 	@python3 tests/testar_main.py
 	@bash tests/rodar-testes.sh
 	@python3 tests/testar_pipeline.py
+	@python3 tests/testar_fabrica.py
 	@bash tests/testar_bootstrap.sh
 
-testes-pipeline: ## roda só a suíte do pipeline de gates (offline)
+testes-pipeline: ## roda as suítes do pipeline e da fábrica (offline)
 	@python3 tests/testar_pipeline.py
+	@python3 tests/testar_fabrica.py
 
 gates: ## veredito de continuidade (0=sem pendências, 1=continuidade, 2=humano)
 	@python3 pipeline/gate.py continuidade ; true
@@ -54,6 +57,21 @@ gate-cicd: ## gate 2 — há execução de CI/CD com erro?
 
 gate-testes: ## gate 3 — testes presentes e verdes?
 	@python3 pipeline/gate.py testes ; true
+
+gate-fabrica: ## gate 4 — a fábrica de issues (padrão BPMN + SQLite) está íntegra?
+	@python3 pipeline/gate.py fabrica ; true
+
+fabrica: ## estado da fábrica: issues, eventos, esquema e direção de continuidade
+	@python3 pipeline/factory.py --sincronizar --listar ; true
+
+fabrica-estado: ## só o resumo do SQLite (sem tocar no backlog.json)
+	@python3 pipeline/factory.py --listar ; true
+
+fabrica-proxima: ## conclui a pendência testada e constrói a PRÓXIMA issue indexada
+	@python3 pipeline/factory.py --sincronizar --proxima --exportar pipeline/backlog.json ; true
+
+fabrica-instruir: ## cria a instrução de desenvolvimento onde estiver faltando
+	@python3 pipeline/factory.py --sincronizar --instruir --exportar pipeline/backlog.json ; true
 
 gate-issue: ## executa a próxima issue do backlog (ISSUE=ISSUE-00N, MARCAR=--marcar)
 	@python3 pipeline/gate.py issue $$( [ -n "$(ISSUE)" ] && echo "--id $(ISSUE)" ) $(MARCAR) ; true

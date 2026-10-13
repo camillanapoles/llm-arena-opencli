@@ -3,7 +3,17 @@
   "versao": "1.0.0",
   "descricao": "Planta do pipeline orientado a gates (gate-driven pipeline), no formato de blueprint tipo BPMN. Cada gate devolve o objeto JSON do contrato {id, status, mensagem, next_issue, anexos, dados} com status 0 (sucesso), 1 (erro tipo 1 = continuidade) ou 2 (erro tipo 2 = indeterminado).",
   "contrato": {
-    "campos_obrigatorios": ["id", "gate", "status", "mensagem", "next_issue", "anexos", "dados", "timestamp", "versao"],
+    "campos_obrigatorios": [
+      "id",
+      "gate",
+      "status",
+      "mensagem",
+      "next_issue",
+      "anexos",
+      "dados",
+      "timestamp",
+      "versao"
+    ],
     "status": {
       "0": "sucesso — gate positivo, nada pendente; continuidade=false",
       "1": "erro tipo 1 — pendência conhecida e tratável (issue aberta, CI vermelho, teste ausente/reprovado); continuidade=true",
@@ -18,7 +28,10 @@
       "id": "issues",
       "tipo": "gateway-exclusivo",
       "descricao": "Verifica a NÃO existência de issues abertas (gh issue list ou fixture).",
-      "entrada": ["evento do GitHub (push/PR/issues/dispatch)", "fixture opcional --issues-json"],
+      "entrada": [
+        "evento do GitHub (push/PR/issues/dispatch)",
+        "fixture opcional --issues-json"
+      ],
       "saidas": {
         "0": "nenhuma issue aberta",
         "1": "existe issue aberta → continuidade",
@@ -31,7 +44,10 @@
       "id": "cicd",
       "tipo": "gateway-exclusivo",
       "descricao": "Verifica se há execução de CI/CD concluída com erro (failure, timed_out, startup_failure, action_required, cancelled).",
-      "entrada": ["gh run list (30 mais recentes)", "fixture opcional --runs-json"],
+      "entrada": [
+        "gh run list (30 mais recentes)",
+        "fixture opcional --runs-json"
+      ],
       "saidas": {
         "0": "nenhuma execução com erro",
         "1": "há execução com erro → continuidade",
@@ -44,7 +60,11 @@
       "id": "testes",
       "tipo": "tarefa",
       "descricao": "Confere a existência dos arquivos de teste e executa a suíte completa.",
-      "entrada": ["tests/*.py", "tests/*.sh", "--comando"],
+      "entrada": [
+        "tests/*.py",
+        "tests/*.sh",
+        "--comando"
+      ],
       "saidas": {
         "0": "testes presentes e aprovados",
         "1": "testes ausentes ou reprovados → continuidade",
@@ -57,7 +77,12 @@
       "id": "continuidade",
       "tipo": "gateway-inclusivo",
       "descricao": "Agrega issues + cicd + testes no veredito. Só é positivo (0) quando os três são positivos; qualquer pendência conhecida ⇒ 1 (continuidade) com next_issue do backlog; qualquer indeterminação ⇒ 2.",
-      "entrada": ["issues", "cicd", "testes", "pipeline/backlog.json"],
+      "entrada": [
+        "issues",
+        "cicd",
+        "testes",
+        "pipeline/backlog.json"
+      ],
       "saidas": {
         "0": "pipeline pode finalizar (continuidade=false, next_issue=null)",
         "1": "pipeline DEVE continuar (continuidade=true, next_issue=<primeira pendente>)",
@@ -70,36 +95,179 @@
       "id": "issue",
       "tipo": "tarefa",
       "descricao": "Executa a instrução de teste da issue (ou da próxima pendente). Sucesso testado ⇒ marca concluída e entrega a instrução da ISSUE SEGUINTE indexada; falha ⇒ devolve a MESMA issue com o log do erro.",
-      "entrada": ["pipeline/backlog.json", "--id opcional", "--marcar"],
+      "entrada": [
+        "pipeline/backlog.json",
+        "--id opcional",
+        "--marcar"
+      ],
       "saidas": {
         "0": "instrução passou — next_issue = próxima pendente (ou null se acabou)",
         "1": "instrução falhou — next_issue = a mesma issue (continuidade)",
         "2": "issue sem instrucao_teste executável — requer decisão humana"
       },
       "implementacao": "pipeline/gate.py issue",
-      "evidencias": ["pipeline/saida/<ID>-log.txt", "pipeline/saida/<ID>-proxima-issue.md"]
+      "evidencias": [
+        "pipeline/saida/<ID>-log.txt",
+        "pipeline/saida/<ID>-proxima-issue.md"
+      ]
+    },
+    {
+      "id": "fabrica",
+      "tipo": "tarefa",
+      "papel": "fabrica-de-issues",
+      "descricao": "Fábrica event-driven: verifica o padrão do blueprint, o esquema SQLite, o modelo de issue COM instrução de desenvolvimento e o round-trip backlog.json ⇄ SQLite.",
+      "entrada": [
+        "pipeline/factory.py",
+        "pipeline/blueprint.json (modelo_issue)",
+        "pipeline/backlog.json",
+        "eventos (--evento)"
+      ],
+      "saidas": {
+        "0": "fábrica íntegra e capaz de construir a próxima indexada",
+        "1": "issue sem instrução de desenvolvimento (pendência conhecida) → continuidade",
+        "2": "módulo/blueprint ausente ou inválido"
+      },
+      "implementacao": "pipeline/gate.py fabrica  ·  CLI em pipeline/factory.py",
+      "evidencias": "pipeline/saida/fabrica-verificacao.md"
     }
   ],
   "transicoes": [
-    {"de": "issues", "para": "cicd", "quando_status": "0", "condicao": "sem issue aberta"},
-    {"de": "issues", "para": "cicd", "quando_status": "1", "condicao": "com issue aberta — ainda assim avalia o resto (o veredito sai no agregador)"},
-    {"de": "issues", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado — o agregador decide status 2"},
-    {"de": "cicd", "para": "testes", "quando_status": "0", "condicao": "CI limpo"},
-    {"de": "cicd", "para": "testes", "quando_status": "1", "condicao": "CI com erro — segue avaliando os testes"},
-    {"de": "cicd", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
-    {"de": "testes", "para": "continuidade", "quando_status": "0", "condicao": "testes verdes"},
-    {"de": "testes", "para": "continuidade", "quando_status": "1", "condicao": "testes vermelhos/ausentes"},
-    {"de": "testes", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
-    {"de": "continuidade", "para": "issue", "quando_status": "1", "condicao": "continuidade=true → executar a próxima issue do backlog"},
-    {"de": "continuidade", "para": "fim", "quando_status": "0", "condicao": "gate positivo — nada pendente, pipeline pode encerrar"},
-    {"de": "continuidade", "para": "fim", "quando_status": "2", "condicao": "erro tipo 2 — para e exige humano"},
-    {"de": "issue", "para": "issue", "quando_status": "1", "condicao": "falhou — repete a MESMA issue"},
-    {"de": "issue", "para": "continuidade", "quando_status": "0", "condicao": "passou — reavalia o gate agregado com a próxima issue"},
-    {"de": "issue", "para": "fim", "quando_status": "2", "condicao": "issue sem instrução executável — exige humano"}
+    {
+      "de": "issues",
+      "para": "cicd",
+      "quando_status": "0",
+      "condicao": "sem issue aberta"
+    },
+    {
+      "de": "issues",
+      "para": "cicd",
+      "quando_status": "1",
+      "condicao": "com issue aberta — ainda assim avalia o resto (o veredito sai no agregador)"
+    },
+    {
+      "de": "issues",
+      "para": "continuidade",
+      "quando_status": "2",
+      "condicao": "indeterminado — o agregador decide status 2"
+    },
+    {
+      "de": "cicd",
+      "para": "testes",
+      "quando_status": "0",
+      "condicao": "CI limpo"
+    },
+    {
+      "de": "cicd",
+      "para": "testes",
+      "quando_status": "1",
+      "condicao": "CI com erro — segue avaliando os testes"
+    },
+    {
+      "de": "cicd",
+      "para": "continuidade",
+      "quando_status": "2",
+      "condicao": "indeterminado"
+    },
+    {
+      "de": "testes",
+      "para": "continuidade",
+      "quando_status": "0",
+      "condicao": "testes verdes"
+    },
+    {
+      "de": "testes",
+      "para": "continuidade",
+      "quando_status": "1",
+      "condicao": "testes vermelhos/ausentes"
+    },
+    {
+      "de": "testes",
+      "para": "continuidade",
+      "quando_status": "2",
+      "condicao": "indeterminado"
+    },
+    {
+      "de": "continuidade",
+      "para": "issue",
+      "quando_status": "1",
+      "condicao": "continuidade=true → executar a próxima issue do backlog"
+    },
+    {
+      "de": "continuidade",
+      "para": "fim",
+      "quando_status": "0",
+      "condicao": "gate positivo — nada pendente, pipeline pode encerrar"
+    },
+    {
+      "de": "continuidade",
+      "para": "fim",
+      "quando_status": "2",
+      "condicao": "erro tipo 2 — para e exige humano"
+    },
+    {
+      "de": "issue",
+      "para": "issue",
+      "quando_status": "1",
+      "condicao": "falhou — repete a MESMA issue"
+    },
+    {
+      "de": "issue",
+      "para": "continuidade",
+      "quando_status": "0",
+      "condicao": "passou — reavalia o gate agregado com a próxima issue"
+    },
+    {
+      "de": "issue",
+      "para": "fim",
+      "quando_status": "2",
+      "condicao": "issue sem instrução executável — exige humano"
+    },
+    {
+      "de": "issues",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "há issue aberta — a fábrica registra o evento e mantém a MESMA issue"
+    },
+    {
+      "de": "cicd",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "CI com erro — a fábrica registra o evento e a direção vira depurar (debug)"
+    },
+    {
+      "de": "testes",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "teste ausente/reprovado — a fábrica registra o evento e a direção vira corrigir (fix)"
+    },
+    {
+      "de": "fabrica",
+      "para": "continuidade",
+      "quando_status": "0",
+      "condicao": "fábrica íntegra — o padrão está pronto para gerar a próxima indexada"
+    },
+    {
+      "de": "fabrica",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "issue sem instrução de desenvolvimento — completar antes de seguir"
+    },
+    {
+      "de": "fabrica",
+      "para": "fim",
+      "quando_status": "2",
+      "condicao": "fábrica/blueprint inválidos — exige humano"
+    }
   ],
   "gatilhos_github_actions": {
     "arquivo": ".github/workflows/gates.yml",
-    "on": ["push", "pull_request", "issues (opened/closed/reopened)", "schedule (dias úteis 09:00)", "workflow_dispatch"],
+    "on": [
+      "push",
+      "pull_request",
+      "issues (opened/closed/reopened)",
+      "schedule (dias úteis 09:00)",
+      "workflow_dispatch"
+    ],
     "jobs": {
       "gate-issues": "executa `gate.py issues`, publica o JSON e o anexo",
       "gate-cicd": "executa `gate.py cicd`, publica o JSON e o anexo",
@@ -107,6 +275,60 @@
       "gate-continuidade": "agrega os três (needs) e decide: 0 finaliza, 1 continua, 2 falha o job",
       "executa-issue": "roda a próxima issue do backlog quando continuidade=true (workflow_dispatch)"
     },
-    "saidas": ["artifacts com pipeline/saida/*", "GITHUB_STEP_SUMMARY com o veredito", "exit code = status do gate"]
+    "saidas": [
+      "artifacts com pipeline/saida/*",
+      "GITHUB_STEP_SUMMARY com o veredito",
+      "exit code = status do gate"
+    ],
+    "fabrica": "python3 pipeline/factory.py --sincronizar --evento \"gate_falhou|gate=<gate>|status=<0|1|2>\" --listar  (o workflow gates.yml roda o gate `fabrica` no job gate-fabrica)"
+  },
+  "modelo_issue": {
+    "descricao": "Padrão que a fábrica (pipeline/factory.py) segue para criar a PRÓXIMA issue indexada a partir de eventos — POO + SQLite + event-driven.",
+    "formato_id": "ISSUE-{indice:03d}",
+    "campos": [
+      "id",
+      "indice",
+      "titulo",
+      "entregavel",
+      "instrucao_teste",
+      "instrucao_desenvolvimento",
+      "status",
+      "depende_de",
+      "origem",
+      "criada_em",
+      "concluida_em",
+      "evidencias"
+    ],
+    "status": {
+      "concluida": "ISTO é SUCESSO COMPLETADO (sinônimos: completada/done)",
+      "pendente": "aberta — a fábrica mantém a MESMA issue até o sucesso testado",
+      "bloqueada": "exige decisão humana (ex.: ISSUE-007)",
+      "cancelada": "descartada — não entra no next_issue"
+    },
+    "dependencia_padrao": [
+      "anterior"
+    ],
+    "instrucoes_de_desenvolvimento": [
+      "executar a entrada correspondente ao evento que gerou a issue",
+      "rodar o gate (make gates) e o teste indicado em instrucao_teste",
+      "corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado",
+      "marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)"
+    ],
+    "instrucao_desenvolvimento_padrao": "executar/entregar; `make testes`; `python3 pipeline/gate.py issue --marcar`",
+    "instrucao_proxima_issue": "ao completar a issue N com sucesso testado, a fábrica constrói a N+1 indexada e anexa a instrução dela em pipeline/saida/ISSUE-NNN-proxima-issue.md"
+  },
+  "instrucao_proxima_issue": {
+    "descricao": "Bloco padronizado que toda ação devolve junto do JSON (campos `direcao` e `proximo_passo`) — norteia a direção de continuidade.",
+    "direcoes": [
+      "continuar",
+      "corrigir (fix)",
+      "depurar (debug)",
+      "proxima (continue to next issue)",
+      "encerrar",
+      "humano (erro tipo 2)"
+    ],
+    "regra": "0 ⇒ proxima/continuar/encerrar · 1 ⇒ corrigir/depurar (continuidade=true) · 2 ⇒ humano (continuidade=false)",
+    "nudge": "quando a compactação do contexto estiver próxima: rodar `make gates`, atualizar o backlog com `--marcar` e seguir o `proximo_passo` do JSON — o estado fica no repositório (blueprint/backlog/SQLite), não no contexto.",
+    "comando_padrao": "python3 pipeline/gate.py issue --id <NEXT_ISSUE> --marcar"
   }
 }

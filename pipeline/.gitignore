@@ -1,2 +1,4 @@
-# artefatos do pipeline (JSONs e anexos por execução)
 saida/
+fabrica.db
+fabrica.db-wal
+fabrica.db-shm

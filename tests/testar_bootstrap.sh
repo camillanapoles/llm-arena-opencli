@@ -7,7 +7,7 @@
 #    2. bash bootstrap.sh cria o projeto num diretório temporário
 #    3. a árvore criada é comparada com o repositório (diff -r, exceto .git)
 #    4. as permissões conferem (755 em scripts/testes, 644 em docs/dados)
-#    5. as 4 suítes de teste rodam DENTRO do projeto recriado
+#    5. as 5 suítes de teste rodam DENTRO do projeto recriado
 #    6. `bootstrap.sh --verificar` reconhece o projeto como íntegro
 #
 #  Uso: ./tests/testar_bootstrap.sh
@@ -51,7 +51,8 @@ done
 titulo '3. Árvore criada x repositório (byte a byte)'
 if diff -r -q \
       --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
-      --exclude='saida' --exclude='*.jsonl' \
+      --exclude='saida' --exclude='*.jsonl' --exclude='*.db' --exclude='*.db-wal' \
+      --exclude='*.db-shm' \
       "$RAIZ" "$TMP/projeto" >"$TMP/diff.log" 2>&1; then
   ok 'todos os arquivos idênticos ao repositório'
 else
@@ -60,9 +61,9 @@ else
 fi
 # diretórios gerados em tempo de execução (saida/, __pycache__) não entram na contagem
 qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' | wc -l | tr -d ' ')
+             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
 qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' | wc -l | tr -d ' ')
+             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
 if [[ "$qtd_repo" == "$qtd_novo" ]]; then
   ok "mesma quantidade de arquivos ($qtd_novo)"
 else
@@ -102,6 +103,16 @@ if ( cd "$TMP/projeto" && python3 tests/testar_pipeline.py >/dev/null 2>&1 ); th
   ok 'suíte do pipeline de gates passa no projeto recriado'
 else
   ruim 'suíte do pipeline falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 tests/testar_fabrica.py >/dev/null 2>&1 ); then
+  ok 'suíte da fábrica de issues passa no projeto recriado'
+else
+  ruim 'suíte da fábrica falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 pipeline/gate.py fabrica >/dev/null 2>&1 ); then
+  ok 'gate fabrica roda no projeto recriado (fábrica íntegra)'
+else
+  ruim 'gate fabrica falhou no projeto recriado'
 fi
 if ( cd "$TMP/projeto" && python3 pipeline/gate.py blueprint >/dev/null 2>&1 ); then
   ok 'gate blueprint roda no projeto recriado (planta consistente)'

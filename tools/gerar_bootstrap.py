@@ -45,6 +45,7 @@ ARQUIVOS = {
     "pipeline/.gitignore": False,
     "pipeline/backlog.json": False,
     "pipeline/blueprint.json": False,
+    "pipeline/factory.py": True,
     "pipeline/gate.py": True,
     "pipeline/verificar_cnj.py": True,
     "scripts/datajud.sh": True,
@@ -54,6 +55,7 @@ ARQUIVOS = {
     "tests/testar_bootstrap.sh": True,
     "tests/testar_conformidade.py": True,
     "tests/testar_main.py": True,
+    "tests/testar_fabrica.py": True,
     "tests/testar_pipeline.py": True,
     "tools/gerar_bootstrap.py": True,
 }
@@ -88,7 +90,7 @@ CORPO_SCRIPT = r"""#!/usr/bin/env bash
 #    3. aplica TODAS as permissões (755 em scripts/testes, 644 em docs/dados)
 #    4. confere a integridade por SHA-256 de cada arquivo escrito
 #    5. valida a sintaxe (python -m py_compile, bash -n)
-#    6. roda as 4 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline)
+#    6. roda as 5 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline, fábrica)
 #    7. imprime um relatório final com o código de saída de cada etapa
 #
 #  Uso:
@@ -262,7 +264,7 @@ done
 [[ "$ST_SH" == "0" ]] && PASSO "Bash: @@N_SH@@ scripts sem erro de sintaxe (bash -n)"
 
 # ------------------------------------------------------------------ 7. testes ---
-ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"
+ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"; ST_FAB="pulado"
 if [[ "$SEM_TESTES" == "1" || "$SO_CRIAR" == "1" ]]; then
   TITULO "7/7 · Testes"
   ALERTA "suítes de teste não executadas (--so-criar/--sem-testes)"
@@ -287,6 +289,11 @@ else
     && ST_PIPE="ok" || ST_PIPE="FALHOU"
   grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_pipe.log | tail -2 | sed 's/^/     /' || true
   [[ "$ST_PIPE" == "ok" ]] && PASSO "pipeline de gates (contrato JSON, 0/1/2)" || FALHA "testes do pipeline"
+
+  ( cd "$DESTINO" && python3 tests/testar_fabrica.py ) >/tmp/bootstrap_fab.log 2>&1 \
+    && ST_FAB="ok" || ST_FAB="FALHOU"
+  grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_fab.log | tail -2 | sed 's/^/     /' || true
+  [[ "$ST_FAB" == "ok" ]] && PASSO "fábrica de issues (SQLite + eventos + padrão)" || FALHA "testes da fábrica"
 fi
 
 # ------------------------------------------------------------------ resumo ---
@@ -300,14 +307,17 @@ printf '  teste conf.. : %s\n' "$ST_CONF"
 printf '  teste main.. : %s\n' "$ST_MAIN"
 printf '  teste shell. : %s\n' "$ST_SH_T"
 printf '  teste pipe.. : %s\n' "$ST_PIPE"
+printf '  teste fabr.. : %s\n' "$ST_FAB"
 printf '\n  Próximos passos:\n'
 printf '    cd %s\n' "$DESTINO"
 printf '    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)\n'
 printf '    make gates                                  # veredito de continuidade do pipeline\n'
-printf '    make testes                                 # roda as 5 suítes de novo\n\n'
+printf '    make fabrica                                # estado da fábrica de issues (SQLite)\n'
+printf '    make testes                                 # roda as 6 suítes de novo\n\n'
 
 if [[ "$ST_PY" != "0" || "$ST_SH" != "0" || "$ST_CONF" == "FALHOU" \
-      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" ]]; then
+      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" \
+      || "$ST_FAB" == "FALHOU" ]]; then
   FALHA "bootstrap concluiu com falhas (veja acima)"
   exit 1
 fi

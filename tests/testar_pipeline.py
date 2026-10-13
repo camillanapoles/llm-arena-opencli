@@ -28,7 +28,9 @@ BLUEPRINT = os.path.join(RAIZ, "pipeline", "blueprint.json")
 WORKFLOW = os.path.join(RAIZ, ".github", "workflows", "gates.yml")
 
 CHAVES_OBRIGATORIAS = {"id", "gate", "status", "mensagem", "next_issue", "anexos",
-                       "continuidade", "codigo_saida", "dados", "timestamp", "versao"}
+                       "continuidade", "codigo_saida", "dados", "timestamp", "versao",
+                       "direcao", "proximo_passo"}
+DIRECOES_VALIDAS = {"continuar", "corrigir", "depurar", "proxima", "encerrar", "humano"}
 
 
 def rodar(*argumentos, saida_dir=None):
@@ -77,6 +79,9 @@ class TesteContrato(CasoBase):
                 self.assertIsInstance(obj["continuidade"], bool)
                 self.assertIsInstance(obj["anexos"], list)
                 self.assertIsInstance(obj["dados"], dict)
+                self.assertIn(obj["direcao"], DIRECOES_VALIDAS, "direção de continuidade")
+                self.assertIsInstance(obj["proximo_passo"], str)
+                self.assertTrue(obj["proximo_passo"].strip(), "sempre há um próximo passo")
                 for anexo in obj["anexos"]:
                     self.assertEqual({"path", "filename", "descricao"}, set(anexo))
 
@@ -146,6 +151,27 @@ class TesteGateCicd(CasoBase):
         codigo, obj, _ = rodar("cicd", "--runs-json", fx, saida_dir=self.saida)
         self.assertEqual(obj["status"], "0")
         self.assertEqual(obj["dados"]["em_andamento"], 1)
+
+    def test_erro_antigo_superado_por_verde_nao_e_pendencia(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 10, "workflowName": "gates", "status": "completed",
+             "conclusion": "failure", "headBranch": "b", "url": "https://x/10"},
+            {"databaseId": 11, "workflowName": "gates", "status": "completed",
+             "conclusion": "success", "headBranch": "b", "url": "https://x/11"}])
+        codigo, obj, _ = rodar("cicd", "--runs-json", fx, "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], codigo), ("0", 0), "veredito é o da execução mais recente")
+        self.assertEqual(obj["dados"]["com_erro"], 0)
+        self.assertEqual(obj["dados"]["historicos_com_erro"], 1)
+
+    def test_verde_antigo_com_erro_recente_e_pendencia(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 20, "workflowName": "gates", "status": "completed",
+             "conclusion": "success", "headBranch": "b", "url": "https://x/20"},
+            {"databaseId": 21, "workflowName": "gates", "status": "completed",
+             "conclusion": "failure", "headBranch": "b", "url": "https://x/21"}])
+        codigo, obj, _ = rodar("cicd", "--runs-json", fx, "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], obj["direcao"]), ("1", "depurar"))
+        self.assertEqual(obj["dados"]["execucoes_com_erro"][0]["databaseId"], 21)
 
     def test_conclusoes_problematicas_detectadas(self):
         for conclusao in ("failure", "timed_out", "startup_failure", "action_required", "cancelled"):
@@ -284,7 +310,7 @@ class TesteBlueprintEBacklog(CasoBase):
         codigo, obj, _ = rodar("blueprint", saida_dir=self.saida)
         self.assertEqual((obj["status"], codigo), ("0", 0))
         self.assertEqual(obj["dados"]["gates"],
-                         ["cicd", "continuidade", "issue", "issues", "testes"])
+                         ["cicd", "continuidade", "fabrica", "issue", "issues", "testes"])
 
     def test_blueprint_inconsistente_e_erro_tipo_2(self):
         caminho = fixture(self.dir, "planta.json", {
@@ -329,6 +355,64 @@ class TesteBlueprintEBacklog(CasoBase):
         self.assertNotEqual(gate.novo_id("x"), gate.novo_id("x"), "id deve ser único")
 
 
+class TesteDirecaoDeContinuidade(CasoBase):
+    def test_sucesso_encaminha_para_a_proxima(self):
+        caminho = fixture(self.dir, "backlog.json", {"issues": [
+            {"id": "ISSUE-001", "titulo": "a", "instrucao_teste": "true", "status": "pendente"},
+            {"id": "ISSUE-002", "titulo": "b", "instrucao_teste": "true", "status": "pendente"}]})
+        _, obj, _ = rodar("issue", "--backlog", caminho, "--id", "ISSUE-001",
+                          "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "proxima")
+        self.assertIn("ISSUE-002", obj["proximo_passo"])
+
+    def test_falha_encaminha_para_corrigir_a_mesma(self):
+        caminho = fixture(self.dir, "backlog.json", {"issues": [
+            {"id": "ISSUE-001", "titulo": "a", "instrucao_teste": "exit 9",
+             "status": "pendente"}]})
+        _, obj, _ = rodar("issue", "--backlog", caminho, "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "corrigir")
+        self.assertIn("--id ISSUE-001", obj["proximo_passo"])
+
+    def test_ci_com_erro_encaminha_para_depurar(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 1, "workflowName": "gates", "status": "completed",
+             "conclusion": "failure", "headBranch": "x", "url": "https://x"}])
+        _, obj, _ = rodar("cicd", "--runs-json", fx, "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "depurar")
+        self.assertIn("gh run", obj["proximo_passo"])
+
+    def test_indeterminado_encaminha_para_humano(self):
+        _, obj, _ = rodar("issues", "--sem-gh", "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "humano")
+
+    def test_gate_positivo_encerra(self):
+        _, obj, _ = rodar("continuidade", "--status-issues", "0", "--status-cicd", "0",
+                          "--status-testes", "0", "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "encerrar")
+
+    def test_funcao_direcao_de(self):
+        self.assertEqual(gate.direcao_de("testes", "1"), "corrigir")
+        self.assertEqual(gate.direcao_de("issue", "0", next_issue="ISSUE-002"), "proxima")
+        self.assertEqual(gate.direcao_de("issue", "0", next_issue=None), "encerrar")
+        self.assertEqual(gate.direcao_de("fabrica", "2"), "humano")
+
+
+class TesteGateFabricaNoFluxo(CasoBase):
+    def test_gate_fabrica_consta_dos_arquivos_de_teste_do_gate_testes(self):
+        self.assertIn("tests/testar_fabrica.py", gate.ARQUIVOS_DE_TESTE)
+
+    def test_gate_fabrica_responde_no_contrato(self):
+        codigo, obj, bruto = rodar("fabrica", "--saida-dir", self.saida)
+        self.assertIsNotNone(obj, bruto[:300])
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+        self.assertEqual(obj["gate"], "fabrica")
+
+    def test_workflow_tem_o_job_da_fabrica(self):
+        with open(WORKFLOW, encoding="utf-8") as fh:
+            texto = fh.read()
+        self.assertRegex(texto, r"(?m)^\s{2}gate-fabrica:")
+
+
 class TesteSituacao(CasoBase):
     def test_situacao_resume_o_historico(self):
         rodar("blueprint", saida_dir=self.saida)
@@ -367,6 +451,43 @@ class TesteWorkflow(unittest.TestCase):
     def test_status_2_derruba_o_job(self):
         self.assertIn('if [ "$status" = "2" ]; then', self.texto)
         self.assertIn("exit 1", self.texto)
+
+    def test_blocos_run_sao_bash_valido(self):
+        """Valida de verdade o shell embutido no YAML (sem depender de PyYAML)."""
+        linhas = self.texto.splitlines()
+        blocos, i = [], 0
+        while i < len(linhas):
+            m = re.match(r"^(\s+)run: \|\s*$", linhas[i])
+            if m:
+                indent = len(m.group(1))
+                corpo, j = [], i + 1
+                while j < len(linhas) and (not linhas[j].strip()
+                                           or len(linhas[j]) - len(linhas[j].lstrip()) > indent):
+                    corpo.append(linhas[j])
+                    j += 1
+                base = min((len(l) - len(l.lstrip()) for l in corpo if l.strip()), default=0)
+                blocos.append("\n".join(l[base:] for l in corpo))
+                i = j
+            else:
+                i += 1
+        self.assertGreaterEqual(len(blocos), 6, "esperado um bloco run: por job")
+        for numero, corpo in enumerate(blocos, 1):
+            seguro = re.sub(r"\$\{\{[^}]*\}\}", "VALOR", corpo)  # expressões do Actions
+            with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as fh:
+                fh.write(seguro)
+                caminho = fh.name
+            try:
+                proc = subprocess.run(["bash", "-n", caminho], capture_output=True, text=True)
+            finally:
+                os.unlink(caminho)
+            self.assertEqual(proc.returncode, 0,
+                             f"bloco run #{numero} não é bash válido: {proc.stderr[:200]}")
+
+    def test_fabrica_no_fluxo(self):
+        self.assertIn("pipeline/gate.py fabrica", self.texto)
+        self.assertIn("pipeline/factory.py", self.texto)
+        self.assertIn("--status-fabrica", self.texto)
+        self.assertIn("--proxima", self.texto, "o caminho feliz constrói a próxima indexada")
 
     def test_yaml_estrutural(self):
         """Checagem estrutural mínima (sem PyYAML, que não está instalado aqui)."""

@@ -19,9 +19,10 @@ python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
 | `docs/01-api-datajud.md` | referência da API do DataJud (acesso, campos, DSL, erros, regras) |
 | `docs/02-receitas-curl-tjpe.md` | receitas `curl` prontas para o TJPE |
 | `docs/03-pipeline-gates.md` | manual do **pipeline de gates** (contrato JSON, 0/1/2, planta BPMN) |
-| **`pipeline/gate.py`** + `pipeline/blueprint.json` + `pipeline/backlog.json` | **gatilho** de continuidade: mede issues/CI/testes, diz o que fazer agora e devolve JSON |
+| **`pipeline/gate.py`** + `pipeline/blueprint.json` + `pipeline/backlog.json` | **gatilho** de continuidade: mede issues/CI/testes/fábrica, diz o que fazer agora e devolve JSON |
+| **`pipeline/factory.py`** | **fábrica de issues** event-driven (POO + SQLite): constrói a próxima indexada conforme o padrão do blueprint |
 | `docs/exemplo-saida/` | exemplo do relatório de processo e do relatório agregado |
-| `tests/` | mock local das APIs + 5 suítes de teste offline (**151 verificações**) |
+| `tests/` | mock local das APIs + 6 suítes de teste offline (**200 verificações**) |
 | **`bootstrap.sh`** + `BOOTSTRAP.md` | recriam/configuram o projeto inteiro (arquivos, permissões, hashes) e validam tudo |
 | `.github/workflows/gates.yml` | roda os gates no GitHub Actions (push, PR, issue, agenda, manual) |
 | **`ENTREGA.md`** | relatório de entrega do branch: solicitado → incrementado → realizado → testado → validado → produção |
@@ -181,25 +182,30 @@ make gate-issues    # existem issues abertas?
 make gate-cicd      # alguma execução de CI/CD terminou com erro?
 make gate-testes    # os testes existem e passam?
 make gate-issue     # executa a próxima issue do backlog (ISSUE=ISSUE-006 MARCAR=--marcar)
+make gate-fabrica   # a fábrica de issues (padrão BPMN + SQLite) está íntegra?
+make fabrica        # estado da fábrica: issues, eventos, esquema, direção de continuidade
 ```
 
-Cada gate devolve **o mesmo objeto JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`…)
-e o **exit code é igual ao `status`**: `"0"` sucesso, `"1"` erro tipo 1 (pendência tratável ⇒
-**continuidade**), `"2"` erro tipo 2 (não foi possível avaliar ⇒ exige humano). O **gatilho só é
-positivo** quando não há issue aberta **e** o CI não tem erro **e** os testes passam; enquanto não
-for positivo, `continuidade = true` e o fluxo segue para a próxima issue indexada — cada issue
-entregue vem com a **instrução de teste** da seguinte. Detalhes, diagrama BPMN e contrato completo:
+Cada gate devolve **o mesmo objeto JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`,
+`direcao`, `proximo_passo`…) e o **exit code é igual ao `status`**: `"0"` sucesso, `"1"` erro tipo 1
+(pendência tratável ⇒ **continuidade**), `"2"` erro tipo 2 (não foi possível avaliar ⇒ exige humano).
+O **gatilho só é positivo** quando não há issue aberta **e** o CI não tem erro **e** os testes passam
+**e** a fábrica está íntegra; enquanto não for positivo, `continuidade = true` e a direção
+(`corrigir`/`depurar`/`proxima`) aponta o próximo passo. Cada issue traz **instrução de teste** e
+**instrução de desenvolvimento**; ao passar, a **fábrica** marca **COMPLETADA** e constrói a
+**próxima indexada**. Detalhes, diagrama BPMN e contrato completo:
 [`docs/03-pipeline-gates.md`](docs/03-pipeline-gates.md). Entrega documentada: [`ENTREGA.md`](ENTREGA.md).
 
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 5 suítes (151 verificações)
+make testes                          # todas as 6 suítes (202 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
-python3 tests/testar_pipeline.py     # 36 — contrato JSON dos gates, 0/1/2, blueprint, workflow
-./tests/testar_bootstrap.sh          # 25 — recria o projeto e compara byte a byte
+python3 tests/testar_pipeline.py     # 49 — contrato JSON, 0/1/2, direção, blueprint, workflow
+python3 tests/testar_fabrica.py      # 36 — fábrica de issues (SQLite, eventos, padrão BPMN)
+./tests/testar_bootstrap.sh          # 27 — recria o projeto e compara byte a byte
 ```
 
 As suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam

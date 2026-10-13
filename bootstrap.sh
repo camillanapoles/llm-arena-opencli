@@ -11,7 +11,7 @@
 #    3. aplica TODAS as permissões (755 em scripts/testes, 644 em docs/dados)
 #    4. confere a integridade por SHA-256 de cada arquivo escrito
 #    5. valida a sintaxe (python -m py_compile, bash -n)
-#    6. roda as 4 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline)
+#    6. roda as 5 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline, fábrica)
 #    7. imprime um relatório final com o código de saída de cada etapa
 #
 #  Uso:
@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 29 arquivos, 6715 linhas, 310 KiB.
+#  Conteúdo embutido: 31 arquivos, 8779 linhas, 411 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -129,6 +129,7 @@ if [[ "$SO_VERIFICAR" == "0" ]]; then
 644 pipeline/.gitignore
 644 pipeline/backlog.json
 644 pipeline/blueprint.json
+755 pipeline/factory.py
 755 pipeline/gate.py
 755 pipeline/verificar_cnj.py
 755 scripts/datajud.sh
@@ -137,6 +138,7 @@ if [[ "$SO_VERIFICAR" == "0" ]]; then
 755 tests/rodar-testes.sh
 755 tests/testar_bootstrap.sh
 755 tests/testar_conformidade.py
+755 tests/testar_fabrica.py
 755 tests/testar_main.py
 755 tests/testar_pipeline.py
 755 tools/gerar_bootstrap.py
@@ -171,34 +173,36 @@ while read -r esperado caminho; do
     FALHA "hash diferente: $caminho"; falhas_hash=$((falhas_hash+1))
   fi
 done <<'MANIFESTO'
-8b4f26ed565c04416496608d1897e49a317a53c014d2ea49c10844264b8259d6  ./.github/workflows/gates.yml
+c8740a8f7d2ce1551f0f689d2fca91c88f3f5431a64837149d1d995bb30a45f5  ./.github/workflows/gates.yml
 f96c1e19a2859767ea2b94ce848b8e0b0fa03444e4704db468dcf2b226ad60e6  ./.gitignore
-4b306003100e8ba1982697fa5f41e0a7e8853747ea9aaedd310194db4cc11087  ./BOOTSTRAP.md
-704d1e6cf6cdf2156fd6b765c312a1f97e407296aec88a3314ea81ebde46650e  ./ENTREGA.md
-68ed5b0153318d3c8c66bff72248cd93bc9b3af8af82d74435d1b835c770413a  ./Makefile
-3b1ab982ed3dd509f5f3410be2d4095a7346f559ea7d2a93409751881cd89e7b  ./README.md
+56faf5626df883873030d020c8fb31ec8668991b3b3f0d5c923df0150d7b2fb5  ./BOOTSTRAP.md
+4ebe04761a8e2bae2678daa6e776739716a31b3d46f511bbb7616f4cdc3f1327  ./ENTREGA.md
+0e4e1891354e193ff084ad8ce428d3b87de0c13fb0446b9cec08e0e4a6938f8a  ./Makefile
+a45edb6dc7ec7e5e0389f8ac1daa8c72b2cdea1f99394e0826b7982274f5f662  ./README.md
 16d76f838f1d9b2e8eafd538b0f2f62bbe34cab647a17181e440610a0c0234d3  ./docs/01-api-datajud.md
 5e8befc6e2434cb27c1404693dc775f7de8056893bcc94712e61644e40ddbc3f  ./docs/02-receitas-curl-tjpe.md
-b171fc3f4334c76d47064ace4115c415cd768ff776d1793d1e44981835160958  ./docs/03-pipeline-gates.md
+94d80606a0b2724be8accbfa2c8f06aa9f4e02ab9e87e06f14960251a982a67a  ./docs/03-pipeline-gates.md
 7c75c6c9e28b98ba45eb7ffdb7ad5165b2d002338c9e32dbbe61d02986e1fd06  ./docs/exemplo-saida/agg-grau.tsv
 8d95b990767a0c8a967f45ccce11471fccb2d6f875f494213f223f7a788a05d0  ./docs/exemplo-saida/agg-orgao-nome.csv
 e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo-saida/relatorio-processo-exemplo.md
 0988a9fe28376cca40c84bbbe73172203e1f4740695026e2f9408f1fd88bea0a  ./docs/exemplo-saida/relatorio-tjpe-exemplo.md
 c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
-4392304e7b6b15961c43e67e4d1acbd351ca41eaf235fc347d972f2c06d6b687  ./pipeline/.gitignore
-eca7fe60e2c3997e1a235de31ed49df8556b94d6e94220f81d1d64a1f543032a  ./pipeline/backlog.json
-e7846f8cfdb64b14fbfd4dfdfca19bb5fd0891b38e7805def94757f7dc33c3d5  ./pipeline/blueprint.json
-4e5e1ede5261d28b2003e7958f68c989b2241308b6d56c5504f33681abb9a005  ./pipeline/gate.py
+050816945908d18638af12bdf9bbaa59c4038ff5317f885004868bc3ef5e0941  ./pipeline/.gitignore
+864c5bfce72e4ac569c5fb4b198989b2a5180075f184de64d9ac21ef343e907d  ./pipeline/backlog.json
+4c5cf6428692501b4491ad9d1d960cefaddc9c11ed8c8b830edad8103bb42590  ./pipeline/blueprint.json
+46eb8baf02414854f78ebcc783a68f1390162f933740a3566d891c4e64f754d7  ./pipeline/factory.py
+7c0d68212116ef06ef6c554804fb19a7508086fd93ce4e6a95a712143640fc86  ./pipeline/gate.py
 74fedbc6f554883485cac903bcf696cc7b77098233e315d812080f708d57a20e  ./pipeline/verificar_cnj.py
 dd78d8b6469b06e5ab67d11137eaac3891ac16b2856064bce8be6a801e67dea0  ./scripts/datajud.sh
 b3dbad0dbe125d5d02874e534e8f693d8068c9180fc508db33cc4c57626c6f46  ./tests/mock_apis.py
 54b84ce8348712a3e8d689f96d284d0f019e11bb2bcf888abeab2c147fe63baa  ./tests/mock_datajud.py
 3d917cdf5b4b7732d17ccf0f542987e8daded8b62f03c0e5c055a4988f329daa  ./tests/rodar-testes.sh
-273c83433da70daaf0e5f7e4585b180b79b2de6b6ac8866b18aa0ceea6bccd6d  ./tests/testar_bootstrap.sh
+18184cbf5b7f03f294f136fb6b68d5ed98e6fc9cd7de9c9ab3b6e38d5bf7703e  ./tests/testar_bootstrap.sh
 a8baa3b18dbd5133b51bc4ee3691c67eabc87b8066ff58a4b01386a1c97016a3  ./tests/testar_conformidade.py
+a1260a52db401079d61b01baa28325a8fa02d2c963e83d26ddba2f51d2e51681  ./tests/testar_fabrica.py
 6ac8cccd6052e64e491e23e0319b841526797be31ee541fb74945693cb55c156  ./tests/testar_main.py
-e87a75c9fa395cd43f4f3fe6baafc7c6a75cce0f7b6d6e6615472078b814f9b7  ./tests/testar_pipeline.py
-fb2b5c775f6459108607466ec51d5a2a593af17c39ca5ce8e6d8bea8bab3b90c  ./tools/gerar_bootstrap.py
+f17b175619f4ae7dcda3f5d0ca616fb5b8955f4b2d04ac7b716958c85fb156e3  ./tests/testar_pipeline.py
+7054def352ba53735cc2bf4de8b7917f607bb3fdbc2bad73260ff5ce337d6069  ./tools/gerar_bootstrap.py
 MANIFESTO
 if [[ "$falhas_hash" == "0" ]]; then
   PASSO "todos os hashes conferem com o manifesto embutido"
@@ -234,6 +238,7 @@ done <<'PERMISSOES'
 644 pipeline/.gitignore
 644 pipeline/backlog.json
 644 pipeline/blueprint.json
+755 pipeline/factory.py
 755 pipeline/gate.py
 755 pipeline/verificar_cnj.py
 755 scripts/datajud.sh
@@ -242,6 +247,7 @@ done <<'PERMISSOES'
 755 tests/rodar-testes.sh
 755 tests/testar_bootstrap.sh
 755 tests/testar_conformidade.py
+755 tests/testar_fabrica.py
 755 tests/testar_main.py
 755 tests/testar_pipeline.py
 755 tools/gerar_bootstrap.py
@@ -255,19 +261,19 @@ fi
 # --------------------------------------------------------- 6. validação estática ---
 TITULO "6/7 · Validação de sintaxe"
 ST_PY=0; ST_SH=0
-for arq in main.py pipeline/gate.py pipeline/verificar_cnj.py tests/mock_apis.py tests/mock_datajud.py tests/testar_conformidade.py tests/testar_main.py tests/testar_pipeline.py tools/gerar_bootstrap.py; do
+for arq in main.py pipeline/factory.py pipeline/gate.py pipeline/verificar_cnj.py tests/mock_apis.py tests/mock_datajud.py tests/testar_conformidade.py tests/testar_fabrica.py tests/testar_main.py tests/testar_pipeline.py tools/gerar_bootstrap.py; do
   python3 -m py_compile "$DESTINO/$arq" 2>/dev/null || { FALHA "python inválido: $arq"; ST_PY=1; }
 done
 rm -rf "$DESTINO"/__pycache__ "$DESTINO"/tests/__pycache__ "$DESTINO"/tools/__pycache__ \
        "$DESTINO"/pipeline/__pycache__ 2>/dev/null || true
-[[ "$ST_PY" == "0" ]] && PASSO "Python: 9 arquivos compilam sem erro (py_compile)"
+[[ "$ST_PY" == "0" ]] && PASSO "Python: 11 arquivos compilam sem erro (py_compile)"
 for arq in bootstrap.sh scripts/datajud.sh tests/rodar-testes.sh tests/testar_bootstrap.sh; do
   bash -n "$DESTINO/$arq" 2>/dev/null || { FALHA "bash inválido: $arq"; ST_SH=1; }
 done
 [[ "$ST_SH" == "0" ]] && PASSO "Bash: 4 scripts sem erro de sintaxe (bash -n)"
 
 # ------------------------------------------------------------------ 7. testes ---
-ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"
+ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"; ST_FAB="pulado"
 if [[ "$SEM_TESTES" == "1" || "$SO_CRIAR" == "1" ]]; then
   TITULO "7/7 · Testes"
   ALERTA "suítes de teste não executadas (--so-criar/--sem-testes)"
@@ -292,12 +298,17 @@ else
     && ST_PIPE="ok" || ST_PIPE="FALHOU"
   grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_pipe.log | tail -2 | sed 's/^/     /' || true
   [[ "$ST_PIPE" == "ok" ]] && PASSO "pipeline de gates (contrato JSON, 0/1/2)" || FALHA "testes do pipeline"
+
+  ( cd "$DESTINO" && python3 tests/testar_fabrica.py ) >/tmp/bootstrap_fab.log 2>&1 \
+    && ST_FAB="ok" || ST_FAB="FALHOU"
+  grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_fab.log | tail -2 | sed 's/^/     /' || true
+  [[ "$ST_FAB" == "ok" ]] && PASSO "fábrica de issues (SQLite + eventos + padrão)" || FALHA "testes da fábrica"
 fi
 
 # ------------------------------------------------------------------ resumo ---
 TITULO "Resultado do bootstrap"
 printf '  destino..... : %s\n' "$(cd "$DESTINO" && pwd)"
-printf '  arquivos.... : %s\n' "28 no manifesto SHA-256 (+ bootstrap.sh)"
+printf '  arquivos.... : %s\n' "30 no manifesto SHA-256 (+ bootstrap.sh)"
 printf '  permissões.. : 755 em scripts/testes, 644 em docs/dados\n'
 printf '  python...... : %s\n' "$([[ "$ST_PY" == "0" ]] && echo 'compila' || echo 'FALHOU')"
 printf '  bash........ : %s\n' "$([[ "$ST_SH" == "0" ]] && echo 'sem erro de sintaxe' || echo 'FALHOU')"
@@ -305,14 +316,17 @@ printf '  teste conf.. : %s\n' "$ST_CONF"
 printf '  teste main.. : %s\n' "$ST_MAIN"
 printf '  teste shell. : %s\n' "$ST_SH_T"
 printf '  teste pipe.. : %s\n' "$ST_PIPE"
+printf '  teste fabr.. : %s\n' "$ST_FAB"
 printf '\n  Próximos passos:\n'
 printf '    cd %s\n' "$DESTINO"
 printf '    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)\n'
 printf '    make gates                                  # veredito de continuidade do pipeline\n'
-printf '    make testes                                 # roda as 5 suítes de novo\n\n'
+printf '    make fabrica                                # estado da fábrica de issues (SQLite)\n'
+printf '    make testes                                 # roda as 6 suítes de novo\n\n'
 
 if [[ "$ST_PY" != "0" || "$ST_SH" != "0" || "$ST_CONF" == "FALHOU" \
-      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" ]]; then
+      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" \
+      || "$ST_FAB" == "FALHOU" ]]; then
   FALHA "bootstrap concluiu com falhas (veja acima)"
   exit 1
 fi
@@ -336,19 +350,19 @@ __ARQ__ .github/workflows/gates.yml
 #
 #    [push|PR|issues|schedule|dispatch]
 #                 │
-#          ┌──────┴───────┬──────────────┐
-#          ▼              ▼              ▼
-#     gate-issues     gate-cicd     gate-testes
-#     (0/1/2)         (0/1/2)       (0/1/2)
-#          └──────┬───────┴──────────────┘
+#     ┌───────────┼───────────┬──────────────┐
+#     ▼           ▼           ▼              ▼
+# gate-issues  gate-cicd  gate-testes   gate-fabrica
+# (0/1/2)      (0/1/2)    (0/1/2)       (0/1/2)
+#     └───────────┴───────────┴──────────────┘
 #                 ▼
-#        gate-continuidade   ← positivo ⇔ 0 issues ∧ CI limpo ∧ testes verdes
+#        gate-continuidade   ← positivo ⇔ 0 issues ∧ CI limpo ∧ testes verdes ∧ fábrica íntegra
 #           │        │
 #       (1) │        │ (0)        (2) → job FALHA (exige humano)
 #           ▼        ▼
 #      executa-    pipeline pode
 #       issue      encerrar
-#     (0/1/2) ── 0 ⇒ próxima issue · 1 ⇒ mesma issue · 2 ⇒ humano
+#     (0/1/2) ── 0 ⇒ próxima issue (fábrica constrói a N+1) · 1 ⇒ mesma issue · 2 ⇒ humano
 #
 #  Todo gate publica: JSON no stdout, anexo em pipeline/saida/,
 #  resumo no job summary e artifact para download.
@@ -498,11 +512,82 @@ jobs:
             pipeline/saida/gate-testes-*.json
           if-no-files-found: warn
 
-  # --------------------------------------------------------- gate 4: continuidade
-  gate-continuidade:
-    name: "gate 4 · veredito de continuidade"
+  # --------------------------------------------------------------- gate: fábrica
+  gate-fabrica:
+    name: "gate 4 · fábrica de issues (padrão + SQLite)"
     runs-on: ubuntu-latest
     needs: [gate-issues, gate-cicd, gate-testes]
+    if: always()
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
+      continuidade: ${{ steps.gate.outputs.continuidade }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Executar o gate da fábrica
+        id: gate
+        run: |
+          set +e
+          python3 pipeline/gate.py fabrica --json-saida /tmp/gate-fabrica.json \
+            > /tmp/gate-fabrica.out 2>&1
+          codigo=$?
+          set -e
+          cat /tmp/gate-fabrica.out
+          status=$(python3 -c "import json;print(json.load(open('/tmp/gate-fabrica.json'))['status'])")
+          cont=$(python3 -c "import json;print(str(json.load(open('/tmp/gate-fabrica.json'))['continuidade']).lower())")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
+          {
+            echo "### gate 4 · fábrica de issues — status \`$status\`"
+            echo
+            python3 -c "import json;print(json.load(open('/tmp/gate-fabrica.json'))['mensagem'])"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "2" ]; then
+            echo "::error::fábrica não avaliável (erro tipo 2) — exige decisão humana"
+          fi
+      - name: Registrar o evento dos gates anteriores na fábrica
+        if: always()
+        env:
+          S_ISSUES: ${{ needs.gate-issues.outputs.status }}
+          S_CICD: ${{ needs.gate-cicd.outputs.status }}
+          S_TESTES: ${{ needs.gate-testes.outputs.status }}
+        run: |
+          {
+            echo "### fábrica · eventos dos gates"
+            echo
+            python3 pipeline/factory.py --sincronizar --listar \
+              --saida-dir pipeline/saida || true
+            if [ "$S_ISSUES" = "1" ]; then
+              python3 pipeline/factory.py --evento "issue_aberta|gate=issues|status=$S_ISSUES" \
+                --saida-dir pipeline/saida || true
+            fi
+            if [ "$S_CICD" = "1" ]; then
+              python3 pipeline/factory.py --evento "ci_falhou|gate=cicd|status=$S_CICD" \
+                --saida-dir pipeline/saida || true
+            fi
+            if [ "$S_TESTES" = "1" ]; then
+              python3 pipeline/factory.py --evento "teste_falhou|gate=testes|status=$S_TESTES" \
+                --saida-dir pipeline/saida || true
+            fi
+          } 2>&1 | tee /tmp/fabrica.out | tail -40
+          {
+            echo "\`\`\`"
+            tail -25 /tmp/fabrica.out
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: gate-fabrica
+          path: |
+            pipeline/saida/fabrica-*.md
+            pipeline/saida/gate-fabrica-*.json
+          if-no-files-found: warn
+
+  # --------------------------------------------------------- gate 5: continuidade
+  gate-continuidade:
+    name: "gate 5 · veredito de continuidade"
+    runs-on: ubuntu-latest
+    needs: [gate-issues, gate-cicd, gate-testes, gate-fabrica]
     if: always()
     outputs:
       status: ${{ steps.gate.outputs.status }}
@@ -518,6 +603,7 @@ jobs:
             --status-issues "${{ needs.gate-issues.outputs.status }}" \
             --status-cicd "${{ needs.gate-cicd.outputs.status }}" \
             --status-testes "${{ needs.gate-testes.outputs.status }}" \
+            --status-fabrica "${{ needs.gate-fabrica.outputs.status }}" \
             --json-saida /tmp/gate-continuidade.json > /tmp/gate-continuidade.out 2>&1
           codigo=$?
           set -e
@@ -529,7 +615,7 @@ jobs:
           echo "continuidade=$cont" >> "$GITHUB_OUTPUT"
           echo "next_issue=$prox" >> "$GITHUB_OUTPUT"
           {
-            echo "### gate 4 · veredito — status \`$status\` (continuidade=\`$cont\`)"
+            echo "### gate 5 · veredito — status \`$status\` (continuidade=\`$cont\`)"
             echo
             python3 -c "import json;print(json.load(open('/tmp/gate-continuidade.json'))['mensagem'])"
             echo
@@ -555,7 +641,7 @@ jobs:
 
   # ------------------------------------------------- executa a issue (continuidade)
   executa-issue:
-    name: "gate 5 · executa a issue (instrução → teste → próxima)"
+    name: "gate 6 · executa a issue (instrução → teste → próxima)"
     runs-on: ubuntu-latest
     needs: [gate-continuidade]
     if: needs.gate-continuidade.outputs.continuidade == 'true'
@@ -579,8 +665,9 @@ jobs:
           prox=$(python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['next_issue'] or '')")
           echo "status=$status" >> "$GITHUB_OUTPUT"
           echo "next_issue=$prox" >> "$GITHUB_OUTPUT"
+          echo "issue_id=$(python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['dados'].get('issue',''))")" >> "$GITHUB_OUTPUT"
           {
-            echo "### gate 5 · issue — status \`$status\`"
+            echo "### gate 6 · issue — status \`$status\`"
             echo
             python3 -c "import json;print(json.load(open('/tmp/gate-issue.json'))['mensagem'])"
             echo
@@ -590,9 +677,26 @@ jobs:
           if [ "$status" = "1" ]; then
             echo "::warning::a issue ainda não passa — continuidade na MESMA issue (veja o log em anexo)"
           fi
-      - name: Versionar o backlog atualizado (somente com marcar=true, fora de PR)
-        if: inputs.marcar && github.event_name != 'pull_request'
+      - name: "Fábrica · concluir a issue testada, construir a próxima e versionar"
+        if: github.event_name != 'pull_request' && steps.issue.outputs.status == '0'
         run: |
+          alvo="${{ steps.issue.outputs.issue_id }}"
+          [ -z "$alvo" ] && alvo="${{ inputs.issue }}"
+          if [ -z "$alvo" ]; then
+            echo "::warning::sem ISSUE identificada — a fábrica não construiu a próxima"
+            exit 0
+          fi
+          {
+            echo "### fábrica · $alvo COMPLETADA (sucesso testado)"
+            echo
+            python3 pipeline/factory.py --sincronizar --concluir "$alvo" \
+              --proxima --exportar pipeline/backlog.json --saida-dir pipeline/saida
+          } 2>&1 | tee /tmp/fabrica-nova.out | tail -40
+          {
+            echo "\`\`\`json"
+            tail -30 /tmp/fabrica-nova.out
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           if git diff --quiet -- pipeline/backlog.json; then
             echo "backlog sem alterações"
             exit 0
@@ -600,7 +704,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add pipeline/backlog.json
-          git commit -m "pipeline: issue ${{ steps.issue.outputs.next_issue || inputs.issue }} concluída (gate issue --marcar) [skip ci]"
+          git commit -m "pipeline: $alvo COMPLETADA e próxima indexada construída pela fábrica [skip ci]"
           git push
       - uses: actions/upload-artifact@v5
         if: always()
@@ -627,7 +731,7 @@ __ARQ__ BOOTSTRAP.md
 Este é o **documento único** do projeto: ele descreve como o `bootstrap.sh` recria
 **tudo do zero** (todos os diretórios, todos os arquivos, todas as permissões), como
 ele **valida e testa** o resultado, e qual é exatamente a **saída esperada** de cada
-etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 28 arquivos embutido —
+etapa. O `bootstrap.sh` é autossuficiente: traz o conteúdo dos 30 arquivos embutido —
 não precisa de internet, Git nem de nenhum arquivo externo.
 
 ```bash
@@ -712,11 +816,11 @@ o projeto inteiro roda com a biblioteca padrão do Python.
 | --- | --- | --- | --- |
 | 1 | Pré-requisitos | valida bash 4+, python 3.8+, detecta curl/jq | versão mínima não atingida (sai com 1) |
 | 2 | Diretórios | cria a raiz + `docs/`, `docs/exemplo-saida/`, `scripts/`, `tests/`, `tools/`; `chmod 755` | destino existe e não está vazio sem `--forcar` |
-| 3 | Arquivos | escreve os 28 arquivos a partir do conteúdo embutido; aplica `755`/`644` | execução via pipe (avisa que o `bootstrap.sh` não pôde ser copiado) |
+| 3 | Arquivos | escreve os 30 arquivos a partir do conteúdo embutido; aplica `755`/`644` | execução via pipe (avisa que o `bootstrap.sh` não pôde ser copiado) |
 | 4 | Integridade | recalcula `sha256sum` de cada arquivo e compara com o manifesto | qualquer byte diferente → não segue (sai com 1) |
 | 5 | Permissões | confere o modo de cada arquivo com `stat` | modo divergente → avisa (corrija com `chmod`) |
-| 6 | Sintaxe | `python3 -m py_compile` em 9 arquivos ; `bash -n` em 4 scripts | qualquer erro de sintaxe |
-| 7 | Testes | roda as 4 suítes offline e captura os códigos de saída | alguma suíte ≠ 0 |
+| 6 | Sintaxe | `python3 -m py_compile` em 11 arquivos ; `bash -n` em 4 scripts | qualquer erro de sintaxe |
+| 7 | Testes | roda as 5 suítes offline e captura os códigos de saída | alguma suíte ≠ 0 |
 
 O manifesto SHA-256 (na etapa 4) prova que o destino é **byte a byte** igual ao que o
 bootstrap promete. É o que separa "criei arquivos" de "criei *este* projeto".
@@ -758,7 +862,7 @@ advogados: **MNI** do PJe, com certificado digital.
 
 ## 6. Códigos de teste: o que cada suíte cobre e o resultado esperado
 
-Rode tudo de uma vez com `make testes`: são **5 suítes** e **151 verificações**, todas offline,
+Rode tudo de uma vez com `make testes`: são **6 suítes** e **202 verificações**, todas offline,
 contra mocks locais (nenhuma requisição real ao CNJ).
 
 | Suíte | Arquivo | Testes | Cobre | Saída esperada |
@@ -766,15 +870,16 @@ contra mocks locais (nenhuma requisição real ao CNJ).
 | Conformidade | `tests/testar_conformidade.py` | **29** | itens da doc oficial (seção 5), ausência de dependências externas, shebang/permissões, sintaxe do shell | `Ran 29 tests` / `OK` / código **0** |
 | Consulta de processo | `tests/testar_main.py` | **29** | DV e estrutura do NUP (4 números oficiais), decodificação de tribunais, as 10 seções do relatório, DJEN, `--json`, `-o`, erros 400/401/404/429 | `Ran 29 tests` / `OK` / código **0** |
 | Consultas agregadas | `tests/rodar-testes.sh` | **32** | `contar`, `agregar` (com fallback de campo), `processo`, `paginar` (`search_after`), `relatorio`, tratamento de 401/404/429/rede, `--debug` | `32 passaram, 0 falharam` / código **0** |
-| Pipeline de gates | `tests/testar_pipeline.py` | **36** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`), semântica 0/1/2, `next_issue` (mesma issue × próxima), `--marcar`, blueprint, backlog e o workflow do Actions | `Ran 36 tests` / `OK (skipped=1)` / código **0** |
-| Recriação | `tests/testar_bootstrap.sh` | **25** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
+| Pipeline de gates | `tests/testar_pipeline.py` | **49** | contrato JSON (`id`/`mensagem`/`anexos`/`status`/`next_issue`/`direcao`/`proximo_passo`), semântica 0/1/2, `next_issue` (mesma issue × próxima), direção de continuidade, `--marcar`, blueprint, backlog e o workflow (inclui `bash -n` em cada bloco `run:`) | `Ran 49 tests` / `OK (skipped=1)` / código **0** |
+| Fábrica de issues | `tests/testar_fabrica.py` | **36** | POO (8 classes), esquema SQLite, padrão do blueprint, construção da N+1 só após sucesso, eventos event-driven, round-trip SQLite ⇄ backlog.json, contrato da CLI e do gate `fabrica` | `Ran 36 tests` / `OK` / código **0** |
+| Recriação | `tests/testar_bootstrap.sh` | **27** (7 grupos) | bootstrap atualizado, criação, `diff -r` contra o repo, permissões, suítes dentro do projeto novo, `--verificar`, proteção contra sobrescrita | `0 falharam` / código **0** |
 
 Exemplo de saída final do `bootstrap.sh`:
 
 ```
 == Resultado do bootstrap ==
   destino..... : /caminho/projeto-datajud
-  arquivos.... : 28 no manifesto SHA-256 (+ bootstrap.sh)
+  arquivos.... : 30 no manifesto SHA-256 (+ bootstrap.sh)
   permissões.. : 755 em scripts/testes, 644 em docs/dados
   python...... : compila
   bash........ : sem erro de sintaxe
@@ -782,12 +887,14 @@ Exemplo de saída final do `bootstrap.sh`:
   teste main.. : ok
   teste shell. : ok
   teste pipe.. : ok
+  teste fabr.. : ok
 
   Próximos passos:
     cd /caminho/projeto-datajud
     python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)
     make gates                                  # veredito de continuidade do pipeline
-    make testes                                 # roda as 5 suítes de novo
+    make fabrica                                # estado da fábrica de issues (SQLite)
+    make testes                                 # roda as 6 suítes de novo
 
 Bootstrap concluído com sucesso.
 ```
@@ -867,7 +974,9 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 - **Repositório:** https://github.com/camillanapoles/llm-arena-opencli
 - **Branch:** `arena/ed79bd77-llm-arena-opencli` (base: `main` em `3d9b774`)
 - **Pull request:** https://github.com/camillanapoles/llm-arena-opencli/pull/2 — OPEN / MERGEABLE
-- **Data da entrega:** 13/10/2026
+- **Data da entrega:** 13/10/2026 (entrega inicial do pedido 4) · **revisão 2:** 13/10/2026 —
+  fábrica de issues event-driven (POO + SQLite), instrução de desenvolvimento por issue e
+  direção de continuidade no contrato
 - **Situação:** pronto para uso — `bash bootstrap.sh` recria o projeto inteiro do zero;
   `make gates` diz se há pendências; `python3 main.py <processo>` consulta a Justiça de verdade.
 - **GitHub Actions:** workflow `gates` ativo, 5 jobs encadeados, últimos runs (push e pull_request) **verdes**.
@@ -881,9 +990,10 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 1 | Consultar processos e contar por órgão/grau no TJPE usando a **API pública do CNJ** por `curl` | `scripts/datajud.sh` (7 subcomandos, mesma semântica da wiki do CNJ) + `docs/01`, `docs/02` + exemplos de saída | 32 verificações |
 | 2 | Script **completo** em Python, na raiz, com **relatório em Markdown**, cobrindo "o processo, os anexos, tudo que puder" — e todo o público (DataJud + DJEN) | `main.py` (1 arquivo, sem dependências externas): DataJud + DJEN + montagem de número/validação de DV + relatório Markdown com anexos | 29 testes |
 | 3 | **Validar conforme a documentação** e um **bootstrap que auto-cria o projeto** (todos os arquivos, todas as permissões) **e valida os testes, verificando resultado e códigos de teste** | `tests/testar_conformidade.py` (conferência contra a wiki/CNJ) + `bootstrap.sh` autossuficiente (7 etapas, manifesto SHA-256, `py_compile`, `bash -n`, suítes) + `BOOTSTRAP.md` | 29 + 25 verificações |
-| 4 | **Gatilho** que só é positivo sem issues abertas, sem CI com erro e com testes verdes; **enquanto não positivo ⇒ continuidade**; cada issue testada e entregue com a instrução da seguinte; **toda action devolve JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`) | `pipeline/gate.py` + `pipeline/blueprint.json` (BPMN) + `pipeline/backlog.json` + `.github/workflows/gates.yml` + `docs/03` + esta `ENTREGA.md` | 36 testes |
+| 4 | **Gatilho** que só é positivo sem issues abertas, sem CI com erro e com testes verdes; **enquanto não positivo ⇒ continuidade**; cada issue testada e entregue com a instrução da seguinte; **toda action devolve JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`) | `pipeline/gate.py` + `pipeline/blueprint.json` (BPMN) + `pipeline/backlog.json` + `.github/workflows/gates.yml` + `docs/03` + esta `ENTREGA.md` | 47 testes |
+| 5 | **Instrução a cada issue pendente** para concluir o desenvolvimento **+ fábrica event-driven de issues** conforme o padrão gate-driven (BPMN) — **backend + SQLite + orientação a objetos** — com **direção de continuidade** (`fix`/`debug`/`continue to next issue`) e **build da próxima indexada quando uma termina com sucesso** | `pipeline/factory.py` (8 classes, SQLite `STRICT`, 6 handlers de evento), `modelo_issue` no `blueprint.json`, `instrucao_desenvolvimento` em todas as 7 issues, campo `direcao`/`proximo_passo` no contrato, `tests/testar_fabrica.py` | 36 testes |
 
-**Total: 151 verificações automatizadas**, todas offline, em 5 suítes (`make testes`).
+**Total: 200 verificações automatizadas**, todas offline, em 6 suítes (`make testes`).
 
 ---
 
@@ -911,6 +1021,14 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | **Pipeline de gates** (blueprint tipo BPMN) + fila de issues **indexada** | pedido 4 | Transforma a entrega num fluxo que se auto-verifica a cada push/PR/issue, em vez de um relatório morto |
 | **Erro tipo 1 × erro tipo 2** no `status` | pedido 4 | Separar "pendência tratável, continue" de "não dá para avaliar, chame humano" é o que permite o gatilho decidir sem adivinhação |
 | `pipeline/verificar_cnj.py` como **instrução executável** da ISSUE-006 | pedido 4 | "Toda issue tem instrução de teste": até a validação ao vivo precisa ser um comando reprodutível com código de saída |
+| **Fábrica de issues** (`pipeline/factory.py`) | pedido 5 ("funções event driven da factory… conforme pattern gate driven [BPMN] ➞ backend+sqlite + object oriented") | Transforma eventos (demanda, CI vermelho, teste vermelho, gate 1/2, checkpoint) em issues indexadas, em SQLite, sem depender de gente para manter a fila |
+| **Padrão `modelo_issue` no blueprint** | pedido 5 ("criar instrução a cada issue pendente necessária pra concluir o desenvolvimento") | O padrão fica declarado na planta (BPMN): campos obrigatórios, formato `ISSUE-NNN`, dependência da anterior e as instruções de execução em ordem |
+| **`instrucao_desenvolvimento` em todas as issues** | pedido 5 | Cada item do backlog passou a dizer **o que fazer para concluir** (1, 2, 3…) — inclusive as manutenções das issues já concluídas e a decisão humana da ISSUE-007 |
+| **`direcao` + `proximo_passo` no contrato JSON** | pedido 5 ("norteando a direção de continuidade [fix/debug/continue to issue… etc]") | A resposta passa a dizer não só *o que aconteceu*, mas *para onde ir agora* e o comando literal |
+| **Build da N+1 indexada no caminho feliz** | pedido 5 ("quando uma acaba com sucesso ➞ constrói a seguinte indexada") | Sucesso testado ⇒ a fábrica marca **COMPLETADA** com evidência, constrói a próxima indexada (dependendo da última concluída) e exporta o `backlog.json`; o workflow commita |
+| **Nudge de compactação** | pedido 5 ("oom" / continuidade de sessão) | O bloco `instrucao_proxima_issue` lembra que o estado vive no repositório (blueprint + backlog + SQLite): compactar contexto não perde a direção — basta `make gates` e seguir o `proximo_passo` |
+| **`gate fabrica` (4º check do gatilho)** | pedido 5 | Se o padrão/instruções da fábrica quebrarem, o gate positivo deixa de ser positivo — a fábrica entra na regra do gatilho |
+| **`bash -n` em cada bloco `run:` do workflow** | endurecimento | Sem PyYAML no ambiente, a validação do shell embutido no YAML passou a ser um teste determinístico |
 
 ### 2.3 Realizado (linha do tempo de execução)
 
@@ -924,17 +1042,20 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | 12/10 22:4x | **PR #2** aberto (base `main` ← branch), +9.347/−1 em 20 arquivos |
 | 13/10 14:2x | Publicação do pedido 4 (`92a31c0`) → o workflow `gates` dispara no Actions e o run de `push` fica **verde** |
 | 13/10 14:3x | `e864c53` corrige o job 5 em `pull_request` (`github.ref_name` = `NNN/merge` quebrava o checkout; commit do backlog agora só fora de PR) e atualiza as actions para v5 → **runs de `push` e `pull_request` verdes, 5/5 jobs** |
+| 13/10 15:1x | `cd3a80d` — pedido 4 publicado: ENTREGA.md + validação real do workflow no Actions (runs de push e PR verdes) |
+| 13/10 17:5x | **Pedido 5**: `pipeline/factory.py` (8 classes POO + SQLite + 6 handlers de evento), `modelo_issue` + `instrucao_proxima_issue` no blueprint (agora 6 gates, 21 transições), `instrucao_desenvolvimento` nas 7 issues, `direcao`/`proximo_passo` no contrato, 4º check no gatilho, `tests/testar_fabrica.py` (36), job `gate-fabrica` no workflow e esta revisão do `ENTREGA.md` |
 | 13/10 | **Pedido 4**: `pipeline/gate.py`, `blueprint.json`, `backlog.json`, `.github/workflows/gates.yml`, `docs/03`, `tests/testar_pipeline.py`, `pipeline/verificar_cnj.py`, esta `ENTREGA.md`, Makefile com alvos de gate, bootstrap regenerado |
 
-### 2.4 Testado (5 suítes, 151 verificações, tudo offline)
+### 2.4 Testado (6 suítes, 202 verificações, tudo offline)
 
 | Suíte | Verificações | O que cobre |
 | --- | --- | --- |
 | `tests/testar_conformidade.py` | 29 | conformidade com a doc oficial do CNJ: URL/rota/headers, aliases de tribunal, 15 campos do glossário, `search_after`, teto de 10.000, agregações com `.keyword`, 120 req/min, LGPD |
 | `tests/testar_main.py` | 29 | `main.py`: DV do número CNJ (`% 97 == 1`), montagem do número de 20 dígitos, DataJud + DJEN com mocks, relatório Markdown, anexos, exit codes |
 | `tests/rodar-testes.sh` | 32 | `scripts/datajud.sh`: chave pública, consulta, contagem, agregação, relatório, paginação, erros |
-| `tests/testar_pipeline.py` | 36 | contrato JSON em todos os gates, semântica 0/1/2, `next_issue`, `--marcar`, blueprint, backlog e o próprio workflow |
-| `tests/testar_bootstrap.sh` | 25 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 4 suítes rodando **dentro** do projeto recriado, gates rodando no projeto recriado, `--verificar`, proteção contra sobrescrita |
+| `tests/testar_pipeline.py` | 49 | contrato JSON em todos os gates (com `direcao`/`proximo_passo`), semântica 0/1/2, `next_issue`, direção de continuidade, `--marcar`, blueprint, backlog e o próprio workflow (`bash -n` em cada bloco `run:`) |
+| `tests/testar_fabrica.py` | 36 | fábrica: 8 classes, esquema SQLite `STRICT`, padrão do blueprint, construção da N+1 **só depois do sucesso testado**, bloqueada não congela, eventos → issues, round-trip SQLite ⇄ `backlog.json`, contrato do gate `fabrica` e da CLI |
+| `tests/testar_bootstrap.sh` | 27 | bootstrap atualizado, criação byte a byte vs. repositório, permissões, 5 suítes rodando **dentro** do projeto recriado, gates (fabrica/blueprint/continuidade) no projeto recriado, `--verificar`, proteção contra sobrescrita |
 
 ### 2.5 Validado (como cada promessa foi conferida)
 
@@ -945,7 +1066,11 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 | Planta BPMN × implementação | `python3 pipeline/gate.py blueprint` | `status "0"` — *5 gates, 15 transições* |
 | Gatilho de continuidade | `python3 pipeline/gate.py continuidade` | `status "1"` (há issue aberta) — **continuidade**, como manda a regra |
 | CI/CD | `python3 pipeline/gate.py cicd` | `status "0"` — 5 execuções, nenhuma com erro |
-| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 151 verificações aprovadas |
+| Testes | `python3 pipeline/gate.py testes` | `status "0"` — 202 verificações aprovadas |
+| Fábrica de issues | `python3 pipeline/gate.py fabrica` | `status "0"` — 8 classes, tabelas `eventos`/`issues`/`schema_info`, round-trip SQLite ⇄ `backlog.json` ok, nenhuma issue sem instrução de desenvolvimento |
+| Eventos event-driven | `python3 pipeline/factory.py --evento "ci_falhou\|run=42"` | `continuar` na MESMA issue, com a direção `depurar` (CI) / `corrigir` (teste) — a fila não incha |
+| Construção da N+1 | `python3 pipeline/factory.py --concluir ISSUE-006 --proxima` | cria a `ISSUE-008` dependendo da última concluída e recusa (status 1) enquanto houver issue pendente |
+| Shell do workflow | teste `test_blocos_run_sao_bash_valido` | os 8 blocos `run:` são `bash -n` válidos |
 | Sem fonte de dados (`gh` ausente) | `python3 pipeline/gate.py issues --sem-gh` | `status "2"` (erro tipo 2) — não inventa sucesso |
 | Projeto reconstruído funciona | `bash bootstrap.sh --destino /tmp/x` | 7/7 etapas ✔, exit 0 |
 | **Workflow no GitHub Actions** | [run de `push`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [run de `pull_request`](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644) | **os dois verdes**, com os **5 jobs** passando (`gate 1·issues`, `gate 2·cicd`, `gate 3·testes`, `gate 4·continuidade`, `gate 5·issue`) — é a validação real do YAML |
@@ -955,8 +1080,9 @@ Relatório de entrega do branch: **o que foi solicitado → incrementado à soli
 ```bash
 git clone https://github.com/camillanapoles/llm-arena-opencli && cd llm-arena-opencli
 
-make testes        # 5 suítes, 151 verificações, offline
+make testes        # 6 suítes, 202 verificações, offline
 make gates         # veredito: 0 = nada pendente · 1 = continuidade · 2 = exige humano
+make fabrica       # estado da fábrica de issues (SQLite): pendências, eventos e próximo passo
 make consultar NUMERO=0001234-43.2024.8.17.2001   # relatório Markdown do processo (rede real)
 bash bootstrap.sh --destino ./projeto-datajud      # recria o projeto inteiro do zero
 ```
@@ -973,7 +1099,8 @@ docs/02-receitas-curl-tjpe.md  receitas prontas de curl para o TJPE
 docs/03-pipeline-gates.md   manual do pipeline de gates (contrato JSON, 0/1/2, BPMN)
 docs/exemplo-saida/         exemplos de relatórios e agregações já gerados
 
-pipeline/gate.py            executor dos gates (7 subcomandos) — o "gatilho"
+pipeline/gate.py            executor dos gates (8 subcomandos) — o "gatilho"
+pipeline/factory.py         fábrica de issues event-driven (8 classes POO + SQLite)
 pipeline/blueprint.json     planta BPMN do fluxo (validada pelo próprio pipeline)
 pipeline/backlog.json       fila indexada de issues (instrução de teste por issue)
 pipeline/verificar_cnj.py   instrução executável da ISSUE-006 (validação ao vivo do CNJ)
@@ -984,7 +1111,7 @@ tools/gerar_bootstrap.py    gerador/verificador do bootstrap (--conferir)
 BOOTSTRAP.md                manual do bootstrap
 ENTREGA.md                  este relatório
 
-tests/                      5 suítes, 151 verificações (offline, com mocks)
+tests/                      6 suítes, 202 verificações (offline, com mocks)
 ```
 
 ---
@@ -1015,6 +1142,8 @@ python3 pipeline/gate.py continuidade \
   "mensagem": "ISSUE-005 testada com sucesso (código 0) — segue a issue ISSUE-006: ...",
   "continuidade": true,
   "next_issue": "ISSUE-006",
+  "direcao": "proxima",
+  "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-006 --marcar",
   "anexos": [
     {"path": "pipeline/saida/ISSUE-005-proxima-issue.md",
      "filename": "ISSUE-005-proxima-issue.md",
@@ -1033,6 +1162,17 @@ python3 pipeline/gate.py continuidade \
 | `"1"` | **erro tipo 1**: pendência conhecida e tratável | **`true`** | **a mesma issue** (falhou) |
 | `"2"` | **erro tipo 2**: não foi possível avaliar (exige humano) | `false` | `null` ou a issue bloqueada |
 
+**Direção de continuidade** (`direcao` + `proximo_passo`) — o "norteando a direção" do pedido:
+
+| direção | quando | próximo passo |
+| --- | --- | --- |
+| `proxima` | issue passou no teste (0) | `python3 pipeline/gate.py issue --id <N+1> --marcar` |
+| `corrigir` (fix) | issue/teste falhou (1) | corrigir e repetir a MESMA issue |
+| `depurar` (debug) | execução de CI com erro (1) | `gh run view --log-failed` na execução |
+| `continuar` | gate intermediário positivo, há próximo gate | seguir o fluxo |
+| `encerrar` | veredito positivo (0) | nada pendente — `gate.py situacao` |
+| `humano` | erro tipo 2 | decisão humana (não continue automaticamente) |
+
 O **exit code do processo é igual ao `status`**, então qualquer orquestrador (Actions,
 cron, Makefile) encadeia os gates sem parsear nada — e ainda assim recebe o JSON completo
 com `mensagem` (log/resumo) e `anexos` (`path` + `filename`).
@@ -1049,6 +1189,30 @@ com `mensagem` (log/resumo) e `anexos` (`path` + `filename`).
 4. Volta ao passo 1. O ciclo se repete enquanto houver pendência — é isso que significa
    *gate-driven pipeline*.
 
+### 4.4 A fábrica de issues (pedido 5)
+
+```text
+EVENTO  ──►  Fabrica.processar_evento()  ──►  Issue (padrão do blueprint)  ──►  SQLite
+   │                    │                                                        │
+   │                    └── se há pendência: mantém a MESMA issue (fix/debug)    │
+   │                        se a anterior está COMPLETADA: constrói a N+1 ──────┘
+   └── handlers: demanda · issue_aberta · ci_falhou · teste_falhou · gate_falhou · checkpoint
+```
+
+| Peça | O que faz |
+| --- | --- |
+| `blueprint.modelo_issue` | o padrão: campos obrigatórios, `ISSUE-{indice:03d}`, dependência da anterior, instruções de desenvolvimento em ordem |
+| `blueprint.instrucao_proxima_issue` | as direções aceitas, a regra `status → direção` e o *nudge* de compactação |
+| `pipeline/factory.py` | 8 classes (`ArmazenamentoSqlite`, `Evento`, `Issue`, `ModeloIssue`, `PadraoBPMN`, `Backlog`, `Repositorio`, `Fabrica`) + CLI no mesmo contrato JSON |
+| `pipeline/backlog.json` | espelho versionável do SQLite (`--exportar`/`--sincronizar`, idempotente) — cada issue com `instrucao_teste` **e** `instrucao_desenvolvimento` |
+| `gate fabrica` | 4º check do gatilho: valida o padrão, o esquema SQLite, o modelo e o round-trip |
+
+**Regra de construção:** sucesso testado ⇒ marca **COMPLETADA** (com evidência e data) e constrói
+a **próxima indexada**, dependendo da última concluída. Issue **pendente** trava a construção
+(erro tipo 1, direção `corrigir`); issue **bloqueada** não trava — está apenas aguardando decisão
+humana, e parar o desenvolvimento por causa dela seria pior. `--instruir` preenche a instrução de
+desenvolvimento de qualquer issue que esteja sem ela.
+
 ---
 
 ## 5. Estado atual do pipeline (medido, não presumido)
@@ -1056,9 +1220,10 @@ com `mensagem` (log/resumo) e `anexos` (`path` + `filename`).
 ```text
 gate 1 · issues        → status "1"  (1 issue aberta: #3 SESSION CONTINUITY CONTROL)
 gate 2 · CI/CD         → status "0"  (5 execuções analisadas, 0 com erro)
-gate 3 · testes        → status "0"  (5 suítes aprovadas, 151 verificações)
-gate 4 · continuidade  → status "1"  ⇒ continua; próxima do backlog: ISSUE-006
-gate 5 · issue         → executa a ISSUE-006 quando o ambiente tiver internet
+gate 3 · testes        → status "0"  (6 suítes aprovadas, 200 verificações)
+gate 4 · fabrica       → status "0"  (8 classes, SQLite ok, 7/7 issues com instrução)
+gate 5 · continuidade  → status "1"  ⇒ continua; próxima do backlog: ISSUE-006
+gate 6 · issue         → executa a ISSUE-006; passa ⇒ a fábrica constrói a N+1
 ```
 
 Backlog do projeto (`pipeline/backlog.json`):
@@ -1083,6 +1248,7 @@ Backlog do projeto (`pipeline/backlog.json`):
 | ISSUE-007 (unificação com a issue #3, de outra sessão) | o outro fluxo não está em `main` (`.github/workflows` → 404 no ref `main`) e vive na issue #3; não foi tocado | gate devolve `2` de propósito: requer decisão do usuário |
 | YAML do workflow | não há PyYAML no ambiente de desenvolvimento; a checagem local é estrutural (indentação, tabulação, gatilhos, jobs) | **já validado**: o workflow rodou de verdade no Actions ([push](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413540315) e [PR](https://github.com/camillanapoles/llm-arena-opencli/actions/runs/38413550644)), 5/5 jobs verdes |
 | Permissão de escrita do bot | o job `executa-issue` só commita o backlog quando disparado com `marcar=true` (e o repositório precisa permitir "Read and write permissions" para o `GITHUB_TOKEN`) | conferir em **Settings → Actions → General → Workflow permissions** |
+| SQLite no CI | o banco `pipeline/fabrica.db` é ignorado no git (fonte de verdade = `backlog.json`, que é versionado e serve de espelho) | nada a fazer: o job já roda `--sincronizar` antes de usar a fábrica |
 | Consulta pública do TJPE (Projudi/PJe) | as URLs do TJPE não respondem fora da rede da Justiça (`srv01…`, `pje.cloud…`) | usar o kit em rede compatível; o DataJud/DJEN cobrem o que é público nacional |
 
 ---
@@ -1091,8 +1257,9 @@ Backlog do projeto (`pipeline/backlog.json`):
 
 - [x] **Solicitado** — os 4 pedidos implementados no branch (kit curl, `main.py` Markdown, conformidade + bootstrap, pipeline de gates documentado)
 - [x] **Incrementado** — DJEN, número CNJ, glossário, resiliência, LGPD, manifesto SHA-256, erro tipo 1 × 2, verificador ao vivo (seção 2.2)
-- [x] **Realizado** — 5 marcos de commit + 9 arquivos novos, tudo versionado no branch (seção 2.3)
-- [x] **Testado** — 5 suítes, **151 verificações**, todas offline e reprodutíveis (seção 2.4)
+- [x] **Realizado** — 8 marcos de commit + 11 arquivos novos, tudo versionado no branch (seção 2.3)
+- [x] **Fábrica de issues (pedido 5)** — event-driven, POO + SQLite, padrão declarado no blueprint, instrução de desenvolvimento em todas as issues e construção automática da próxima indexada após o sucesso testado (seção 4.4)
+- [x] **Testado** — 6 suítes, **202 verificações**, todas offline e reprodutíveis (seção 2.4)
 - [x] **Validado** — conformidade com a doc do CNJ, bootstrap byte a byte, planta BPMN, semântica 0/1/2, projeto recriado do zero e **os 5 jobs do workflow verdes no GitHub Actions** (seção 2.5)
 - [x] **Produção** — `make testes`, `make gates`, `make consultar`, `bash bootstrap.sh` prontos para uso (seção 2.6)
 - [x] **Documentado** — `README.md` (visão geral), `BOOTSTRAP.md` (instalação), `docs/01-03` (API, receitas, pipeline) e esta `ENTREGA.md`
@@ -1108,7 +1275,8 @@ NUMERO   ?= 0001234-43.2024.8.17.2001
 
 .PHONY: ajuda chave chave-publica consultar contar processo relatorio paginar testes limpar \
         bootstrap regenerar-bootstrap verificar \
-        gates gate-issues gate-cicd gate-testes gate-issue gate-situacao blueprint testes-pipeline
+        gates gate-issues gate-cicd gate-testes gate-fabrica gate-issue gate-situacao blueprint \
+        testes-pipeline fabrica fabrica-estado fabrica-proxima fabrica-instruir
 
 ajuda: ## mostra o manual do script
 	@bash scripts/datajud.sh ajuda
@@ -1134,15 +1302,17 @@ relatorio: ## gera o relatório em markdown/csv (SAIDA=saida)
 paginar: ## baixa processos em JSONL (LIMITE=1000)
 	@bash scripts/datajud.sh paginar --tribunal $(TRIBUNAL) --limite $(LIMITE) --saida processos-$(TRIBUNAL).jsonl
 
-testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + pipeline + bootstrap)
+testes: ## roda as suítes offline (conformidade + main.py + datajud.sh + pipeline + fábrica + bootstrap)
 	@python3 tests/testar_conformidade.py
 	@python3 tests/testar_main.py
 	@bash tests/rodar-testes.sh
 	@python3 tests/testar_pipeline.py
+	@python3 tests/testar_fabrica.py
 	@bash tests/testar_bootstrap.sh
 
-testes-pipeline: ## roda só a suíte do pipeline de gates (offline)
+testes-pipeline: ## roda as suítes do pipeline e da fábrica (offline)
 	@python3 tests/testar_pipeline.py
+	@python3 tests/testar_fabrica.py
 
 gates: ## veredito de continuidade (0=sem pendências, 1=continuidade, 2=humano)
 	@python3 pipeline/gate.py continuidade ; true
@@ -1155,6 +1325,21 @@ gate-cicd: ## gate 2 — há execução de CI/CD com erro?
 
 gate-testes: ## gate 3 — testes presentes e verdes?
 	@python3 pipeline/gate.py testes ; true
+
+gate-fabrica: ## gate 4 — a fábrica de issues (padrão BPMN + SQLite) está íntegra?
+	@python3 pipeline/gate.py fabrica ; true
+
+fabrica: ## estado da fábrica: issues, eventos, esquema e direção de continuidade
+	@python3 pipeline/factory.py --sincronizar --listar ; true
+
+fabrica-estado: ## só o resumo do SQLite (sem tocar no backlog.json)
+	@python3 pipeline/factory.py --listar ; true
+
+fabrica-proxima: ## conclui a pendência testada e constrói a PRÓXIMA issue indexada
+	@python3 pipeline/factory.py --sincronizar --proxima --exportar pipeline/backlog.json ; true
+
+fabrica-instruir: ## cria a instrução de desenvolvimento onde estiver faltando
+	@python3 pipeline/factory.py --sincronizar --instruir --exportar pipeline/backlog.json ; true
 
 gate-issue: ## executa a próxima issue do backlog (ISSUE=ISSUE-00N, MARCAR=--marcar)
 	@python3 pipeline/gate.py issue $$( [ -n "$(ISSUE)" ] && echo "--id $(ISSUE)" ) $(MARCAR) ; true
@@ -1199,9 +1384,10 @@ python3 main.py 0001234-56.2024.8.17.2001 --json     # JSON cru das duas APIs
 | `docs/01-api-datajud.md` | referência da API do DataJud (acesso, campos, DSL, erros, regras) |
 | `docs/02-receitas-curl-tjpe.md` | receitas `curl` prontas para o TJPE |
 | `docs/03-pipeline-gates.md` | manual do **pipeline de gates** (contrato JSON, 0/1/2, planta BPMN) |
-| **`pipeline/gate.py`** + `pipeline/blueprint.json` + `pipeline/backlog.json` | **gatilho** de continuidade: mede issues/CI/testes, diz o que fazer agora e devolve JSON |
+| **`pipeline/gate.py`** + `pipeline/blueprint.json` + `pipeline/backlog.json` | **gatilho** de continuidade: mede issues/CI/testes/fábrica, diz o que fazer agora e devolve JSON |
+| **`pipeline/factory.py`** | **fábrica de issues** event-driven (POO + SQLite): constrói a próxima indexada conforme o padrão do blueprint |
 | `docs/exemplo-saida/` | exemplo do relatório de processo e do relatório agregado |
-| `tests/` | mock local das APIs + 5 suítes de teste offline (**151 verificações**) |
+| `tests/` | mock local das APIs + 6 suítes de teste offline (**200 verificações**) |
 | **`bootstrap.sh`** + `BOOTSTRAP.md` | recriam/configuram o projeto inteiro (arquivos, permissões, hashes) e validam tudo |
 | `.github/workflows/gates.yml` | roda os gates no GitHub Actions (push, PR, issue, agenda, manual) |
 | **`ENTREGA.md`** | relatório de entrega do branch: solicitado → incrementado → realizado → testado → validado → produção |
@@ -1361,25 +1547,30 @@ make gate-issues    # existem issues abertas?
 make gate-cicd      # alguma execução de CI/CD terminou com erro?
 make gate-testes    # os testes existem e passam?
 make gate-issue     # executa a próxima issue do backlog (ISSUE=ISSUE-006 MARCAR=--marcar)
+make gate-fabrica   # a fábrica de issues (padrão BPMN + SQLite) está íntegra?
+make fabrica        # estado da fábrica: issues, eventos, esquema, direção de continuidade
 ```
 
-Cada gate devolve **o mesmo objeto JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`…)
-e o **exit code é igual ao `status`**: `"0"` sucesso, `"1"` erro tipo 1 (pendência tratável ⇒
-**continuidade**), `"2"` erro tipo 2 (não foi possível avaliar ⇒ exige humano). O **gatilho só é
-positivo** quando não há issue aberta **e** o CI não tem erro **e** os testes passam; enquanto não
-for positivo, `continuidade = true` e o fluxo segue para a próxima issue indexada — cada issue
-entregue vem com a **instrução de teste** da seguinte. Detalhes, diagrama BPMN e contrato completo:
+Cada gate devolve **o mesmo objeto JSON** (`id`, `mensagem`, `anexos`, `status`, `next_issue`,
+`direcao`, `proximo_passo`…) e o **exit code é igual ao `status`**: `"0"` sucesso, `"1"` erro tipo 1
+(pendência tratável ⇒ **continuidade**), `"2"` erro tipo 2 (não foi possível avaliar ⇒ exige humano).
+O **gatilho só é positivo** quando não há issue aberta **e** o CI não tem erro **e** os testes passam
+**e** a fábrica está íntegra; enquanto não for positivo, `continuidade = true` e a direção
+(`corrigir`/`depurar`/`proxima`) aponta o próximo passo. Cada issue traz **instrução de teste** e
+**instrução de desenvolvimento**; ao passar, a **fábrica** marca **COMPLETADA** e constrói a
+**próxima indexada**. Detalhes, diagrama BPMN e contrato completo:
 [`docs/03-pipeline-gates.md`](docs/03-pipeline-gates.md). Entrega documentada: [`ENTREGA.md`](ENTREGA.md).
 
 ## Testes (sem internet)
 
 ```bash
-make testes                          # todas as 5 suítes (151 verificações)
+make testes                          # todas as 6 suítes (202 verificações)
 python3 tests/testar_conformidade.py # 29 — conformidade com a doc oficial do CNJ
 python3 tests/testar_main.py         # 29 — NUP/DV, relatório, DJEN, erros
 ./tests/rodar-testes.sh              # 32 — datajud.sh (curl + jq)
-python3 tests/testar_pipeline.py     # 36 — contrato JSON dos gates, 0/1/2, blueprint, workflow
-./tests/testar_bootstrap.sh          # 25 — recria o projeto e compara byte a byte
+python3 tests/testar_pipeline.py     # 49 — contrato JSON, 0/1/2, direção, blueprint, workflow
+python3 tests/testar_fabrica.py      # 36 — fábrica de issues (SQLite, eventos, padrão BPMN)
+./tests/testar_bootstrap.sh          # 27 — recria o projeto e compara byte a byte
 ```
 
 As suítes sobem mocks locais das APIs (`tests/mock_apis.py` e `tests/mock_datajud.py`) que imitam
@@ -1876,10 +2067,12 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 é igual ao `status`** — o que permite encadear gates com `if`/`needs` sem parsing extra.
 
 - Executor: [`pipeline/gate.py`](../pipeline/gate.py)
+- Fábrica de issues (POO + SQLite, event-driven): [`pipeline/factory.py`](../pipeline/factory.py)
 - Planta (BPMN-like): [`pipeline/blueprint.json`](../pipeline/blueprint.json)
 - Fila indexada de issues: [`pipeline/backlog.json`](../pipeline/backlog.json)
 - Gatilho no GitHub Actions: [`.github/workflows/gates.yml`](../.github/workflows/gates.yml)
-- Testes: [`tests/testar_pipeline.py`](../tests/testar_pipeline.py) (36 testes, offline)
+- Testes: [`tests/testar_pipeline.py`](../tests/testar_pipeline.py) (49 testes) e
+  [`tests/testar_fabrica.py`](../tests/testar_fabrica.py) (36 testes) — 100% offline
 
 ---
 
@@ -1894,6 +2087,8 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
   "mensagem": "gate NÃO positivo — continuidade obrigatória. Pendências: issues (1)",
   "continuidade": true,
   "next_issue": "ISSUE-006",
+  "direcao": "corrigir",
+  "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-006",
   "anexos": [
     {"path": "pipeline/saida/issues-abertas.md", "filename": "issues-abertas.md",
      "descricao": "lista de issues abertas consultadas pelo gate"},
@@ -1916,6 +2111,8 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 | `mensagem` | **string** | mensagem pronta **ou** resumo/log da execução |
 | `continuidade` | bool | `true` ⇒ o pipeline **deve continuar** (trabalho pendente) |
 | `next_issue` | string \| null | a **mesma** issue se falhou; a **próxima** indexada se passou; `null` se acabou ou não se aplica |
+| `direcao` | string | para onde ir: `continuar` · `corrigir` (fix) · `depurar` (debug) · `proxima` (continue to next issue) · `encerrar` · `humano` |
+| `proximo_passo` | string | o comando literal que o operador ou o próximo job executa |
 | `anexos` | array | `{path, filename, descricao}` — artefatos gerados (logs, listas, veredito, guia da próxima issue) |
 | `dados` | objeto | detalhes estruturados de cada gate |
 
@@ -1928,7 +2125,8 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 | `"2"` | **ERRO TIPO 2** | **não foi possível avaliar** | `false` | `gh` ausente/sem credencial; blueprint inconsistente; issue sem instrução; chave do CNJ recusada |
 
 > **Regra de ouro do projeto:** o gate só é **positivo** quando não há issue aberta **E**
-> o CI não tem execução com erro **E** existem testes presentes e aprovados.
+> o CI não tem execução com erro **E** existem testes presentes e aprovados **E** a fábrica
+> de issues está íntegra (padrão + instrução de desenvolvimento em todas as issues).
 > **Enquanto não for positivo ⇒ `continuidade = true`** e `next_issue` aponta a próxima
 > pendência do backlog — é isso que mantém o fluxo andando sem sessão humana.
 
@@ -1940,19 +2138,22 @@ GitHub Actions. Cada ação devolve **sempre o mesmo objeto JSON**, e o **códig
 flowchart TD
     E["Eventos: push · pull_request · issues · schedule (dias úteis 09:00) · workflow_dispatch"] --> G1
     G1{"gate 1<br/>issues abertas?"} -->|0 sem issues| G2
-    G1 -->|1 há issue aberta| G2
+    G1 -->|1 há issue aberta| GF
     G1 -->|2 indeterminado| GC
     G2{"gate 2<br/>CI/CD com erro?"} -->|0 limpo| G3
-    G2 -->|1 com erro| G3
+    G2 -->|1 com erro| GF
     G2 -->|2 indeterminado| GC
-    G3{"gate 3<br/>testes presentes e verdes?"} -->|0 verdes| GC
-    G3 -->|1 ausentes/reprovados| GC
+    G3{"gate 3<br/>testes presentes e verdes?"} -->|0 verdes| GF
+    G3 -->|1 ausentes/reprovados| GF
     G3 -->|2 erro de execução| GC
-    GC{"gate 4<br/>continuidade ⇒<br/>0 issues ∧ CI limpo ∧ testes verdes"}
+    GF{"gate 4<br/>fábrica de issues<br/>(padrão BPMN + SQLite)"} -->|0 íntegra| GC
+    GF -->|1 issue sem instrução| GC
+    GF -->|2 inválida| F
+    GC{"gate 5<br/>continuidade ⇒<br/>0 issues ∧ CI limpo<br/>∧ testes verdes ∧ fábrica íntegra"}
     GC -->|2 erro tipo 2| F["FIM: falha o job<br/>(exige humano)"]
     GC -->|0 positivo| OK["FIM: pipeline pode encerrar<br/>(continuidade=false)"]
-    GC -->|1 continuidade| G5{"gate 5<br/>executa a issue do backlog"}
-    G5 -->|0 passou| NX["next_issue = PRÓXIMA indexada<br/>+ guia da próxima anexada"]
+    GC -->|1 continuidade| G5{"gate 6<br/>executa a issue do backlog"}
+    G5 -->|0 passou| NX["fábrica: marca COMPLETADA<br/>e CONSTRÓI a N+1 indexada"]
     G5 -->|1 falhou| MS["next_issue = MESMA issue<br/>+ log do erro anexado"]
     G5 -->|2 sem instrução| F
     NX --> GC
@@ -1973,6 +2174,7 @@ python3 pipeline/gate.py issues        # existem issues abertas?      (gh issue 
 python3 pipeline/gate.py cicd          # há execução de CI com erro?  (gh run list)
 python3 pipeline/gate.py testes        # testes presentes e verdes?   (make testes)
 python3 pipeline/gate.py blueprint     # a planta é consistente?
+python3 pipeline/gate.py fabrica       # o padrão + o SQLite + as instruções estão íntegros?
 
 # veredito agregado (o "gate" propriamente dito)
 python3 pipeline/gate.py continuidade
@@ -1981,6 +2183,12 @@ python3 pipeline/gate.py continuidade
 python3 pipeline/gate.py issue                  # próxima pendente do backlog
 python3 pipeline/gate.py issue --id ISSUE-006   # uma issue específica
 python3 pipeline/gate.py issue --marcar         # e persiste a conclusão no backlog
+
+# fábrica de issues (POO + SQLite + eventos) — mesmo contrato JSON
+python3 pipeline/factory.py --sincronizar --listar       # backlog.json → SQLite + estado
+python3 pipeline/factory.py --instruir --exportar pipeline/backlog.json
+python3 pipeline/factory.py --evento "ci_falhou|gate=cicd|run=123"   # evento → issue
+python3 pipeline/factory.py --concluir ISSUE-006 --proxima --exportar pipeline/backlog.json
 
 # leitura do histórico
 python3 pipeline/gate.py situacao
@@ -1995,7 +2203,8 @@ python3 pipeline/gate.py issues --sem-gh        # ⇒ status 2 (erro tipo 2, sem
 
 ```bash
 python3 pipeline/gate.py continuidade \
-  --status-issues "$S_ISSUES" --status-cicd "$S_CICD" --status-testes "$S_TESTES"
+  --status-issues "$S_ISSUES" --status-cicd "$S_CICD" --status-testes "$S_TESTES" \
+  --status-fabrica "$S_FABRICA"
 ```
 
 Assim o agregador **não reexecuta** a suíte: ele recebe o resultado de cada job
@@ -2023,6 +2232,43 @@ vivo contra o CNJ — requer internet) e ISSUE-007 bloqueada (decisão humana).
 
 ---
 
+## 4-bis. A fábrica de issues (`pipeline/factory.py`)
+
+A **fábrica** transforma **eventos** em **issues indexadas** seguindo o padrão declarado no
+blueprint (`blueprint.modelo_issue`) — é o "event driven da factory" do fluxo gate-driven.
+É **orientada a objetos** e persiste em **SQLite** (`pipeline/fabrica.db`, ignorado no git),
+mantendo o `pipeline/backlog.json` como espelho versionável (export/import idempotente).
+
+| Classe | Papel |
+| --- | --- |
+| `ArmazenamentoSqlite` | conexão, esquema `STRICT`, migração (`schema_info`) |
+| `Evento` | fato observado (`tipo`, `payload`, `quando`) |
+| `Issue` | entidade do backlog (validação do padrão, `concluir()`, `para_dict()`) |
+| `ModeloIssue` | o padrão: campos obrigatórios, formato do id, dependência e instrução padrão |
+| `PadraoBPMN` | lê/valida o `blueprint.json` e **sintetiza** a próxima issue |
+| `Backlog` | coleção: ordenar, `proxima_pendente`, `proximo_indice`, resumo por status |
+| `Repositorio` | persistência e espelho (SQLite ⇄ `backlog.json`), eventos |
+| `Fabrica` | orquestra: eventos → issues → construção da N+1 → contrato JSON |
+
+**Eventos com handler:** `demanda`, `issue_aberta`, `ci_falhou`, `teste_falhou`,
+`gate_falhou`, `checkpoint`. Com pendência aberta, o evento **mantém a MESMA issue**
+(e a direção vira `depurar`/`corrigir`); após o **sucesso testado**, a fábrica
+**constrói a próxima indexada** (`ISSUE-NNN` sequencial, dependendo da última concluída).
+
+```bash
+make fabrica            # estado: issues, eventos, esquema e direção de continuidade
+make fabrica-proxima    # conclui a pendência testada e constrói a N+1
+make fabrica-instruir   # cria a instrução de desenvolvimento onde estiver faltando
+make gate-fabrica       # gate 4: a fábrica está íntegra? (0/1/2)
+```
+
+**Instrução em cada issue:** o padrão exige `instrucao_desenvolvimento` (o que fazer para
+concluir, em ordem) além da `instrucao_teste` (o comando executável). Sem a primeira, o gate
+`fabrica` devolve `1` (continuidade); sem a segunda, o gate `issue` devolve `2` (humano).
+`python3 pipeline/factory.py --instruir` preenche as que faltarem a partir do padrão.
+
+---
+
 ## 5. O workflow (`.github/workflows/gates.yml`)
 
 | Job | Gate | Saída |
@@ -2030,8 +2276,9 @@ vivo contra o CNJ — requer internet) e ISSUE-007 bloqueada (decisão humana).
 | `gate-issues` | issues abertas | outputs `status`, `continuidade` + artifact |
 | `gate-cicd` | CI/CD com erro | outputs `status`, `continuidade` + artifact |
 | `gate-testes` | suíte completa | outputs + `log-testes-*.txt` |
-| `gate-continuidade` | veredito agregado | `status`, `continuidade`, `next_issue`; **falha o job se status 2** |
-| `executa-issue` | roda a próxima issue | executa a `instrucao_teste`, publica log/guia; com `marcar=true`, commita o backlog |
+| `gate-fabrica` | fábrica de issues | outputs + `fabrica-estado.md`; registra o **evento** dos gates anteriores na fábrica |
+| `gate-continuidade` | veredito agregado (4 checks) | `status`, `continuidade`, `next_issue`; **falha o job se status 2** |
+| `executa-issue` | roda a próxima issue | executa a `instrucao_teste`, publica log/guia e, no caminho feliz, **conclui + constrói a N+1 + commita o backlog** |
 
 Todo job publica o JSON no log, o veredito no **job summary** (`$GITHUB_STEP_SUMMARY`) e os
 artefatos via `actions/upload-artifact` — os "anexos" do contrato ficam baixáveis.
@@ -2049,7 +2296,7 @@ gh run list --workflow=gates.yml
 
 ## 6. Como os testes cobrem o pipeline
 
-`tests/testar_pipeline.py` (36 testes, offline) verifica:
+`tests/testar_pipeline.py` (49 testes) e `tests/testar_fabrica.py` (36 testes), offline, verificam:
 
 - **contrato**: as 11 chaves obrigatórias em todos os gates, `status` string, `anexos` com
   `{path, filename, descricao}`, `codigo_saida == status == exit code`, arquivos anexados
@@ -2064,14 +2311,21 @@ gh run list --workflow=gates.yml
   sem instrução ⇒ `2`, `--marcar` atualiza o backlog, `--marcar` ausente não altera;
 - **blueprint/backlog**: planta do projeto consistente, planta quebrada ⇒ `2`, backlog
   íntegro (ids sequenciais, instruções apontando para arquivos existentes);
-- **workflow**: gatilhos exigidos, os 5 jobs, chamadas ao executor, publicação de JSON/
-  summary/artifacts, `status 2` derrubando o job, e checagem estrutural do YAML
-  (sem tabulação, indentação par) — a validação definitiva do YAML é a execução real no
+- **direção de continuidade**: `direcao`/`proximo_passo` para cada gate (sucesso ⇒ próxima,
+  falha ⇒ corrigir a mesma, CI ⇒ depurar, tipo 2 ⇒ humano, positivo ⇒ encerrar);
+- **fábrica**: entidades e validações, esquema SQLite, construção da N+1 só depois do sucesso,
+  bloqueada não congela a fábrica, eventos → issues, round-trip SQLite ⇄ `backlog.json`,
+  contrato do gate `fabrica` e da CLI (`--evento`, `--concluir`, `--proxima`, `--instruir`);
+- **workflow**: gatilhos exigidos, os 6 jobs, chamadas ao executor e à fábrica, publicação de
+  JSON/summary/artifacts, `status 2` derrubando o job, checagem estrutural do YAML e
+  **`bash -n` em cada bloco `run:`** — a validação definitiva do YAML é a execução real no
   Actions.
 
 ```bash
-python3 tests/testar_pipeline.py         # 36 testes
+python3 tests/testar_pipeline.py         # 49 testes
+python3 tests/testar_fabrica.py          # 36 testes
 make gates                               # veredito de continuidade de verdade
+make fabrica                             # estado da fábrica (SQLite)
 ```
 __ARQ_EOF__
 __ARQ__ docs/exemplo-saida/agg-grau.tsv
@@ -3345,8 +3599,10 @@ if __name__ == "__main__":
     sys.exit(main())
 __ARQ_EOF__
 __ARQ__ pipeline/.gitignore
-# artefatos do pipeline (JSONs e anexos por execução)
 saida/
+fabrica.db
+fabrica.db-wal
+fabrica.db-shm
 __ARQ_EOF__
 __ARQ__ pipeline/backlog.json
 {
@@ -3355,12 +3611,17 @@ __ARQ__ pipeline/backlog.json
   "como_usar": [
     "python3 pipeline/gate.py issue                 # roda a próxima pendente (sem marcar)",
     "python3 pipeline/gate.py issue --marcar        # roda e marca concluída se passar",
-    "python3 pipeline/gate.py issue --id ISSUE-007  # roda uma issue específica"
+    "python3 pipeline/gate.py issue --id ISSUE-007  # roda uma issue específica",
+    "python3 pipeline/gate.py fabrica                 # verifica a fábrica (padrão + SQLite + instruções)",
+    "python3 pipeline/factory.py --sincronizar        # traz o backlog.json para o SQLite",
+    "python3 pipeline/factory.py --instruir --exportar backlog.json   # cria instrução onde faltar",
+    "python3 pipeline/factory.py --evento \"ci_falhou|run=123\" --listar  # evento → issue (event-driven)"
   ],
   "status_possiveis": [
-    "concluida",
+    "concluida (COMPLETADA — sucesso testado; sinônimos: completada/done)",
     "pendente",
-    "bloqueada"
+    "bloqueada (exige humano)",
+    "cancelada"
   ],
   "issues": [
     {
@@ -3373,7 +3634,9 @@ __ARQ__ pipeline/backlog.json
       "depende_de": [],
       "evidencias": [
         "32 verificações offline passando"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao alterar o kit curl, rodar `bash tests/rodar-testes.sh` (32 verificações) e conferir as receitas em docs/02; qualquer rota/param novo entra na doc antes do código.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-002",
@@ -3387,7 +3650,9 @@ __ARQ__ pipeline/backlog.json
       ],
       "evidencias": [
         "29 testes: NUP/DV, seções do relatório, DJEN, erros 400/401/404/429"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mexer no relatório, rodar `python3 tests/testar_main.py` (29) e regerar um exemplo em docs/exemplo-saida/ com `python3 main.py 0001234-43.2024.8.17.2001 -o docs/exemplo-saida/relatorio-processo-exemplo.md`.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-003",
@@ -3401,7 +3666,9 @@ __ARQ__ pipeline/backlog.json
       ],
       "evidencias": [
         "22 verificações: recriação byte a byte (diff -r), permissões, SHA-256, --verificar"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: depois de criar/renomear arquivo, incluir no ARQUIVOS de tools/gerar_bootstrap.py, rodar `python3 tools/gerar_bootstrap.py` e `bash tests/testar_bootstrap.sh` (25 verificações; o diff -r precisa voltar vazio).",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-004",
@@ -3415,7 +3682,9 @@ __ARQ__ pipeline/backlog.json
       ],
       "evidencias": [
         "29 testes contra a wiki do DataJud e o Termo de Uso v1.2"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar contrato/limite da API, atualizar docs/01 e `python3 tests/testar_conformidade.py` (29) no mesmo commit — a conformidade é o teste que quebra primeiro.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-005",
@@ -3429,7 +3698,9 @@ __ARQ__ pipeline/backlog.json
       ],
       "evidencias": [
         "contrato JSON, status 0/1/2, continuidade, next_issue, anexos, blueprint e workflow validados"
-      ]
+      ],
+      "instrucao_desenvolvimento": "MANUTENÇÃO: ao mudar o contrato JSON, atualizar `pipeline/blueprint.json` (contrato + transições) e `python3 tests/testar_pipeline.py` (36); rodar `python3 pipeline/gate.py blueprint` antes de commitar.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-006",
@@ -3440,7 +3711,9 @@ __ARQ__ pipeline/backlog.json
       "depende_de": [
         "ISSUE-002"
       ],
-      "observacao": "Instrução executável: consulta real e mínima ao DataJud (size=0). Devolve 0 se o CNJ responder 200, 1 se a rede não alcançar a API (continuidade — é o caso do ambiente de desenvolvimento atual) e 2 se a chave for recusada."
+      "observacao": "Instrução executável: consulta real e mínima ao DataJud (size=0). Devolve 0 se o CNJ responder 200, 1 se a rede não alcançar a API (continuidade — é o caso do ambiente de desenvolvimento atual) e 2 se a chave for recusada.",
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO: 1) rodar `python3 pipeline/verificar_cnj.py --timeout 20` numa máquina com internet; 2) se devolver status 0 (HTTP 200), executar `python3 pipeline/gate.py issue --id ISSUE-006 --marcar` e commitar o backlog; 3) se devolver 1, é a rede (continuidade — repetir em outro ambiente); 4) se devolver 2 (HTTP 401/403), trocar a chave com `python3 main.py --chave-publica`, atualizar docs/01 e revalidar.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     },
     {
       "id": "ISSUE-007",
@@ -3451,9 +3724,12 @@ __ARQ__ pipeline/backlog.json
       "depende_de": [
         "ISSUE-005"
       ],
-      "observacao": "Sem instrução de teste executável de propósito: o gate devolve status 2 (erro tipo 2) e exige decisão humana."
+      "observacao": "Sem instrução de teste executável de propósito: o gate devolve status 2 (erro tipo 2) e exige decisão humana.",
+      "instrucao_desenvolvimento": "DESENVOLVIMENTO (decisão humana): 1) ler a issue #3 (SESSION CONTINUITY CONTROL) e o fluxo da outra sessão (`arena/d917b13b-llm-arena-opencli`); 2) escolher explicitamente (a) unificar no pipeline de gates desta sessão, (b) manter os dois fluxos separados, ou (c) portar os gates para o fluxo da outra sessão; 3) registrar a decisão aqui e, se for (a)/(c), abrir a issue de implementação com instrução de teste executável; 4) enquanto não houver decisão, o gate devolve status 2 de propósito.",
+      "origem": "sessão arena/ed79bd77 (pedido 4)"
     }
-  ]
+  ],
+  "modelo": "Padrão: pipeline/blueprint.json → modelo_issue. A fábrica (pipeline/factory.py) é quem constrói a próxima indexada a partir de eventos, em SQLite, e mantém este arquivo como espelho."
 }
 __ARQ_EOF__
 __ARQ__ pipeline/blueprint.json
@@ -3462,7 +3738,17 @@ __ARQ__ pipeline/blueprint.json
   "versao": "1.0.0",
   "descricao": "Planta do pipeline orientado a gates (gate-driven pipeline), no formato de blueprint tipo BPMN. Cada gate devolve o objeto JSON do contrato {id, status, mensagem, next_issue, anexos, dados} com status 0 (sucesso), 1 (erro tipo 1 = continuidade) ou 2 (erro tipo 2 = indeterminado).",
   "contrato": {
-    "campos_obrigatorios": ["id", "gate", "status", "mensagem", "next_issue", "anexos", "dados", "timestamp", "versao"],
+    "campos_obrigatorios": [
+      "id",
+      "gate",
+      "status",
+      "mensagem",
+      "next_issue",
+      "anexos",
+      "dados",
+      "timestamp",
+      "versao"
+    ],
     "status": {
       "0": "sucesso — gate positivo, nada pendente; continuidade=false",
       "1": "erro tipo 1 — pendência conhecida e tratável (issue aberta, CI vermelho, teste ausente/reprovado); continuidade=true",
@@ -3477,7 +3763,10 @@ __ARQ__ pipeline/blueprint.json
       "id": "issues",
       "tipo": "gateway-exclusivo",
       "descricao": "Verifica a NÃO existência de issues abertas (gh issue list ou fixture).",
-      "entrada": ["evento do GitHub (push/PR/issues/dispatch)", "fixture opcional --issues-json"],
+      "entrada": [
+        "evento do GitHub (push/PR/issues/dispatch)",
+        "fixture opcional --issues-json"
+      ],
       "saidas": {
         "0": "nenhuma issue aberta",
         "1": "existe issue aberta → continuidade",
@@ -3490,7 +3779,10 @@ __ARQ__ pipeline/blueprint.json
       "id": "cicd",
       "tipo": "gateway-exclusivo",
       "descricao": "Verifica se há execução de CI/CD concluída com erro (failure, timed_out, startup_failure, action_required, cancelled).",
-      "entrada": ["gh run list (30 mais recentes)", "fixture opcional --runs-json"],
+      "entrada": [
+        "gh run list (30 mais recentes)",
+        "fixture opcional --runs-json"
+      ],
       "saidas": {
         "0": "nenhuma execução com erro",
         "1": "há execução com erro → continuidade",
@@ -3503,7 +3795,11 @@ __ARQ__ pipeline/blueprint.json
       "id": "testes",
       "tipo": "tarefa",
       "descricao": "Confere a existência dos arquivos de teste e executa a suíte completa.",
-      "entrada": ["tests/*.py", "tests/*.sh", "--comando"],
+      "entrada": [
+        "tests/*.py",
+        "tests/*.sh",
+        "--comando"
+      ],
       "saidas": {
         "0": "testes presentes e aprovados",
         "1": "testes ausentes ou reprovados → continuidade",
@@ -3516,7 +3812,12 @@ __ARQ__ pipeline/blueprint.json
       "id": "continuidade",
       "tipo": "gateway-inclusivo",
       "descricao": "Agrega issues + cicd + testes no veredito. Só é positivo (0) quando os três são positivos; qualquer pendência conhecida ⇒ 1 (continuidade) com next_issue do backlog; qualquer indeterminação ⇒ 2.",
-      "entrada": ["issues", "cicd", "testes", "pipeline/backlog.json"],
+      "entrada": [
+        "issues",
+        "cicd",
+        "testes",
+        "pipeline/backlog.json"
+      ],
       "saidas": {
         "0": "pipeline pode finalizar (continuidade=false, next_issue=null)",
         "1": "pipeline DEVE continuar (continuidade=true, next_issue=<primeira pendente>)",
@@ -3529,36 +3830,179 @@ __ARQ__ pipeline/blueprint.json
       "id": "issue",
       "tipo": "tarefa",
       "descricao": "Executa a instrução de teste da issue (ou da próxima pendente). Sucesso testado ⇒ marca concluída e entrega a instrução da ISSUE SEGUINTE indexada; falha ⇒ devolve a MESMA issue com o log do erro.",
-      "entrada": ["pipeline/backlog.json", "--id opcional", "--marcar"],
+      "entrada": [
+        "pipeline/backlog.json",
+        "--id opcional",
+        "--marcar"
+      ],
       "saidas": {
         "0": "instrução passou — next_issue = próxima pendente (ou null se acabou)",
         "1": "instrução falhou — next_issue = a mesma issue (continuidade)",
         "2": "issue sem instrucao_teste executável — requer decisão humana"
       },
       "implementacao": "pipeline/gate.py issue",
-      "evidencias": ["pipeline/saida/<ID>-log.txt", "pipeline/saida/<ID>-proxima-issue.md"]
+      "evidencias": [
+        "pipeline/saida/<ID>-log.txt",
+        "pipeline/saida/<ID>-proxima-issue.md"
+      ]
+    },
+    {
+      "id": "fabrica",
+      "tipo": "tarefa",
+      "papel": "fabrica-de-issues",
+      "descricao": "Fábrica event-driven: verifica o padrão do blueprint, o esquema SQLite, o modelo de issue COM instrução de desenvolvimento e o round-trip backlog.json ⇄ SQLite.",
+      "entrada": [
+        "pipeline/factory.py",
+        "pipeline/blueprint.json (modelo_issue)",
+        "pipeline/backlog.json",
+        "eventos (--evento)"
+      ],
+      "saidas": {
+        "0": "fábrica íntegra e capaz de construir a próxima indexada",
+        "1": "issue sem instrução de desenvolvimento (pendência conhecida) → continuidade",
+        "2": "módulo/blueprint ausente ou inválido"
+      },
+      "implementacao": "pipeline/gate.py fabrica  ·  CLI em pipeline/factory.py",
+      "evidencias": "pipeline/saida/fabrica-verificacao.md"
     }
   ],
   "transicoes": [
-    {"de": "issues", "para": "cicd", "quando_status": "0", "condicao": "sem issue aberta"},
-    {"de": "issues", "para": "cicd", "quando_status": "1", "condicao": "com issue aberta — ainda assim avalia o resto (o veredito sai no agregador)"},
-    {"de": "issues", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado — o agregador decide status 2"},
-    {"de": "cicd", "para": "testes", "quando_status": "0", "condicao": "CI limpo"},
-    {"de": "cicd", "para": "testes", "quando_status": "1", "condicao": "CI com erro — segue avaliando os testes"},
-    {"de": "cicd", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
-    {"de": "testes", "para": "continuidade", "quando_status": "0", "condicao": "testes verdes"},
-    {"de": "testes", "para": "continuidade", "quando_status": "1", "condicao": "testes vermelhos/ausentes"},
-    {"de": "testes", "para": "continuidade", "quando_status": "2", "condicao": "indeterminado"},
-    {"de": "continuidade", "para": "issue", "quando_status": "1", "condicao": "continuidade=true → executar a próxima issue do backlog"},
-    {"de": "continuidade", "para": "fim", "quando_status": "0", "condicao": "gate positivo — nada pendente, pipeline pode encerrar"},
-    {"de": "continuidade", "para": "fim", "quando_status": "2", "condicao": "erro tipo 2 — para e exige humano"},
-    {"de": "issue", "para": "issue", "quando_status": "1", "condicao": "falhou — repete a MESMA issue"},
-    {"de": "issue", "para": "continuidade", "quando_status": "0", "condicao": "passou — reavalia o gate agregado com a próxima issue"},
-    {"de": "issue", "para": "fim", "quando_status": "2", "condicao": "issue sem instrução executável — exige humano"}
+    {
+      "de": "issues",
+      "para": "cicd",
+      "quando_status": "0",
+      "condicao": "sem issue aberta"
+    },
+    {
+      "de": "issues",
+      "para": "cicd",
+      "quando_status": "1",
+      "condicao": "com issue aberta — ainda assim avalia o resto (o veredito sai no agregador)"
+    },
+    {
+      "de": "issues",
+      "para": "continuidade",
+      "quando_status": "2",
+      "condicao": "indeterminado — o agregador decide status 2"
+    },
+    {
+      "de": "cicd",
+      "para": "testes",
+      "quando_status": "0",
+      "condicao": "CI limpo"
+    },
+    {
+      "de": "cicd",
+      "para": "testes",
+      "quando_status": "1",
+      "condicao": "CI com erro — segue avaliando os testes"
+    },
+    {
+      "de": "cicd",
+      "para": "continuidade",
+      "quando_status": "2",
+      "condicao": "indeterminado"
+    },
+    {
+      "de": "testes",
+      "para": "continuidade",
+      "quando_status": "0",
+      "condicao": "testes verdes"
+    },
+    {
+      "de": "testes",
+      "para": "continuidade",
+      "quando_status": "1",
+      "condicao": "testes vermelhos/ausentes"
+    },
+    {
+      "de": "testes",
+      "para": "continuidade",
+      "quando_status": "2",
+      "condicao": "indeterminado"
+    },
+    {
+      "de": "continuidade",
+      "para": "issue",
+      "quando_status": "1",
+      "condicao": "continuidade=true → executar a próxima issue do backlog"
+    },
+    {
+      "de": "continuidade",
+      "para": "fim",
+      "quando_status": "0",
+      "condicao": "gate positivo — nada pendente, pipeline pode encerrar"
+    },
+    {
+      "de": "continuidade",
+      "para": "fim",
+      "quando_status": "2",
+      "condicao": "erro tipo 2 — para e exige humano"
+    },
+    {
+      "de": "issue",
+      "para": "issue",
+      "quando_status": "1",
+      "condicao": "falhou — repete a MESMA issue"
+    },
+    {
+      "de": "issue",
+      "para": "continuidade",
+      "quando_status": "0",
+      "condicao": "passou — reavalia o gate agregado com a próxima issue"
+    },
+    {
+      "de": "issue",
+      "para": "fim",
+      "quando_status": "2",
+      "condicao": "issue sem instrução executável — exige humano"
+    },
+    {
+      "de": "issues",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "há issue aberta — a fábrica registra o evento e mantém a MESMA issue"
+    },
+    {
+      "de": "cicd",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "CI com erro — a fábrica registra o evento e a direção vira depurar (debug)"
+    },
+    {
+      "de": "testes",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "teste ausente/reprovado — a fábrica registra o evento e a direção vira corrigir (fix)"
+    },
+    {
+      "de": "fabrica",
+      "para": "continuidade",
+      "quando_status": "0",
+      "condicao": "fábrica íntegra — o padrão está pronto para gerar a próxima indexada"
+    },
+    {
+      "de": "fabrica",
+      "para": "fabrica",
+      "quando_status": "1",
+      "condicao": "issue sem instrução de desenvolvimento — completar antes de seguir"
+    },
+    {
+      "de": "fabrica",
+      "para": "fim",
+      "quando_status": "2",
+      "condicao": "fábrica/blueprint inválidos — exige humano"
+    }
   ],
   "gatilhos_github_actions": {
     "arquivo": ".github/workflows/gates.yml",
-    "on": ["push", "pull_request", "issues (opened/closed/reopened)", "schedule (dias úteis 09:00)", "workflow_dispatch"],
+    "on": [
+      "push",
+      "pull_request",
+      "issues (opened/closed/reopened)",
+      "schedule (dias úteis 09:00)",
+      "workflow_dispatch"
+    ],
     "jobs": {
       "gate-issues": "executa `gate.py issues`, publica o JSON e o anexo",
       "gate-cicd": "executa `gate.py cicd`, publica o JSON e o anexo",
@@ -3566,9 +4010,952 @@ __ARQ__ pipeline/blueprint.json
       "gate-continuidade": "agrega os três (needs) e decide: 0 finaliza, 1 continua, 2 falha o job",
       "executa-issue": "roda a próxima issue do backlog quando continuidade=true (workflow_dispatch)"
     },
-    "saidas": ["artifacts com pipeline/saida/*", "GITHUB_STEP_SUMMARY com o veredito", "exit code = status do gate"]
+    "saidas": [
+      "artifacts com pipeline/saida/*",
+      "GITHUB_STEP_SUMMARY com o veredito",
+      "exit code = status do gate"
+    ],
+    "fabrica": "python3 pipeline/factory.py --sincronizar --evento \"gate_falhou|gate=<gate>|status=<0|1|2>\" --listar  (o workflow gates.yml roda o gate `fabrica` no job gate-fabrica)"
+  },
+  "modelo_issue": {
+    "descricao": "Padrão que a fábrica (pipeline/factory.py) segue para criar a PRÓXIMA issue indexada a partir de eventos — POO + SQLite + event-driven.",
+    "formato_id": "ISSUE-{indice:03d}",
+    "campos": [
+      "id",
+      "indice",
+      "titulo",
+      "entregavel",
+      "instrucao_teste",
+      "instrucao_desenvolvimento",
+      "status",
+      "depende_de",
+      "origem",
+      "criada_em",
+      "concluida_em",
+      "evidencias"
+    ],
+    "status": {
+      "concluida": "ISTO é SUCESSO COMPLETADO (sinônimos: completada/done)",
+      "pendente": "aberta — a fábrica mantém a MESMA issue até o sucesso testado",
+      "bloqueada": "exige decisão humana (ex.: ISSUE-007)",
+      "cancelada": "descartada — não entra no next_issue"
+    },
+    "dependencia_padrao": [
+      "anterior"
+    ],
+    "instrucoes_de_desenvolvimento": [
+      "executar a entrada correspondente ao evento que gerou a issue",
+      "rodar o gate (make gates) e o teste indicado em instrucao_teste",
+      "corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado",
+      "marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)"
+    ],
+    "instrucao_desenvolvimento_padrao": "executar/entregar; `make testes`; `python3 pipeline/gate.py issue --marcar`",
+    "instrucao_proxima_issue": "ao completar a issue N com sucesso testado, a fábrica constrói a N+1 indexada e anexa a instrução dela em pipeline/saida/ISSUE-NNN-proxima-issue.md"
+  },
+  "instrucao_proxima_issue": {
+    "descricao": "Bloco padronizado que toda ação devolve junto do JSON (campos `direcao` e `proximo_passo`) — norteia a direção de continuidade.",
+    "direcoes": [
+      "continuar",
+      "corrigir (fix)",
+      "depurar (debug)",
+      "proxima (continue to next issue)",
+      "encerrar",
+      "humano (erro tipo 2)"
+    ],
+    "regra": "0 ⇒ proxima/continuar/encerrar · 1 ⇒ corrigir/depurar (continuidade=true) · 2 ⇒ humano (continuidade=false)",
+    "nudge": "quando a compactação do contexto estiver próxima: rodar `make gates`, atualizar o backlog com `--marcar` e seguir o `proximo_passo` do JSON — o estado fica no repositório (blueprint/backlog/SQLite), não no contexto.",
+    "comando_padrao": "python3 pipeline/gate.py issue --id <NEXT_ISSUE> --marcar"
   }
 }
+__ARQ_EOF__
+__ARQ__ pipeline/factory.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""factory.py — fábrica de issues event-driven do pipeline gate-driven (BPMN).
+
+A fábrica transforma EVENTOS (push, CI, execução de gate, chegada de demanda) em
+ISSUES INDEXADAS conforme o padrão declarado no blueprint (pipeline/blueprint.json).
+É orientada a objetos e persiste tudo em SQLite (`pipeline/fabrica.db`), mantendo o
+`pipeline/backlog.json` como espelho versionável (export/import).
+
+Classes (todas com responsabilidade única):
+
+    ArmazenamentoSqlite  — conexão, esquema, migração                        (POO)
+    Evento               — fato observado (tipo, payload, quando)
+    Issue                — entidade do backlog (id, instrução de teste, de
+                           desenvolvimento, status, dependências, evidencias)
+    ModeloIssue          — modelo do padrão BPMN: campos obrigatórios, formato do
+                           id e instrução de desenvolvimento padrão
+    PadraoBPMN           — lê/valida o blueprint.json e sintetiza a próxima issue
+    Backlog              — coleção de issues (ordenar, proxima_pendente, achar, …)
+    Repositorio          — repositório/fachada: persistência + consultas (JSON ⇄ SQLite)
+    Fabrica              — orquestra: entradas → eventos → issues → backlog → gate-driven
+
+Uso pela CLI (mesmo contrato JSON dos gates):
+
+    python3 pipeline/factory.py --evento "issue_aberta|refs=…|titulo=…"
+    python3 pipeline/factory.py --sincronizar           # backlog.json ⇄ SQLite
+    python3 pipeline/factory.py --proxima               # sintetiza a próxima indexada
+    python3 pipeline/factory.py --listar                # tabela de issues e eventos
+    python3 pipeline/factory.py --exportar F --importar F
+
+Requisitos: Python 3.8+ (biblioteca padrão: sqlite3, json, argparse).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sqlite3
+import sys
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+
+VERSAO = "1.0.0"
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BANCO_PADRAO = os.path.join(RAIZ, "pipeline", "fabrica.db")
+BACKLOG_PADRAO = os.path.join(RAIZ, "pipeline", "backlog.json")
+BLUEPRINT_PADRAO = os.path.join(RAIZ, "pipeline", "blueprint.json")
+
+# campos do padrão (blueprint.modelo_issue.campos + os operacionais da fábrica)
+CAMPOS_ISSUE = ["id", "indice", "titulo", "entregavel", "instrucao_teste",
+                "instrucao_desenvolvimento", "status", "depende_de", "origem",
+                "criada_em", "concluida_em", "evidencias"]
+STATUS_VALIDOS = {"pendente", "concluida", "completada", "bloqueada", "cancelada"}
+STATUS_ENCERRADOS = {"concluida", "completada", "done"}
+
+# classes públicas da fábrica (usadas na verificação do gate `fabrica`)
+CLASSES = ["ArmazenamentoSqlite", "Evento", "Issue", "ModeloIssue", "PadraoBPMN",
+           "Backlog", "Repositorio", "Fabrica"]
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS schema_info (
+    chave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL
+) STRICT;
+CREATE TABLE IF NOT EXISTS issues (
+    id                       TEXT PRIMARY KEY,
+    indice                   INTEGER NOT NULL,
+    titulo                   TEXT NOT NULL,
+    entregavel               TEXT NOT NULL DEFAULT '',
+    instrucao_teste          TEXT,
+    instrucao_desenvolvimento TEXT NOT NULL,
+    status                   TEXT NOT NULL DEFAULT 'pendente',
+    depende_de               TEXT NOT NULL DEFAULT '[]',
+    origem                   TEXT NOT NULL DEFAULT '',
+    criada_em                TEXT NOT NULL,
+    concluida_em             TEXT,
+    evidencias               TEXT NOT NULL DEFAULT '[]'
+) STRICT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_indice ON issues (indice);
+CREATE TABLE IF NOT EXISTS eventos (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipo      TEXT NOT NULL,
+    payload   TEXT NOT NULL DEFAULT '{}',
+    quando    TEXT NOT NULL
+) STRICT;
+"""
+
+
+class ErroFabrica(Exception):
+    """Falha de regra (padrão violado, dependência ausente, banco inválido) → erro tipo 2."""
+
+
+class ErroContinuidade(ErroFabrica):
+    """Pendência CONHECIDA e tratável (ex.: issue em andamento) → erro tipo 1.
+
+    Não é falha: é a ordem do fluxo — conclua a issue em curso (fix/debug) e a
+    fábrica constrói a próxima indexada. `continuidade = true`.
+    """
+
+
+def agora() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _json_ou(valor, padrao):
+    try:
+        return json.loads(valor) if isinstance(valor, str) else valor
+    except (json.JSONDecodeError, TypeError):
+        return padrao
+
+
+# --------------------------------------------------------------------------- #
+# 1. armazenamento (POO)
+# --------------------------------------------------------------------------- #
+
+
+class ArmazenamentoSqlite:
+    """Conexão com o SQLite, criação/migração do esquema e transações."""
+
+    def __init__(self, caminho: str = BANCO_PADRAO):
+        self.caminho = caminho
+        self.conn = sqlite3.connect(caminho)
+        self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA journal_mode = WAL")
+        self.conn.execute("PRAGMA foreign_keys = ON")
+        self.migrar()
+
+    def migrar(self) -> None:
+        self.conn.executescript(SCHEMA)
+        self.conn.execute(
+            "INSERT INTO schema_info (chave, valor) VALUES ('versao', ?) "
+            "ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor", (VERSAO,))
+        self.conn.commit()
+
+    def tabelas(self) -> list:
+        return [r["name"] for r in self.conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name NOT LIKE 'sqlite_%' ORDER BY name")]
+
+    def inserir(self, tabela: str, dados: dict) -> None:
+        colunas = ", ".join(dados)
+        valores = ", ".join("?" for _ in dados)
+        self.conn.execute(f"INSERT INTO {tabela} ({colunas}) VALUES ({valores})",
+                          tuple(dados.values()))
+        self.conn.commit()
+
+    def atualizar(self, tabela: str, chave: str, identificador: str, dados: dict) -> int:
+        atribuicoes = ", ".join(f"{c} = ?" for c in dados)
+        cursor = self.conn.execute(
+            f"UPDATE {tabela} SET {atribuicoes} WHERE {chave} = ?",
+            (*dados.values(), identificador))
+        self.conn.commit()
+        return cursor.rowcount
+
+    def consultar(self, sql: str, parametros=()) -> list:
+        return [dict(r) for r in self.conn.execute(sql, parametros)]
+
+    def fechar(self) -> None:
+        self.conn.close()
+
+
+# --------------------------------------------------------------------------- #
+# 2. entidades (POO)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class Evento:
+    """Fato observado que a fábrica transforma em issue."""
+    tipo: str
+    payload: dict = field(default_factory=dict)
+    quando: str = field(default_factory=agora)
+
+
+@dataclass
+class Issue:
+    """Issue do backlog (entidade única — igual no SQLite e no backlog.json)."""
+    id: str
+    indice: int
+    titulo: str
+    entregavel: str
+    instrucao_teste: str
+    instrucao_desenvolvimento: str
+    status: str = "pendente"
+    depende_de: list = field(default_factory=list)
+    origem: str = ""
+    criada_em: str = field(default_factory=agora)
+    concluida_em: str = None
+    evidencias: list = field(default_factory=list)
+
+    # -- conversão ---------------------------------------------------------- #
+    def para_dict(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def de_dict(cls, dados: dict) -> "Issue":
+        campos = {c: dados.get(c) for c in CAMPOS_ISSUE if c in dados}
+        campos.setdefault("id", dados.get("id", ""))
+        campos["indice"] = int(campos.get("indice") or cls.indice_do_id(campos["id"]))
+        campos["depende_de"] = list(campos.get("depende_de") or [])
+        campos["evidencias"] = list(campos.get("evidencias") or [])
+        campos.setdefault("status", "pendente")
+        campos.setdefault("entregavel", "")
+        campos.setdefault("origem", "")
+        campos.setdefault("criada_em", agora())
+        campos.setdefault("instrucao_teste", None)
+        campos.setdefault("instrucao_desenvolvimento", "")
+        return cls(**campos)
+
+    @staticmethod
+    def indice_do_id(identificador: str) -> int:
+        m = re.search(r"(\d+)$", str(identificador or ""))
+        return int(m.group(1)) if m else 0
+
+    # -- comportamento ------------------------------------------------------ #
+    def concluida(self) -> bool:
+        return str(self.status).lower() in STATUS_ENCERRADOS
+
+    def pendente(self) -> bool:
+        return not self.concluida()
+
+    def validar(self, exigir_instrucao: bool = True) -> None:
+        if not re.fullmatch(r"ISSUE-\d{3,}", str(self.id)):
+            raise ErroFabrica(f"id fora do padrão ISSUE-NNN: {self.id!r}")
+        if self.indice <= 0:
+            raise ErroFabrica(f"{self.id}: índice inválido ({self.indice})")
+        if not str(self.titulo).strip():
+            raise ErroFabrica(f"{self.id}: título obrigatório")
+        if exigir_instrucao and not str(self.instrucao_desenvolvimento).strip():
+            raise ErroFabrica(
+                f"{self.id}: instrucao_desenvolvimento obrigatória (padrão do blueprint) — "
+                "é a direção de continuidade que a fábrica entrega para a execução")
+        if str(self.status).lower() not in STATUS_VALIDOS:
+            raise ErroFabrica(f"{self.id}: status inválido ({self.status})")
+
+    def concluir(self, evidencias: dict) -> None:
+        self.status = "concluida"
+        self.concluida_em = agora()
+        self.evidencias = list(self.evidencias) + [evidencias]
+
+    def __str__(self) -> str:
+        return f"{self.id} [{self.status}] {self.titulo}"
+
+
+class Backlog:
+    """Coleção de issues — ordenação, busca e próxima pendente."""
+
+    def __init__(self, issues=None):
+        self.issues = [i if isinstance(i, Issue) else Issue.de_dict(i)
+                       for i in (issues or [])]
+
+    def __len__(self) -> int:
+        return len(self.issues)
+
+    def __iter__(self):
+        return iter(self.ordenadas())
+
+    def ordenadas(self) -> list:
+        return sorted(self.issues, key=lambda i: i.indice)
+
+    def achar(self, identificador: str) -> Issue | None:
+        for item in self.issues:
+            if item.id == identificador:
+                return item
+        return None
+
+    def proxima_pendente(self, excluir=None) -> Issue | None:
+        ignorar = set(excluir or ())
+        for item in self.ordenadas():
+            if item.id in ignorar or item.concluida():
+                continue
+            return item
+        return None
+
+    def proximo_indice(self) -> int:
+        return max((i.indice for i in self.issues), default=0) + 1
+
+    def ids_sem_instrucao_desenvolvimento(self) -> list:
+        return [i.id for i in self.ordenadas()
+                if not str(i.instrucao_desenvolvimento).strip()]
+
+    def resumo_por_status(self) -> dict:
+        contagem = {}
+        for item in self.ordenadas():
+            contagem[item.status] = contagem.get(item.status, 0) + 1
+        return contagem
+
+    def adicionar(self, issue: Issue) -> Issue:
+        issue.validar()
+        if self.achar(issue.id):
+            raise ErroFabrica(f"issue duplicada: {issue.id}")
+        ausentes = [d for d in issue.depende_de if not self.achar(d)]
+        if ausentes:
+            raise ErroFabrica(f"{issue.id} depende de issue inexistente: {ausentes}")
+        self.issues.append(issue)
+        return issue
+
+    def para_dict(self) -> dict:
+        return {"issues": [i.para_dict() for i in self.ordenadas()]}
+
+
+# --------------------------------------------------------------------------- #
+# 3. padrão (BPMN) e fábrica de issues
+# --------------------------------------------------------------------------- #
+
+
+class ModeloIssue:
+    """Modelo declarado no blueprint: campos obrigatórios, formato do id e instrução padrão."""
+
+    def __init__(self, dados: dict):
+        self.bruto = dict(dados or {})
+        self.campos = list(self.bruto.get("campos") or CAMPOS_ISSUE)
+        self.formato = self.bruto.get("formato_id", "ISSUE-NNN")
+        self.dependencia_padrao = list(self.bruto.get("dependencia_padrao") or ["anterior"])
+        self.instrucao_padrao = self.bruto.get(
+            "instrucao_desenvolvimento_padrao",
+            "executar/entregar; `make testes`; `python3 pipeline/gate.py issue --marcar`")
+
+    def validar(self, exigir_instrucao: bool = True) -> None:
+        if "id" not in self.campos or "instrucao_desenvolvimento" not in self.campos:
+            raise ErroFabrica("blueprint.modelo_issue.campos precisa conter 'id' e "
+                              "'instrucao_desenvolvimento' (padrão da fábrica)")
+        if "{indice:03d}" not in self.formato:
+            raise ErroFabrica("blueprint.modelo_issue.formato_id deve usar {indice:03d}")
+
+    def id_de(self, indice: int) -> str:
+        return self.formato.format(indice=indice)
+
+    def modelo(self, indice: int, titulo: str, entregavel: str, instrucao_teste,
+               instrucao_desenvolvimento: str, depende_de=None, origem: str = "",
+               anterior: str = None) -> Issue:
+        """Sintetiza uma issue conforme o padrão (o coração da fábrica)."""
+        dependencias = list(depende_de) if depende_de is not None else \
+            [anterior] if (anterior and "anterior" in self.dependencia_padrao) else []
+        return Issue(
+            id=self.id_de(indice), indice=indice, titulo=titulo, entregavel=entregavel,
+            instrucao_teste=(instrucao_teste or None),
+            instrucao_desenvolvimento=(str(instrucao_desenvolvimento).strip()
+                                       or self.instrucao_padrao),
+            depende_de=[d for d in dependencias if d], origem=origem)
+
+
+class PadraoBPMN:
+    """Lê o blueprint.json e expõe o modelo de issue + a fábrica de instruções."""
+
+    def __init__(self, caminho: str = BLUEPRINT_PADRAO):
+        self.caminho = caminho
+        try:
+            with open(caminho, encoding="utf-8") as fh:
+                self.planta = json.load(fh)
+        except FileNotFoundError:
+            raise ErroFabrica(f"blueprint não encontrado: {caminho}")
+        except json.JSONDecodeError as e:
+            raise ErroFabrica(f"blueprint inválido (JSON): {e}")
+        self.modelo_issue = ModeloIssue(self.planta.get("modelo_issue") or {})
+        self.gates = [g.get("id") for g in self.planta.get("gates", [])]
+        self.gatilhos = self.planta.get("gatilhos_github_actions") or {}
+
+    def validar(self, exigir_instrucao: bool = True) -> None:
+        if not self.gates:
+            raise ErroFabrica("blueprint sem 'gates' — planta incompleta")
+        if not self.planta.get("modelo_issue"):
+            raise ErroFabrica("blueprint sem 'modelo_issue' — a fábrica não tem padrão para seguir")
+        self.modelo_issue.validar()
+
+    # fábrica de instruções: o que a próxima issue pede, em ordem de execução
+    def instrucoes(self) -> list:
+        return list(self.planta.get("modelo_issue", {}).get("instrucoes_de_desenvolvimento", []))
+
+    def direcao(self) -> dict:
+        return dict(self.planta.get("instrucao_proxima_issue") or {})
+
+    def modelo(self, indice: int, titulo: str, entregavel: str = "", instrucao_teste=None,
+               instrucao_desenvolvimento: str = "", depende_de=None, origem="",
+               anterior: str = None) -> Issue:
+        """Sintetiza a próxima issue indexada conforme o padrão do blueprint."""
+        if not self.esta_valido():
+            self.validar()
+        padrao = self.modelo_issue
+        texto = instrucao_desenvolvimento or " / ".join(self.instrucoes())
+        return padrao.modelo(
+            indice=indice, titulo=titulo or f"pendência {indice} (gerada pela fábrica)",
+            entregavel=entregavel, instrucao_teste=instrucao_teste,
+            instrucao_desenvolvimento=texto, depende_de=depende_de, origem=origem,
+            anterior=anterior)
+
+    def esta_valido(self) -> bool:
+        """True quando a planta traz gates e o modelo de issue do padrão."""
+        return bool(self.modelo_issue.campos) and bool(self.gates)
+
+
+# --------------------------------------------------------------------------- #
+# 4. repositório (persistência: JSON ⇄ SQLite)
+# --------------------------------------------------------------------------- #
+
+COLUNAS_SQLITE = ["id", "indice", "titulo", "entregavel", "instrucao_teste",
+                  "instrucao_desenvolvimento", "status", "depende_de", "origem",
+                  "criada_em", "concluida_em", "evidencias"]
+
+
+class Repositorio:
+    """Fachada de persistência: SQLite como fonte de verdade, backlog.json como espelho."""
+
+    def __init__(self, banco: str = BANCO_PADRAO):
+        self.armazenamento = ArmazenamentoSqlite(banco)
+        self.banco = banco
+
+    # -- issues ------------------------------------------------------------- #
+    def salvar_issue(self, issue: Issue, exigir_instrucao: bool = True) -> Issue:
+        issue.validar(exigir_instrucao=exigir_instrucao)
+        if self.armazenamento.consultar("SELECT id FROM issues WHERE id = ?", (issue.id,)):
+            raise ErroFabrica(f"issue já existe no banco: {issue.id}")
+        dados = issue.para_dict()
+        dados["depende_de"] = json.dumps(dados["depende_de"], ensure_ascii=False)
+        dados["evidencias"] = json.dumps(dados["evidencias"], ensure_ascii=False)
+        self.armazenamento.inserir("issues", {c: dados[c] for c in COLUNAS_SQLITE})
+        return issue
+
+    def atualizar_issue(self, issue: Issue) -> int:
+        dados = issue.para_dict()
+        dados["depende_de"] = json.dumps(dados["depende_de"], ensure_ascii=False)
+        dados["evidencias"] = json.dumps(dados["evidencias"], ensure_ascii=False)
+        return self.armazenamento.atualizar(
+            "issues", "id", issue.id, {c: dados[c] for c in COLUNAS_SQLITE if c != "id"})
+
+    def listar_issues(self, status=None) -> list:
+        sql = "SELECT * FROM issues"
+        parametros = ()
+        if status:
+            sql += " WHERE status = ?"
+            parametros = (status,)
+        sql += " ORDER BY indice"
+        return [self._issue_de_linha(l) for l in self.armazenamento.consultar(sql, parametros)]
+
+    def proxima_pendente(self) -> Issue | None:
+        linhas = self.armazenamento.consultar(
+            "SELECT * FROM issues WHERE lower(status) NOT IN ('concluida','completada','done') "
+            "ORDER BY indice")
+        return self._issue_de_linha(linhas[0]) if linhas else None
+
+    def proximo_indice(self) -> int:
+        linhas = self.armazenamento.consultar("SELECT COALESCE(MAX(indice), 0) AS m FROM issues")
+        return int(linhas[0]["m"]) + 1
+
+    def backlog(self) -> Backlog:
+        return Backlog(self.listar_issues())
+
+    def _issue_de_linha(self, linha: dict) -> Issue:
+        dados = dict(linha)
+        dados["depende_de"] = _json_ou(dados.get("depende_de"), [])
+        dados["evidencias"] = _json_ou(dados.get("evidencias"), [])
+        return Issue.de_dict(dados)
+
+    # -- eventos ------------------------------------------------------------ #
+    def registrar_evento(self, evento: Evento) -> int:
+        self.armazenamento.inserir("eventos", {
+            "tipo": evento.tipo,
+            "payload": json.dumps(evento.payload, ensure_ascii=False),
+            "quando": evento.quando})
+        return len(self.listar_eventos())
+
+    def listar_eventos(self, tipo=None) -> list:
+        sql = "SELECT * FROM eventos"
+        parametros = ()
+        if tipo:
+            sql += " WHERE tipo = ?"
+            parametros = (tipo,)
+        sql += " ORDER BY id"
+        return [{"tipo": e["tipo"], "payload": _json_ou(e["payload"], {}),
+                 "quando": e["quando"]}
+                for e in self.armazenamento.consultar(sql, parametros)]
+
+    # -- espelho backlog.json ----------------------------------------------- #
+    def sincronizar_backlog(self, caminho: str = BACKLOG_PADRAO) -> int:
+        """Importa um backlog.json para o SQLite (idempotente) e devolve quantas entraram."""
+        try:
+            with open(caminho, encoding="utf-8") as fh:
+                dados = json.load(fh)
+        except FileNotFoundError:
+            raise ErroFabrica(f"backlog não encontrado: {caminho}")
+        except json.JSONDecodeError as e:
+            raise ErroFabrica(f"backlog inválido (JSON): {e}")
+        existentes = {i.id for i in self.listar_issues()}
+        entraram = 0
+        for bruto in dados.get("issues", []):
+            issue = Issue.de_dict(bruto)
+            if issue.id in existentes:
+                self.atualizar_issue(issue)
+            else:
+                # importação é tolerante: issue sem instrução entra e o gate `fabrica`
+                # aponta a pendência (status 1) em vez de recusar o backlog inteiro
+                self.salvar_issue(issue, exigir_instrucao=False)
+                entraram += 1
+        return entraram
+
+    def exportar_backlog(self, caminho: str = BACKLOG_PADRAO, metadados=None) -> str:
+        base = {"nome": "backlog do projeto — consulta processual DataJud/DJEN",
+                "gerado_por": f"pipeline/factory.py {VERSAO} (SQLite ⇄ backlog.json)",
+                "gerado_em": agora(),
+                "issues": [i.para_dict() for i in self.listar_issues()]}
+        base.update(metadados or {})
+        os.makedirs(os.path.dirname(os.path.abspath(caminho)), exist_ok=True)
+        with open(caminho, "w", encoding="utf-8") as fh:
+            json.dump(base, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+        return caminho
+
+    def tabelas(self) -> list:
+        return self.armazenamento.tabelas()
+
+
+# --------------------------------------------------------------------------- #
+# 5. fábrica (orquestração event-driven)
+# --------------------------------------------------------------------------- #
+
+
+class Fabrica:
+    """Transforma eventos em issues indexadas, conforme o padrão do blueprint (BPMN)."""
+
+    HANDLERS = {
+        "demanda": "titulo",
+        "issue_aberta": "refs",
+        "ci_falhou": "run",
+        "teste_falhou": "comando",
+        "gate_falhou": "gate",
+        "checkpoint": "fase",
+    }
+
+    def __init__(self, repositorio: Repositorio, padrao: PadraoBPMN):
+        self.repositorio = repositorio
+        self.padrao = padrao
+
+    # -- leitura ------------------------------------------------------------ #
+    def backlog(self) -> Backlog:
+        return self.repositorio.backlog()
+
+    def proxima_pendente(self) -> Issue | None:
+        return self.backlog().proxima_pendente()
+
+    def em_desenvolvimento(self) -> Issue | None:
+        """Issue realmente EM ANDAMENTO (status 'pendente').
+
+        Uma issue 'bloqueada' está estacionada aguardando decisão humana e NÃO
+        congela a fábrica — senão uma decisão pendente pararia o desenvolvimento.
+        """
+        for issue in self.backlog().ordenadas():
+            if str(issue.status).lower() == "pendente":
+                return issue
+        return None
+
+    # -- fábrica de issues -------------------------------------------------- #
+    def construir_proxima(self, anterior: Issue = None, titulo=None, entregavel="",
+                           instrucao_teste=None, instrucao_desenvolvimento="",
+                           origem="fábrica (próxima indexada)") -> Issue:
+        """Constrói a PRÓXIMA issue indexada conforme o padrão BPMN."""
+        backlog = self.backlog()
+        indice = backlog.proximo_indice()
+        em_curso = self.em_desenvolvimento()
+        if em_curso is not None:
+            raise ErroContinuidade(
+                f"a {em_curso.id} ainda está pendente (não foi COMPLETADA com sucesso "
+                "testado) — a fábrica constrói a próxima indexada só depois do sucesso "
+                "dela; issues 'bloqueadas' (decisão humana) não travam a construção")
+        anterior = anterior or None
+        issue = self.padrao.modelo(
+            indice=indice, titulo=titulo, entregavel=entregavel,
+            instrucao_teste=instrucao_teste,
+            instrucao_desenvolvimento=instrucao_desenvolvimento or self.direcao(),
+            origem=origem, anterior=(anterior.id if anterior else None))
+        if not issue.depende_de and anterior is not None:
+            issue.depende_de = [anterior.id]
+        backlog.adicionar(issue)
+        self.repositorio.salvar_issue(issue)
+        return issue
+
+    # -- event-driven ------------------------------------------------------- #
+    def processar_evento(self, evento: Evento, construir=True) -> dict:
+        """Converte um evento em issue (se o padrão pedir) e registra o evento.
+
+        Se a issue anterior já estiver COMPLETADA, o evento gera a PRÓXIMA indexada;
+        se ainda houver pendência, ele apenas registra a direção de continuidade.
+        """
+        if evento.tipo not in self.HANDLERS:
+            raise ErroFabrica(f"evento sem handler no padrão: {evento.tipo!r} "
+                              f"(conhecidos: {', '.join(sorted(self.HANDLERS))})")
+        self.repositorio.registrar_evento(evento)
+        pendente = self.proxima_pendente()
+
+        acao_gate = self._gate_do_evento(evento)
+        if pendente is not None and pendente.pendente():
+            return {"acao": "continuar", "direcao": acao_gate,
+                    "issue": pendente.id, "pendente": pendente.para_dict(),
+                    "instrucao_desenvolvimento": pendente.instrucao_desenvolvimento,
+                    "instrucao_teste": pendente.instrucao_teste,
+                    "motivo": "há pendência aberta: a fábrica mantém a MESMA issue "
+                              "até o sucesso testado"}
+        if not construir:
+            return {"acao": "registrado", "issue": None, "direcao": "continuar",
+                    "motivo": "evento registrado; construção da próxima desativada"}
+
+        nova = self.construir_proxima(titulo=evento.payload.get("titulo"))
+        return {"acao": "construida", "direcao": "proxima", "issue": nova.id,
+                "nova": nova.para_dict(), "evento": evento.tipo,
+                "instrucao_desenvolvimento": nova.instrucao_desenvolvimento,
+                "instrucao_teste": nova.instrucao_teste}
+
+    def instrutir_pendentes(self, instrucao: str = "") -> list:
+        """Cria/atualiza a instrução de desenvolvimento de TODA issue que não tem uma.
+
+        É o que garante o pedido "instrução a cada issue pendente necessária para
+        concluir o desenvolvimento": cada issue passa a dizer, em ordem, o que
+        fazer para ser concluída — e a fábrica entrega essa instrução junto da issue.
+        """
+        padrao = instrucao.strip() or self.direcao()
+        atualizadas = []
+        for issue in self.repositorio.listar_issues():
+            if str(issue.instrucao_desenvolvimento or "").strip():
+                continue
+            issue.instrucao_desenvolvimento = padrao
+            self.repositorio.atualizar_issue(issue)
+            self.repositorio.registrar_evento(Evento(
+                "instrucao_criada", {"issue": issue.id, "instrucao": padrao}))
+            atualizadas.append(issue.id)
+        return atualizadas
+
+    def marcar_concluida(self, identificador: str, evidencias: dict) -> Issue:
+        issue = self.backlog().achar(identificador)
+        if issue is None:
+            raise ErroFabrica(f"issue não encontrada: {identificador}")
+        issue.concluir(evidencias)
+        self.repositorio.atualizar_issue(issue)
+        self.repositorio.registrar_evento(Evento(
+            "issue_completada", {"issue": identificador, **evidencias}))
+        return issue
+
+    # -- direção de continuidade ------------------------------------------- #
+    def direcao(self) -> str:
+        """Instrução de desenvolvimento que a fábrica entrega junto de cada issue."""
+        instrucoes = self.padrao.instrucoes()
+        if instrucoes:
+            return " / ".join(instrucoes)
+        return ("executar a instrução de teste; corrigir até passar; "
+                "`python3 pipeline/gate.py issue --marcar`")
+
+    def instrucao_proxima(self, proxima: Issue = None) -> dict:
+        """Bloco padronizado de direção de continuidade (+ nudge de compactação)."""
+        proxima = proxima or self.proxima_pendente()
+        bloco = dict(self.padrao.direcao())
+        bloco["next_issue"] = (proxima.id if proxima else None)
+        bloco["instrucao_desenvolvimento"] = (proxima.instrucao_desenvolvimento
+                                              if proxima else self.direcao())
+        bloco["instrucao_teste"] = proxima.instrucao_teste if proxima else None
+        bloco["comando"] = (f"python3 pipeline/gate.py issue --id {proxima.id} --marcar"
+                            if proxima else "python3 pipeline/gate.py situacao")
+        return bloco
+
+    def _gate_do_evento(self, evento: Evento) -> str:
+        if evento.tipo == "ci_falhou":
+            return "depurar"
+        if evento.tipo in ("teste_falhou", "gate_falhou"):
+            return "corrigir"
+        return "continuar"
+
+    # -- objeto JSON do contrato (mesmo formato dos gates) ------------------ #
+    def objeto(self, resultado: dict, status: str, mensagem: str, anexos=None,
+               next_issue=None, continuidade=None, dados=None, duracao=0.0) -> dict:
+        if continuidade is None:
+            continuidade = status == "1"
+        return {
+            "id": f"gate-fabrica-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+                  f"-{os.urandom(2).hex()}",
+            "gate": "fabrica",
+            "status": str(status),
+            "codigo_saida": int(status),
+            "mensagem": str(mensagem),
+            "continuidade": bool(continuidade),
+            "next_issue": next_issue,
+            "direcao": resultado.get("direcao", "humano" if str(status) == "2" else "continuar"),
+            "proximo_passo": (f"python3 pipeline/gate.py issue --id {next_issue} --marcar"
+                              if next_issue else "python3 pipeline/gate.py situacao"),
+            "anexos": [a for a in (anexos or [])],
+            "dados": dados or {},
+            "timestamp": agora(),
+            "duracao_s": round(duracao, 3),
+            "versao": VERSAO,
+        }
+
+
+# --------------------------------------------------------------------------- #
+# 6. CLI (mesmo contrato dos gates: JSON no stdout, exit code = status)
+# --------------------------------------------------------------------------- #
+
+
+def _anexo(nome: str, conteudo: str, saida_dir: str, descricao: str) -> dict:
+    os.makedirs(saida_dir, exist_ok=True)
+    caminho = os.path.join(saida_dir, nome)
+    with open(caminho, "w", encoding="utf-8") as fh:
+        fh.write(conteudo)
+    return {"path": caminho, "filename": os.path.basename(caminho), "descricao": descricao}
+
+
+def _evento_de_texto(texto: str) -> Evento:
+    """Interpreta --evento "tipo|chave=valor|chave=valor"."""
+    partes = [p.strip() for p in str(texto).split("|")]
+    tipo = partes[0]
+    payload = {}
+    for parte in partes[1:]:
+        if "=" in parte:
+            chave, valor = parte.split("=", 1)
+            payload[chave.strip()] = valor.strip()
+    return Evento(tipo=tipo, payload=payload)
+
+
+def montar_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="factory.py",
+        description="Fábrica de issues event-driven do pipeline (SQLite + POO + BPMN).",
+        epilog='Exemplo: python3 pipeline/factory.py --evento "issue_aberta|refs=#3|titulo=Continuidade"')
+    p.add_argument("--evento", action="append", default=[],
+                   help='evento no formato "tipo|chave=valor|…" (repetível)')
+    p.add_argument("--sincronizar", action="store_true",
+                   help="importa backlog.json para o SQLite (idempotente)")
+    p.add_argument("--exportar", help="regera o backlog.json a partir do SQLite")
+    p.add_argument("--importar", help="importa um backlog.json para o SQLite")
+    p.add_argument("--proxima", action="store_true",
+                   help="constrói a próxima issue indexada (exige a anterior COMPLETADA)")
+    p.add_argument("--concluir", help="marca uma issue como COMPLETADA (sucesso testado)")
+    p.add_argument("--instruir", action="store_true",
+                   help="cria a instrução de desenvolvimento de toda issue que não tem uma")
+    p.add_argument("--listar", action="store_true", help="lista issues e eventos")
+    p.add_argument("--titulo", default=None, help="(--proxima) título da issue a construir")
+    p.add_argument("--banco", default=os.environ.get("FABRICA_BANCO") or BANCO_PADRAO)
+    p.add_argument("--backlog", default=BACKLOG_PADRAO)
+    p.add_argument("--blueprint", default=BLUEPRINT_PADRAO)
+    p.add_argument("--saida-dir", default=os.environ.get("GATE_SAIDA_DIR")
+                   or os.path.join(RAIZ, "pipeline", "saida"))
+    p.add_argument("--json-saida", help="grava o objeto JSON também neste arquivo")
+    p.add_argument("-q", "--quieto", action="store_true", help="não imprime o JSON")
+    p.add_argument("-V", "--versao", action="version", version=f"factory.py {VERSAO}")
+    return p
+
+
+def main(argv=None) -> int:
+    args = montar_parser().parse_args(argv)
+    inicio = time.time()
+    anexos, resultados = [], []
+    contruida = None
+    try:
+        padrao = PadraoBPMN(args.blueprint)
+        padrao.validar()
+        repositorio = Repositorio(args.banco)
+        fabrica = Fabrica(repositorio, padrao)
+
+        if args.importar:
+            entraram = repositorio.sincronizar_backlog(args.importar)
+            resultados.append(f"importadas {entraram} issue(s) de {args.importar}")
+        if args.sincronizar:
+            entraram = repositorio.sincronizar_backlog(args.backlog)
+            resultados.append(f"sincronizado: {entraram} issue(s) nova(s) de {args.backlog}")
+
+        for texto in args.evento:
+            evento = _evento_de_texto(texto)
+            saida = fabrica.processar_evento(evento)
+            resultados.append(f"evento {evento.tipo} → {saida['acao']}"
+                              + (f" ({saida['issue']})" if saida.get("issue") else ""))
+            if saida["acao"] == "construida":
+                contruida = saida["nova"]
+
+        if args.instruir:
+            atualizadas = fabrica.instrutir_pendentes()
+            resultados.append(f"instrução de desenvolvimento criada para "
+                              f"{len(atualizadas)} issue(s): {', '.join(atualizadas) or '—'}")
+            if args.exportar:
+                pass  # a exportação acontece logo abaixo, já com as instruções
+
+        if args.concluir:
+            issue = fabrica.marcar_concluida(args.concluir,
+                                             {"sucesso": "COMPLETADA", "quando": agora()})
+            resultados.append(f"{issue.id} COMPLETADA")
+
+        if args.proxima:
+            concluidas = [i for i in fabrica.backlog().ordenadas() if i.concluida()]
+            anterior = concluidas[-1] if concluidas else None
+            contruida = fabrica.construir_proxima(anterior=anterior, titulo=args.titulo)
+            resultados.append(f"construída {contruida.id}: {contruida.titulo} "
+                              f"(depende de {', '.join(contruida.depende_de) or '—'})")
+
+        if args.exportar:
+            caminho = repositorio.exportar_backlog(args.exportar)
+            resultados.append(f"backlog exportado: {caminho}")
+
+        if args.listar:
+            backlog = fabrica.backlog()
+            linhas = [f"| {i.id} | {i.indice} | {i.status} | {i.titulo} | "
+                      f"{', '.join(i.depende_de) or '—'} |" for i in backlog.ordenadas()]
+            md = ("# Fábrica de issues\n\n"
+                  f"- issues: {len(backlog)} — {json.dumps(backlog.resumo_por_status(), ensure_ascii=False)}\n"
+                  f"- tabelas: {', '.join(repositorio.tabelas())}\n"
+                  f"- eventos: {len(repositorio.listar_eventos())}\n\n"
+                  "| id | índice | status | título | depende de |\n| --- | --- | --- | --- | --- |\n"
+                  + ("\n".join(linhas) or "| — | — | — | — | — |") + "\n")
+            anexos.append(_anexo("fabrica-estado.md", md, args.saida_dir,
+                                 "estado da fábrica (issues + eventos + esquema)"))
+            resultados.append(f"listadas {len(backlog)} issue(s), "
+                              f"{len(repositorio.listar_eventos())} evento(s)")
+
+        if not resultados:
+            resultados.append("nada a fazer: use --evento/--sincronizar/--listar/"
+                              "--proxima/--instruir/--exportar (veja --help)")
+
+        backlog = fabrica.backlog()
+        proxima = backlog.proxima_pendente()
+        resultado = {"direcao": "continuar"}
+        objeto = fabrica.objeto(
+            resultado, status="0",
+            mensagem="fábrica executada: " + "; ".join(resultados),
+            anexos=anexos, next_issue=(proxima.id if proxima else None),
+            continuidade=bool(proxima),
+            dados={"resultados": resultados, "banco": args.banco,
+                   "tabelas": repositorio.tabelas(),
+                   "issues": len(backlog), "status": backlog.resumo_por_status(),
+                   "eventos": len(repositorio.listar_eventos()),
+                   "nova_issue": contruida.para_dict() if contruida else None,
+                   "direcao": fabrica.instrucao_proxima(proxima),
+                   "blueprint": args.blueprint},
+            duracao=time.time() - inicio)
+    except ErroContinuidade as e:
+        pendente = None
+        try:
+            em_curso = fabrica.em_desenvolvimento()
+            pendente = em_curso.id if em_curso else None
+        except Exception:
+            pass
+        objeto = {"id": f"gate-fabrica-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+                  "gate": "fabrica", "status": "1", "codigo_saida": 1,
+                  "mensagem": f"continuidade: {e}", "continuidade": True,
+                  "next_issue": pendente, "direcao": "corrigir",
+                  "proximo_passo": (f"python3 pipeline/gate.py issue --id {pendente} --marcar"
+                                    if pendente else "python3 pipeline/gate.py fabrica"),
+                  "anexos": [], "dados": {"motivo": str(e)}, "timestamp": agora(),
+                  "duracao_s": round(time.time() - inicio, 3), "versao": VERSAO}
+    except (sqlite3.Error, OSError) as e:
+        objeto = {"id": f"gate-fabrica-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+                  "gate": "fabrica", "status": "2", "codigo_saida": 2,
+                  "mensagem": f"erro tipo 2: banco/arquivo inacessível "
+                              f"({e.__class__.__name__}: {str(e)[:200]})",
+                  "continuidade": False, "next_issue": None, "direcao": "humano",
+                  "proximo_passo": "conferir o caminho do banco (--banco) e permissões",
+                  "anexos": [], "dados": {}, "timestamp": agora(),
+                  "duracao_s": round(time.time() - inicio, 3), "versao": VERSAO}
+    except ErroFabrica as e:
+        objeto = {"id": f"gate-fabrica-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+                  "gate": "fabrica", "status": "2", "codigo_saida": 2,
+                  "mensagem": f"erro tipo 2: {e}", "continuidade": False,
+                  "next_issue": None, "direcao": "humano",
+                  "proximo_passo": "revisar a fábrica/blueprint (decisão humana)",
+                  "anexos": [], "dados": {}, "timestamp": agora(),
+                  "duracao_s": round(time.time() - inicio, 3), "versao": VERSAO}
+
+    try:
+        os.makedirs(args.saida_dir, exist_ok=True)
+        registro = os.path.join(args.saida_dir, f"{objeto['id']}.json")
+        with open(registro, "w", encoding="utf-8") as fh:
+            json.dump(objeto, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+        objeto["anexos"].append({"path": registro, "filename": os.path.basename(registro),
+                                 "descricao": "objeto JSON do gate fabrica"})
+    except OSError:
+        pass
+    if args.json_saida:
+        os.makedirs(os.path.dirname(os.path.abspath(args.json_saida)), exist_ok=True)
+        with open(args.json_saida, "w", encoding="utf-8") as fh:
+            json.dump(objeto, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+    if not args.quieto:
+        print(json.dumps(objeto, ensure_ascii=False, indent=2))
+    return int(objeto["status"])
+
+
+if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    sys.exit(main())
 __ARQ_EOF__
 __ARQ__ pipeline/gate.py
 #!/usr/bin/env python3
@@ -3585,6 +4972,8 @@ Cada ação deste pipeline devolve SEMPRE o mesmo objeto JSON no stdout:
       "mensagem":    "...",            # string pronta OU resumo/log da execução
       "continuidade": true,            # true = o pipeline DEVE continuar (trabalho pendente)
       "next_issue":  "ISSUE-007",      # mesma issue se falhou; a próxima se passou
+      "direcao":     "proxima",        # para onde ir: continuar|corrigir|depurar|proxima|encerrar|humano
+      "proximo_passo": "python3 pipeline/gate.py issue --id ISSUE-007 --marcar",
       "anexos":      [{"path": "...", "filename": "...", "descricao": "..."}],
       "dados":       { ... },          # detalhes estruturados de cada gate
       "timestamp":   "2026-10-13T14:15:00Z",
@@ -3611,6 +5000,7 @@ Comandos:
     gate.py continuidade                                  # agrega os três acima
     gate.py issue [--id ISSUE-007] [--marcar]             # executa a instrução da issue
     gate.py blueprint                                     # valida a planta (BPMN-like)
+    gate.py fabrica                                       # verifica a fábrica de issues
     gate.py situacao                                      # lê os últimos JSONs gravados
 
 Opções comuns:
@@ -3651,8 +5041,67 @@ ARQUIVOS_DE_TESTE = [
     "tests/rodar-testes.sh",
     "tests/testar_bootstrap.sh",
     "tests/testar_pipeline.py",
+    "tests/testar_fabrica.py",
 ]
 COMANDO_TESTES_PADRAO = "make testes"
+
+
+# Direções de continuidade: para ONDE o pipeline deve ir depois desta ação.
+# (equivalentes em inglês usados nos comentários: continuar=continue, corrigir=fix,
+#  depurar=debug, proxima=continue to next issue, encerrar=done, humano=needs human)
+DIRECOES = {
+    "continuar": "seguir o fluxo — há trabalho pendente tratável",
+    "corrigir": "corrigir (fix) — resolver a pendência para o gate ficar positivo",
+    "depurar": "depurar (debug) — investigar a execução de CI/CD que terminou com erro",
+    "proxima": "avançar para a próxima issue indexada do backlog",
+    "encerrar": "nada pendente — o pipeline pode encerrar",
+    "humano": "erro tipo 2 — exige decisão humana; NÃO continue automaticamente",
+}
+
+# (gate, status) → direção. O gate `issue` ajusta para "encerrar" quando não há próxima.
+MAPA_DIRECAO = {
+    ("issues", "0"): "continuar", ("issues", "1"): "corrigir", ("issues", "2"): "humano",
+    ("cicd", "0"): "continuar", ("cicd", "1"): "depurar", ("cicd", "2"): "humano",
+    ("testes", "0"): "continuar", ("testes", "1"): "corrigir", ("testes", "2"): "humano",
+    ("continuidade", "0"): "encerrar", ("continuidade", "1"): "continuar",
+    ("continuidade", "2"): "humano",
+    ("issue", "0"): "proxima", ("issue", "1"): "corrigir", ("issue", "2"): "humano",
+    ("blueprint", "0"): "continuar", ("blueprint", "1"): "corrigir", ("blueprint", "2"): "humano",
+    ("fabrica", "0"): "continuar", ("fabrica", "1"): "corrigir", ("fabrica", "2"): "humano",
+    ("situacao", "0"): "continuar", ("situacao", "1"): "corrigir", ("situacao", "2"): "humano",
+}
+
+
+def direcao_de(gate: str, status: str, next_issue=None) -> str:
+    """Direção de continuidade sugerida pelo resultado do gate."""
+    if gate == "issue" and status == "0" and not next_issue:
+        return "encerrar"
+    return MAPA_DIRECAO.get((gate, str(status)), "continuar" if str(status) == "0" else "humano")
+
+
+def proximo_passo_de(gate: str, status: str, next_issue=None, identificador=None) -> str:
+    """Comando literal que o operador (ou o próximo job) deve executar."""
+    if str(status) == "2":
+        return ("revisar o erro tipo 2 (decisão humana) — "
+                f"python3 pipeline/gate.py {gate}")
+    if gate == "issues":
+        return ("gh issue list --state open   # tratar/fechar as issues abertas"
+                if str(status) == "1" else "python3 pipeline/gate.py continuidade")
+    if gate == "cicd":
+        return ("gh run list --limit 10   # abrir a execução com erro (gh run view --log-failed)"
+                if str(status) == "1" else "python3 pipeline/gate.py continuidade")
+    if gate == "testes":
+        return "make testes" if str(status) == "1" else "python3 pipeline/gate.py continuidade"
+    if gate == "continuidade":
+        return (f"python3 pipeline/gate.py issue --id {next_issue}" if next_issue
+                else "python3 pipeline/gate.py issue")
+    if gate == "issue":
+        if str(status) == "1":
+            return f"python3 pipeline/gate.py issue --id {identificador}"
+        if next_issue:
+            return f"python3 pipeline/gate.py issue --id {next_issue} --marcar"
+        return "python3 pipeline/gate.py situacao   # nada pendente"
+    return "python3 pipeline/gate.py situacao"
 
 
 class ErroGate(Exception):
@@ -3674,10 +5123,15 @@ def novo_id(gate: str) -> str:
 
 
 def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
-           next_issue=None, continuidade=None, duracao: float = 0.0) -> dict:
+           next_issue=None, continuidade=None, duracao: float = 0.0,
+           direcao=None, proximo_passo=None, identificador=None) -> dict:
     """Monta o objeto JSON do contrato. Unico ponto de criação — garante o formato."""
     if continuidade is None:
         continuidade = status == STATUS_CONTINUIDADE
+    if direcao is None:
+        direcao = direcao_de(gate, status, next_issue)
+    if proximo_passo is None:
+        proximo_passo = proximo_passo_de(gate, status, next_issue, identificador)
     return {
         "id": novo_id(gate),
         "gate": gate,
@@ -3686,6 +5140,8 @@ def objeto(*, gate: str, status: str, mensagem: str, anexos=None, dados=None,
         "mensagem": str(mensagem),
         "continuidade": bool(continuidade),
         "next_issue": next_issue,
+        "direcao": direcao,
+        "proximo_passo": proximo_passo,
         "anexos": [
             {"path": a.get("path"), "filename": os.path.basename(a.get("path") or ""),
              "descricao": a.get("descricao", "")}
@@ -3756,7 +5212,8 @@ def proxima_pendente(backlog: dict, excluir=None) -> dict | None:
     for item in ordenar(backlog["issues"]):
         if item.get("id") in ignorar:
             continue
-        if str(item.get("status", "")).lower() not in ("concluida", "concluída", "done"):
+        if str(item.get("status", "")).lower() not in ("concluida", "concluída",
+                                                       "completada", "done"):
             return item
     return None
 
@@ -3849,10 +5306,25 @@ def gate_cicd(args, saida_dir: str) -> dict:
         execucoes = _rodar_gh(consulta)
         fonte = "gh run list"
 
-    problematicas = [e for e in execucoes
-                     if str(e.get("conclusion") or "").lower() in
-                     ("failure", "timed_out", "startup_failure", "action_required", "cancelled")
-                     and str(e.get("status") or "completed") == "completed"]
+    CONCLUSAO_COM_ERRO = ("failure", "timed_out", "startup_failure",
+                          "action_required", "cancelled")
+
+    def com_erro(execucao: dict) -> bool:
+        return (str(execucao.get("conclusion") or "").lower() in CONCLUSAO_COM_ERRO
+                and str(execucao.get("status") or "completed") == "completed")
+
+    # Aplica o veredito à execução MAIS RECENTE de cada (workflow, branch): um erro
+    # antigo já superado por execução verde não é pendência — vira histórico.
+    por_fluxo = {}
+    for execucao in execucoes:
+        chave = (str(execucao.get("workflowName") or execucao.get("name") or "?"),
+                 str(execucao.get("headBranch") or "?"))
+        atual = por_fluxo.get(chave)
+        if atual is None or (execucao.get("databaseId") or 0) > (atual.get("databaseId") or 0):
+            por_fluxo[chave] = execucao
+
+    problematicas = [e for e in por_fluxo.values() if com_erro(e)]
+    historicas = [e for e in execucoes if com_erro(e) and e not in problematicas]
     pendentes = [e for e in execucoes if str(e.get("status") or "") in ("in_progress", "queued")]
 
     linhas = [f"| {e.get('workflowName') or e.get('name')} | {e.get('status')} | "
@@ -3866,20 +5338,32 @@ def gate_cicd(args, saida_dir: str) -> dict:
 
     dados = {"fonte": fonte, "total": len(execucoes), "com_erro": len(problematicas),
              "em_andamento": len(pendentes),
+             "historicos_com_erro": len(historicas),
+             "historico_superado": [
+                 {"workflow": e.get("workflowName"), "branch": e.get("headBranch"),
+                  "conclusao": e.get("conclusion"), "url": e.get("url")}
+                 for e in historicas],
+             "criterio": "veredito da execução MAIS RECENTE de cada (workflow, branch); "
+                         "erros antigos já superados por execução verde entram em "
+                         "'historico_superado' e não são pendência",
              "workflows": sorted({str(e.get("workflowName") or e.get("name") or "?")
                                   for e in execucoes})}
     if problematicas:
         nomes = ", ".join(sorted({str(e.get("workflowName") or "?") for e in problematicas}))
         return objeto(
             gate="cicd", status=STATUS_CONTINUIDADE, continuidade=True,
-            mensagem=f"{len(problematicas)} execução(ões) de CI com erro ({nomes}) — "
-                     "pendência conhecida: o pipeline continua",
+            mensagem=f"{len(problematicas)} fluxo(s) de CI com erro na execução mais recente "
+                     f"({nomes}) — pendência conhecida: o pipeline continua"
+                     + (f" ({len(historicas)} erro(s) antigo(s) já superado(s))"
+                        if historicas else ""),
             anexos=[anexo], dados={**dados, "execucoes_com_erro": problematicas},
             duracao=time.time() - inicio)
     return objeto(
         gate="cicd", status=STATUS_SUCESSO,
         mensagem=(f"CI sem erros ({len(execucoes)} execução(ões) analisada(s)"
-                  + (f", {len(pendentes)} em andamento" if pendentes else "") + f"; fonte: {fonte})"),
+                  + (f", {len(pendentes)} em andamento" if pendentes else "")
+                  + (f"; {len(historicas)} erro(s) antigo(s) já superado(s) por execução verde"
+                     if historicas else "") + f"; fonte: {fonte})"),
         anexos=[anexo], dados=dados, duracao=time.time() - inicio)
 
 
@@ -3931,7 +5415,8 @@ def gate_continuidade(args, saida_dir: str) -> dict:
 
     for nome, funcao, override in (("issues", gate_issues, getattr(args, "status_issues", None)),
                                    ("cicd", gate_cicd, getattr(args, "status_cicd", None)),
-                                   ("testes", gate_testes, getattr(args, "status_testes", None))):
+                                   ("testes", gate_testes, getattr(args, "status_testes", None)),
+                                   ("fabrica", gate_fabrica, getattr(args, "status_fabrica", None))):
         if override is not None:
             # valor vindo de outro job do workflow (encadeamento por `needs`)
             parciais[nome] = objeto(
@@ -3975,12 +5460,15 @@ def gate_continuidade(args, saida_dir: str) -> dict:
     else:
         status = STATUS_SUCESSO
         continuidade = False
-        mensagem = "gate positivo: nenhuma issue aberta, CI sem erros e testes aprovados"
+        mensagem = ("gate positivo: nenhuma issue aberta, CI sem erros, testes aprovados "
+                    "e fábrica íntegra")
 
     dados = {
         "checks": {n: {"status": p["status"], "mensagem": p["mensagem"]} for n, p in parciais.items()},
         "gate_positivo": status == STATUS_SUCESSO,
-        "regra": "positivo ⇔ (0 issues abertas) ∧ (CI sem erro) ∧ (testes presentes e verdes)",
+        "regra": "positivo ⇔ (0 issues abertas) ∧ (CI sem erro) ∧ (testes presentes e "
+                 "verdes) ∧ (fábrica de issues íntegra, com instrução de desenvolvimento "
+                 "em todas as issues)",
         "backlog": contexto_backlog,
     }
 
@@ -4034,7 +5522,7 @@ def gate_issue(args, saida_dir: str) -> dict:
     if not instrucao:
         return objeto(
             gate="issue", status=STATUS_INDETERMINADO, continuidade=False,
-            next_issue=identificador,
+            next_issue=identificador, identificador=identificador,
             mensagem=f"{identificador} (“{issue.get('titulo')}”) não tem instrucao_teste "
                      "executável — requer decisão humana (erro tipo 2)",
             dados={"issue": issue, "backlog": args.backlog}, duracao=time.time() - inicio)
@@ -4048,7 +5536,10 @@ def gate_issue(args, saida_dir: str) -> dict:
     if codigo == 0:
         if args.marcar:
             marcar_concluida(backlog, identificador,
-                             {"teste": instrucao, "codigo_saida": 0, "quando": agora()})
+                             {"teste": instrucao, "codigo_saida": 0, "quando": agora(),
+                              "evidencia": "log anexado em pipeline/saida/"
+                                           f"{identificador}-log.txt",
+                              "sucesso": "COMPLETADA"})
             with open(args.backlog, "w", encoding="utf-8") as fh:
                 json.dump(backlog, fh, ensure_ascii=False, indent=2)
                 fh.write("\n")
@@ -4079,7 +5570,8 @@ def gate_issue(args, saida_dir: str) -> dict:
             next_issue = None
         return objeto(
             gate="issue", status=STATUS_SUCESSO, continuidade=bool(proxima),
-            mensagem=mensagem, next_issue=next_issue, anexos=anexos,
+            mensagem=mensagem, next_issue=next_issue, identificador=identificador,
+            anexos=anexos,
             dados={"issue": identificador, "teste": instrucao, "codigo_saida": 0,
                    "marcada_concluida": bool(args.marcar), "backlog": args.backlog,
                    "resumo": saida[-1500:]},
@@ -4087,7 +5579,7 @@ def gate_issue(args, saida_dir: str) -> dict:
 
     return objeto(
         gate="issue", status=STATUS_CONTINUIDADE, continuidade=True,
-        next_issue=identificador,
+        next_issue=identificador, identificador=identificador,
         mensagem=f"{identificador} ainda não passa (`{instrucao}`, código {codigo}) — "
                  "continuidade: repita/mesma issue até ficar verde",
         anexos=anexos,
@@ -4108,7 +5600,7 @@ def gate_blueprint(args, saida_dir: str) -> dict:
 
     falhas = []
     gates_planta = {g["id"] for g in planta.get("gates", [])}
-    implementacao = {"issues", "cicd", "testes", "continuidade", "issue"}
+    implementacao = {"issues", "cicd", "testes", "continuidade", "issue", "fabrica"}
     if not gates_planta:
         falhas.append("blueprint sem 'gates'")
     if gates_planta - implementacao:
@@ -4136,6 +5628,84 @@ def gate_blueprint(args, saida_dir: str) -> dict:
                   dados={"gates": sorted(gates_planta),
                          "transicoes": len(planta.get("transicoes", [])),
                          "arquivo": args.blueprint}, duracao=time.time() - inicio)
+
+
+def gate_fabrica(args, saida_dir: str) -> dict:
+    """Verifica a fábrica de issues (POO + SQLite + eventos) e o padrão do blueprint.
+
+    É um gate de verificação: importa a fábrica, cria o esquema SQLite num banco
+    temporário, confere o modelo de issue do blueprint, exige instrução de
+    desenvolvimento em todas as issues do backlog e faz um smoke real (cria uma
+    issue pelo padrão, registra o evento e faz round-trip export/import).
+
+    − 0: fábrica íntegra e capaz de construir a próxima issue indexada;
+    − 1: pendência conhecida (issue sem instrução de desenvolvimento no backlog);
+    − 2: não foi possível avaliar (módulo/blueprint ausente ou inválido).
+    """
+    import tempfile
+    inicio = time.time()
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        import factory  # módulo irmão em pipeline/
+    except Exception as e:  # pragma: no cover - só em ambiente quebrado
+        raise ErroGate(f"não foi possível importar pipeline/factory.py: {e}")
+
+    pasta = tempfile.mkdtemp(prefix="fabrica-gate-")
+    try:
+        repositorio = factory.Repositorio(os.path.join(pasta, "gate.db"))
+        tabelas = repositorio.tabelas()
+        padrao = factory.PadraoBPMN(args.blueprint)
+        padrao.validar()
+        sintetica = padrao.modelo(indice=900, titulo="smoke da fábrica (gate)",
+                                  anterior="ISSUE-899")
+        repositorio.salvar_issue(sintetica)
+        repositorio.registrar_evento(factory.Evento("gate.fabrica.smoke",
+                                                     {"issue": sintetica.id}))
+        exportado = os.path.join(pasta, "backlog-export.json")
+        repositorio.exportar_backlog(exportado)
+        reimportado = factory.Repositorio(os.path.join(pasta, "gate2.db"))
+        reimportado.sincronizar_backlog(exportado)
+        round_trip = [i.id for i in reimportado.listar_issues()] == [sintetica.id]
+        eventos = repositorio.listar_eventos()
+    except factory.ErroFabrica as e:
+        raise ErroGate(f"fábrica inconsistente: {e}")
+    except (OSError, json.JSONDecodeError) as e:
+        raise ErroGate(f"não foi possível avaliar a fábrica: {e}")
+
+    try:
+        backlog = ler_backlog(args.backlog)
+    except ErroGate as e:
+        raise ErroGate(str(e))
+    sem_instrucao = [i.get("id") for i in ordenar(backlog["issues"])
+                     if not str(i.get("instrucao_desenvolvimento") or "").strip()]
+
+    linhas = ["# Verificação da fábrica de issues", "",
+              f"- classes: {', '.join(sorted(factory.CLASSES))}",
+              f"- tabelas SQLite: {', '.join(tabelas)}",
+              f"- eventos registrados no smoke: {len(eventos)}",
+              f"- round-trip export/import (backlog.json ⇄ SQLite): "
+              f"{'ok' if round_trip else 'FALHOU'}",
+              f"- issues sem instrução de desenvolvimento: {len(sem_instrucao)}", ""]
+    anexo = gravar_anexo("fabrica-verificacao.md", "\n".join(linhas) + "\n", saida_dir,
+                         "verificação da fábrica de issues (POO + SQLite + eventos)")
+    dados = {"classes": sorted(factory.CLASSES), "tabelas": tabelas,
+             "blueprint": args.blueprint, "modelo_campos": sorted(sintetica.para_dict()),
+             "round_trip": round_trip, "eventos_smoke": len(eventos),
+             "sem_instrucao_desenvolvimento": sem_instrucao}
+
+    if sem_instrucao:
+        return objeto(
+            gate="fabrica", status=STATUS_CONTINUIDADE, continuidade=True,
+            mensagem=f"fábrica íntegra, mas {len(sem_instrucao)} issue(s) sem "
+                     f"instrução de desenvolvimento ({', '.join(sem_instrucao)}) — "
+                     "pendência conhecida: a fábrica precisa da instrução para "
+                     "construir a próxima",
+            anexos=[anexo], dados=dados, duracao=time.time() - inicio)
+    return objeto(
+        gate="fabrica", status=STATUS_SUCESSO,
+        mensagem=f"fábrica íntegra: {len(factory.CLASSES)} classes, tabelas "
+                 f"{'/'.join(tabelas)}, modelo validado e round-trip SQLite ⇄ backlog.json ok",
+        anexos=[anexo], dados=dados, duracao=time.time() - inicio)
 
 
 def gate_situacao(args, saida_dir: str) -> dict:
@@ -4181,7 +5751,7 @@ def montar_parser() -> argparse.ArgumentParser:
         description="Gates do pipeline (JSON sempre no stdout; código de saída = status).",
         epilog="Status: 0=sucesso, 1=erro tipo 1/continuidade, 2=erro tipo 2/indeterminado.")
     p.add_argument("gate", choices=["issues", "cicd", "testes", "continuidade", "issue",
-                                    "blueprint", "situacao"])
+                                    "blueprint", "fabrica", "situacao"])
     p.add_argument("--json-saida", help="arquivo extra para o objeto JSON")
     p.add_argument("--saida-dir", default=os.environ.get("GATE_SAIDA_DIR") or SAIDA_PADRAO)
     p.add_argument("--backlog", default=BACKLOG_PADRAO)
@@ -4194,7 +5764,7 @@ def montar_parser() -> argparse.ArgumentParser:
     p.add_argument("--issues-json", help="(gates issues/continuidade) fixture de issues abertas")
     p.add_argument("--runs-json", help="(gates cicd/continuidade) fixture de execuções de CI")
     p.add_argument("--sem-gh", action="store_true", help="não chamar gh (usa apenas fixtures)")
-    for _nome in ("issues", "cicd", "testes"):
+    for _nome in ("issues", "cicd", "testes", "fabrica"):
         p.add_argument(f"--status-{_nome}", choices=["0", "1", "2"],
                        help=f"(continuidade) usa este status para '{_nome}' em vez de avaliar "
                             "— encadeamento de jobs do workflow")
@@ -4207,7 +5777,8 @@ def main(argv=None) -> int:
     args = montar_parser().parse_args(argv)
     funcoes = {"issues": gate_issues, "cicd": gate_cicd, "testes": gate_testes,
                "continuidade": gate_continuidade, "issue": gate_issue,
-               "blueprint": gate_blueprint, "situacao": gate_situacao}
+               "blueprint": gate_blueprint, "fabrica": gate_fabrica,
+               "situacao": gate_situacao}
     try:
         resultado = funcoes[args.gate](args, args.saida_dir)
     except ErroGate as e:
@@ -5653,7 +7224,7 @@ __ARQ__ tests/testar_bootstrap.sh
 #    2. bash bootstrap.sh cria o projeto num diretório temporário
 #    3. a árvore criada é comparada com o repositório (diff -r, exceto .git)
 #    4. as permissões conferem (755 em scripts/testes, 644 em docs/dados)
-#    5. as 4 suítes de teste rodam DENTRO do projeto recriado
+#    5. as 5 suítes de teste rodam DENTRO do projeto recriado
 #    6. `bootstrap.sh --verificar` reconhece o projeto como íntegro
 #
 #  Uso: ./tests/testar_bootstrap.sh
@@ -5697,7 +7268,8 @@ done
 titulo '3. Árvore criada x repositório (byte a byte)'
 if diff -r -q \
       --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
-      --exclude='saida' --exclude='*.jsonl' \
+      --exclude='saida' --exclude='*.jsonl' --exclude='*.db' --exclude='*.db-wal' \
+      --exclude='*.db-shm' \
       "$RAIZ" "$TMP/projeto" >"$TMP/diff.log" 2>&1; then
   ok 'todos os arquivos idênticos ao repositório'
 else
@@ -5706,9 +7278,9 @@ else
 fi
 # diretórios gerados em tempo de execução (saida/, __pycache__) não entram na contagem
 qtd_repo=$(find "$RAIZ" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' | wc -l | tr -d ' ')
+             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
 qtd_novo=$(find "$TMP/projeto" -type f -not -path '*/.git/*' -not -path '*__pycache__*' \
-             -not -path '*/saida/*' | wc -l | tr -d ' ')
+             -not -path '*/saida/*' -not -name '*.db*' | wc -l | tr -d ' ')
 if [[ "$qtd_repo" == "$qtd_novo" ]]; then
   ok "mesma quantidade de arquivos ($qtd_novo)"
 else
@@ -5748,6 +7320,16 @@ if ( cd "$TMP/projeto" && python3 tests/testar_pipeline.py >/dev/null 2>&1 ); th
   ok 'suíte do pipeline de gates passa no projeto recriado'
 else
   ruim 'suíte do pipeline falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 tests/testar_fabrica.py >/dev/null 2>&1 ); then
+  ok 'suíte da fábrica de issues passa no projeto recriado'
+else
+  ruim 'suíte da fábrica falhou no projeto recriado'
+fi
+if ( cd "$TMP/projeto" && python3 pipeline/gate.py fabrica >/dev/null 2>&1 ); then
+  ok 'gate fabrica roda no projeto recriado (fábrica íntegra)'
+else
+  ruim 'gate fabrica falhou no projeto recriado'
 fi
 if ( cd "$TMP/projeto" && python3 pipeline/gate.py blueprint >/dev/null 2>&1 ); then
   ok 'gate blueprint roda no projeto recriado (planta consistente)'
@@ -6015,6 +7597,375 @@ class TesteIntegridadeDosFontes(unittest.TestCase):
         r = subprocess.run(["bash", "-n", os.path.join(RAIZ, "scripts", "datajud.sh")],
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
+__ARQ_EOF__
+__ARQ__ tests/testar_fabrica.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Testes da fábrica de issues (pipeline/factory.py) e do gate `fabrica`.
+
+Cobrem: classes (POO), esquema SQLite, o padrão do blueprint (BPMN), a construção
+da PRÓXIMA issue indexada só depois do sucesso testado, os eventos event-driven,
+o espelho backlog.json ⇄ SQLite e o contrato JSON do gate.
+
+Uso:  python3 tests/testar_fabrica.py
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(RAIZ, "pipeline"))
+
+import factory  # noqa: E402
+import gate  # noqa: E402
+
+BLUEPRINT = os.path.join(RAIZ, "pipeline", "blueprint.json")
+BACKLOG = os.path.join(RAIZ, "pipeline", "backlog.json")
+FACTORY_CLI = os.path.join(RAIZ, "pipeline", "factory.py")
+GATE_CLI = os.path.join(RAIZ, "pipeline", "gate.py")
+
+
+def rodar(script, *argumentos):
+    proc = subprocess.run([sys.executable, script, *argumentos],
+                          capture_output=True, text=True, cwd=RAIZ)
+    try:
+        return proc.returncode, json.loads(proc.stdout), proc.stdout + proc.stderr
+    except json.JSONDecodeError:
+        return proc.returncode, None, proc.stdout + proc.stderr
+
+
+class CasoBase(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = self.tmp.name
+        self.banco = os.path.join(self.dir, "fabrica.db")
+        self.saida = os.path.join(self.dir, "saida")
+        self.padrao = factory.PadraoBPMN(BLUEPRINT)
+        self.repo = factory.Repositorio(self.banco)
+        self.fabrica = factory.Fabrica(self.repo, self.padrao)
+
+    def tearDown(self):
+        try:
+            self.repo.armazenamento.fechar()
+        except Exception:
+            pass
+        self.tmp.cleanup()
+
+    def uma_issue(self, indice=1, status="concluida", **extra):
+        dados = {"id": f"ISSUE-{indice:03d}", "indice": indice, "titulo": f"t{indice}",
+                 "entregavel": "ent", "instrucao_teste": "true",
+                 "instrucao_desenvolvimento": "executar e testar", "status": status,
+                 "origem": "teste"}
+        dados.update(extra)
+        return self.repo.salvar_issue(factory.Issue.de_dict(dados))
+
+
+class TesteArmazenamento(CasoBase):
+    def test_esquema_strict_criado(self):
+        tabelas = self.repo.tabelas()
+        for esperada in ("issues", "eventos", "schema_info"):
+            self.assertIn(esperada, tabelas)
+        colunas = self.repo.armazenamento.consultar("PRAGMA table_info(issues)")
+        nomes = {c["name"] for c in colunas}
+        for campo in factory.CAMPOS_ISSUE:
+            self.assertIn(campo, nomes, f"coluna ausente no SQLite: {campo}")
+
+    def test_versao_do_esquema_migrada(self):
+        linhas = self.repo.armazenamento.consultar("SELECT valor FROM schema_info WHERE chave='versao'")
+        self.assertEqual(linhas[0]["valor"], factory.VERSAO)
+
+    def test_indice_unico(self):
+        self.uma_issue(1)
+        with self.assertRaises(Exception):
+            self.uma_issue(1, id="ISSUE-099")
+
+
+class TesteEntidades(CasoBase):
+    def test_issue_valida_o_padrao(self):
+        issue = self.padrao.modelo(indice=8, titulo="nova", instrucao_teste="true",
+                                   anterior="ISSUE-007")
+        issue.validar()
+        self.assertEqual(issue.id, "ISSUE-008")
+        self.assertEqual(issue.depende_de, ["ISSUE-007"])
+
+    def test_id_fora_do_padrao_e_recusado(self):
+        ruim = factory.Issue.de_dict({"id": "TAREFA-1", "indice": 1, "titulo": "x",
+                                      "instrucao_desenvolvimento": "y"})
+        with self.assertRaises(factory.ErroFabrica):
+            ruim.validar()
+
+    def test_instrucao_de_desenvolvimento_e_obrigatoria(self):
+        sem_instrucao = factory.Issue.de_dict({"id": "ISSUE-042", "indice": 42,
+                                               "titulo": "x",
+                                               "instrucao_desenvolvimento": ""})
+        with self.assertRaisesRegex(factory.ErroFabrica, "instrucao_desenvolvimento"):
+            sem_instrucao.validar()
+
+    def test_concluir_registra_evidencia_e_data(self):
+        issue = self.padrao.modelo(indice=1, titulo="a")
+        issue.concluir({"sucesso": "COMPLETADA"})
+        self.assertTrue(issue.concluida())
+        self.assertEqual(issue.status, "concluida")
+        self.assertIsNotNone(issue.concluida_em)
+        self.assertEqual(issue.evidencias[0]["sucesso"], "COMPLETADA")
+
+    def test_completada_conta_como_concluida(self):
+        issue = factory.Issue.de_dict({"id": "ISSUE-001", "indice": 1, "titulo": "a",
+                                       "instrucao_desenvolvimento": "b",
+                                       "status": "completada"})
+        self.assertTrue(issue.concluida())
+
+
+class TesteBacklog(CasoBase):
+    def test_ordenacao_e_proxima_pendente(self):
+        backlog = factory.Backlog([
+            {"id": "ISSUE-003", "indice": 3, "titulo": "c", "status": "pendente",
+             "instrucao_desenvolvimento": "x"},
+            {"id": "ISSUE-001", "indice": 1, "titulo": "a", "status": "concluida",
+             "instrucao_desenvolvimento": "x"}])
+        self.assertEqual([i.id for i in backlog.ordenadas()], ["ISSUE-001", "ISSUE-003"])
+        self.assertEqual(backlog.proxima_pendente().id, "ISSUE-003")
+        self.assertEqual(backlog.proximo_indice(), 4)
+
+    def test_dependencia_inexistente_e_recusada(self):
+        backlog = factory.Backlog()
+        issue = self.padrao.modelo(indice=2, titulo="b", depende_de=["ISSUE-404"])
+        with self.assertRaisesRegex(factory.ErroFabrica, "depende de issue inexistente"):
+            backlog.adicionar(issue)
+
+    def test_resumo_por_status(self):
+        backlog = factory.Backlog([
+            {"id": "ISSUE-001", "indice": 1, "titulo": "a", "status": "concluida",
+             "instrucao_desenvolvimento": "x"},
+            {"id": "ISSUE-002", "indice": 2, "titulo": "b", "status": "pendente",
+             "instrucao_desenvolvimento": "x"}])
+        self.assertEqual(backlog.resumo_por_status(), {"concluida": 1, "pendente": 1})
+
+
+class TestePadraoBPMN(CasoBase):
+    def test_planta_do_projeto_tem_modelo_e_fabrica(self):
+        self.padrao.validar()
+        self.assertIn("fabrica", self.padrao.gates)
+        self.assertIn("instrucao_desenvolvimento", self.padrao.modelo_issue.campos)
+
+    def test_instrucoes_de_desenvolvimento_declaradas(self):
+        instrucoes = self.padrao.instrucoes()
+        self.assertGreaterEqual(len(instrucoes), 3)
+        self.assertTrue(any("gate" in i for i in instrucoes))
+
+    def test_id_sintetizado_pelo_formato_do_blueprint(self):
+        self.assertEqual(self.padrao.modelo_issue.id_de(12), "ISSUE-012")
+        self.assertEqual(self.padrao.modelo_issue.id_de(1234), "ISSUE-1234")
+
+    def test_blueprint_sem_modelo_falha(self):
+        caminho = os.path.join(self.dir, "planta.json")
+        with open(caminho, "w", encoding="utf-8") as fh:
+            json.dump({"gates": [{"id": "issues"}]}, fh)
+        with self.assertRaises(factory.ErroFabrica):
+            factory.PadraoBPMN(caminho).validar()
+
+    def test_blueprint_inexistente_e_erro_tipo_2(self):
+        with self.assertRaises(factory.ErroFabrica):
+            factory.PadraoBPMN(os.path.join(self.dir, "nao-existe.json"))
+
+
+class TesteConstrucaoIndexada(CasoBase):
+    def test_constroi_a_proxima_so_depois_do_sucesso(self):
+        self.uma_issue(1, status="pendente")
+        with self.assertRaises(factory.ErroContinuidade):
+            self.fabrica.construir_proxima()
+        self.repo.atualizar_issue(factory.Issue.de_dict(
+            {**self.repo.proxima_pendente().para_dict(), "status": "concluida"}))
+        nova = self.fabrica.construir_proxima()
+        self.assertEqual(nova.id, "ISSUE-002")
+        self.assertEqual(nova.depende_de, [])
+
+    def test_indexada_depende_da_ultima_concluida(self):
+        anterior = self.uma_issue(1)
+        nova = self.fabrica.construir_proxima(anterior=anterior, titulo="próxima")
+        self.assertEqual(nova.id, "ISSUE-002")
+        self.assertEqual(nova.depende_de, ["ISSUE-001"])
+        self.assertIn("executar", nova.instrucao_desenvolvimento)
+
+    def test_bloqueada_nao_congela_a_fabrica(self):
+        self.uma_issue(1)
+        self.uma_issue(2, status="bloqueada")
+        nova = self.fabrica.construir_proxima()
+        self.assertEqual(nova.id, "ISSUE-003", "issue bloqueada (humano) não trava a fábrica")
+
+    def test_instruir_pendentes_preenche_o_que_falta(self):
+        # issue "legada" (sem instrução): só entra tolerada — o gate é que acusa
+        self.repo.salvar_issue(factory.Issue.de_dict(
+            {"id": "ISSUE-001", "indice": 1, "titulo": "a", "instrucao_desenvolvimento": ""}),
+            exigir_instrucao=False)
+        atualizadas = self.fabrica.instrutir_pendentes()
+        self.assertEqual(atualizadas, ["ISSUE-001"])
+        self.assertTrue(self.repo.proxima_pendente().instrucao_desenvolvimento)
+        self.assertEqual(self.fabrica.instrutir_pendentes(), [], "não repete quem já tem")
+
+
+class TesteEventos(CasoBase):
+    def test_evento_com_pendencia_mantem_a_mesma_issue(self):
+        self.uma_issue(1, status="pendente")
+        saida = self.fabrica.processar_evento(factory.Evento("ci_falhou", {"run": "1"}))
+        self.assertEqual(saida["acao"], "continuar")
+        self.assertEqual(saida["issue"], "ISSUE-001")
+        self.assertEqual(saida["direcao"], "depurar")
+        self.assertEqual(len(self.repo.listar_issues()), 1, "não criou issue nova")
+
+    def test_evento_apos_sucesso_constroi_a_proxima(self):
+        self.uma_issue(1)
+        saida = self.fabrica.processar_evento(factory.Evento("demanda", {"titulo": "nova frente"}))
+        self.assertEqual(saida["acao"], "construida")
+        self.assertEqual(saida["issue"], "ISSUE-002")
+        self.assertEqual(saida["direcao"], "proxima")
+        self.assertEqual(saida["nova"]["titulo"], "nova frente")
+
+    def test_eventos_registrados_com_payload(self):
+        self.uma_issue(1)
+        self.fabrica.processar_evento(factory.Evento("gate_falhou", {"gate": "testes"}))
+        eventos = self.repo.listar_eventos()
+        self.assertEqual(eventos[0]["tipo"], "gate_falhou")
+        self.assertEqual(eventos[0]["payload"]["gate"], "testes")
+
+    def test_evento_sem_handler_e_recusado(self):
+        with self.assertRaises(factory.ErroFabrica):
+            self.fabrica.processar_evento(factory.Evento("meteoro", {}))
+
+    def test_handlers_do_padrao(self):
+        self.assertIn("demanda", factory.Fabrica.HANDLERS)
+        self.assertIn("ci_falhou", factory.Fabrica.HANDLERS)
+
+
+class TesteEspelhoBacklog(CasoBase):
+    def test_round_trip_json_sqlite(self):
+        caminho = os.path.join(self.dir, "backlog.json")
+        self.uma_issue(1)
+        self.uma_issue(2, status="pendente")
+        self.repo.exportar_backlog(caminho)
+        outro = factory.Repositorio(os.path.join(self.dir, "outro.db"))
+        entraram = outro.sincronizar_backlog(caminho)
+        self.assertEqual(entraram, 2)
+        self.assertEqual([i.id for i in outro.listar_issues()], ["ISSUE-001", "ISSUE-002"])
+        self.assertEqual(outro.listar_issues()[1].status, "pendente")
+        self.assertEqual(outro.sincronizar_backlog(caminho), 0, "import é idempotente")
+
+    def test_backlog_do_projeto_espelha_o_sqlite(self):
+        self.repo.sincronizar_backlog(BACKLOG)
+        self.assertEqual(len(self.repo.listar_issues()), 7)
+        with open(BACKLOG, encoding="utf-8") as fh:
+            dados = json.load(fh)
+        self.assertEqual(len(dados["issues"]), 7)
+        self.assertTrue(all(i.get("instrucao_desenvolvimento") for i in dados["issues"]),
+                        "toda issue precisa da instrução de desenvolvimento (padrão)")
+        self.assertTrue(all(i.get("instrucao_teste") or i["status"] == "bloqueada"
+                            for i in dados["issues"]))
+
+    def test_backlog_do_projeto_aponta_para_arquivos_reais(self):
+        import re
+        with open(BACKLOG, encoding="utf-8") as fh:
+            dados = json.load(fh)
+        for item in dados["issues"]:
+            for arquivo in re.findall(r"[\w/\.\-]+\.(?:py|sh|json|md)", item["instrucao_desenvolvimento"]):
+                self.assertTrue(os.path.exists(os.path.join(RAIZ, arquivo)),
+                                f"{item['id']}: instrução cita {arquivo}, que não existe")
+
+
+class TesteGateFabrica(CasoBase):
+    def test_gate_fabrica_do_projeto_e_sucesso(self):
+        codigo, obj, bruto = rodar(GATE_CLI, "fabrica", "--saida-dir", self.saida)
+        self.assertIsNotNone(obj, bruto[:300])
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+        self.assertEqual(obj["gate"], "fabrica")
+        self.assertIn("fabrica", obj["dados"]["classes"][0].lower()
+                      + "".join(obj["dados"]["classes"]).lower())
+        self.assertTrue(obj["dados"]["round_trip"])
+
+    def test_contrato_do_gate_fabrica(self):
+        _, obj, _ = rodar(GATE_CLI, "fabrica", "--saida-dir", self.saida)
+        for chave in ("id", "mensagem", "anexos", "status", "next_issue", "direcao",
+                      "proximo_passo", "continuidade", "versao"):
+            self.assertIn(chave, obj)
+        self.assertIsInstance(obj["status"], str)
+        self.assertIsInstance(obj["mensagem"], str)
+        for anexo in obj["anexos"]:
+            self.assertEqual({"path", "filename", "descricao"}, set(anexo))
+            self.assertTrue(os.path.exists(anexo["path"]))
+
+    def test_gate_fabrica_em_projeto_sem_instrucao_e_continuidade(self):
+        # reaproveita o gate num "projeto" temporário sem instruções
+        with open(os.path.join(self.dir, "backlog.json"), "w", encoding="utf-8") as fh:
+            json.dump({"issues": [{"id": "ISSUE-001", "indice": 1, "titulo": "sem instrução",
+                                   "status": "pendente"}]}, fh)
+        codigo, obj, bruto = rodar(GATE_CLI, "fabrica",
+                                   "--backlog", os.path.join(self.dir, "backlog.json"),
+                                   "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], obj["continuidade"]), ("1", True))
+        self.assertEqual(obj["next_issue"], None)
+        self.assertIn("instrução de desenvolvimento", obj["mensagem"])
+
+
+class TesteCLIFabrica(CasoBase):
+    def test_sincronizar_listar_e_contrato(self):
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar",
+                                   "--listar", "--saida-dir", self.saida)
+        self.assertIsNotNone(obj, bruto[:300])
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+        self.assertEqual(obj["dados"]["issues"], 7)
+        self.assertEqual(obj["next_issue"], "ISSUE-006")
+        self.assertIn("direcao", obj["dados"])
+
+    def test_evento_pela_cli(self):
+        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
+              "--saida-dir", self.saida)
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco,
+                                   "--evento", "ci_falhou|run=42|workflow=gates",
+                                   "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "0")
+        self.assertEqual(obj["dados"]["eventos"], 1)
+        self.assertIn("continuar", obj["dados"]["resultados"][0])
+
+    def test_concluir_e_construir_a_proxima(self):
+        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
+              "--saida-dir", self.saida)
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco,
+                                   "--concluir", "ISSUE-006", "--proxima",
+                                   "--titulo", "frente nova", "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "0", bruto[:200])
+        nova = obj["dados"]["nova_issue"]
+        self.assertEqual(nova["id"], "ISSUE-008")
+        self.assertEqual(nova["depende_de"], ["ISSUE-006"])
+        self.assertEqual(nova["origem"], "fábrica (próxima indexada)")
+
+    def test_construir_com_pendencia_devolve_status_1(self):
+        rodar(FACTORY_CLI, "--banco", self.banco, "--sincronizar", "-q",
+              "--saida-dir", self.saida)
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco", self.banco, "--proxima",
+                                   "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "1")
+        self.assertEqual(codigo, 1)
+        self.assertTrue(obj["continuidade"])
+        self.assertEqual(obj["direcao"], "corrigir")
+        self.assertEqual(obj["next_issue"], "ISSUE-006")
+
+    def test_banco_invalido_e_erro_tipo_2(self):
+        with open(os.path.join(self.dir, "quebrado.db"), "w", encoding="utf-8") as fh:
+            fh.write("isto não é um sqlite")
+        codigo, obj, bruto = rodar(FACTORY_CLI, "--banco",
+                                   os.path.join(self.dir, "quebrado.db"), "--listar",
+                                   "--saida-dir", self.saida)
+        self.assertEqual(obj["status"], "2")
+        self.assertEqual(codigo, 2)
+        self.assertFalse(obj["continuidade"])
 
 
 if __name__ == "__main__":
@@ -6306,7 +8257,9 @@ BLUEPRINT = os.path.join(RAIZ, "pipeline", "blueprint.json")
 WORKFLOW = os.path.join(RAIZ, ".github", "workflows", "gates.yml")
 
 CHAVES_OBRIGATORIAS = {"id", "gate", "status", "mensagem", "next_issue", "anexos",
-                       "continuidade", "codigo_saida", "dados", "timestamp", "versao"}
+                       "continuidade", "codigo_saida", "dados", "timestamp", "versao",
+                       "direcao", "proximo_passo"}
+DIRECOES_VALIDAS = {"continuar", "corrigir", "depurar", "proxima", "encerrar", "humano"}
 
 
 def rodar(*argumentos, saida_dir=None):
@@ -6355,6 +8308,9 @@ class TesteContrato(CasoBase):
                 self.assertIsInstance(obj["continuidade"], bool)
                 self.assertIsInstance(obj["anexos"], list)
                 self.assertIsInstance(obj["dados"], dict)
+                self.assertIn(obj["direcao"], DIRECOES_VALIDAS, "direção de continuidade")
+                self.assertIsInstance(obj["proximo_passo"], str)
+                self.assertTrue(obj["proximo_passo"].strip(), "sempre há um próximo passo")
                 for anexo in obj["anexos"]:
                     self.assertEqual({"path", "filename", "descricao"}, set(anexo))
 
@@ -6424,6 +8380,27 @@ class TesteGateCicd(CasoBase):
         codigo, obj, _ = rodar("cicd", "--runs-json", fx, saida_dir=self.saida)
         self.assertEqual(obj["status"], "0")
         self.assertEqual(obj["dados"]["em_andamento"], 1)
+
+    def test_erro_antigo_superado_por_verde_nao_e_pendencia(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 10, "workflowName": "gates", "status": "completed",
+             "conclusion": "failure", "headBranch": "b", "url": "https://x/10"},
+            {"databaseId": 11, "workflowName": "gates", "status": "completed",
+             "conclusion": "success", "headBranch": "b", "url": "https://x/11"}])
+        codigo, obj, _ = rodar("cicd", "--runs-json", fx, "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], codigo), ("0", 0), "veredito é o da execução mais recente")
+        self.assertEqual(obj["dados"]["com_erro"], 0)
+        self.assertEqual(obj["dados"]["historicos_com_erro"], 1)
+
+    def test_verde_antigo_com_erro_recente_e_pendencia(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 20, "workflowName": "gates", "status": "completed",
+             "conclusion": "success", "headBranch": "b", "url": "https://x/20"},
+            {"databaseId": 21, "workflowName": "gates", "status": "completed",
+             "conclusion": "failure", "headBranch": "b", "url": "https://x/21"}])
+        codigo, obj, _ = rodar("cicd", "--runs-json", fx, "--saida-dir", self.saida)
+        self.assertEqual((obj["status"], obj["direcao"]), ("1", "depurar"))
+        self.assertEqual(obj["dados"]["execucoes_com_erro"][0]["databaseId"], 21)
 
     def test_conclusoes_problematicas_detectadas(self):
         for conclusao in ("failure", "timed_out", "startup_failure", "action_required", "cancelled"):
@@ -6562,7 +8539,7 @@ class TesteBlueprintEBacklog(CasoBase):
         codigo, obj, _ = rodar("blueprint", saida_dir=self.saida)
         self.assertEqual((obj["status"], codigo), ("0", 0))
         self.assertEqual(obj["dados"]["gates"],
-                         ["cicd", "continuidade", "issue", "issues", "testes"])
+                         ["cicd", "continuidade", "fabrica", "issue", "issues", "testes"])
 
     def test_blueprint_inconsistente_e_erro_tipo_2(self):
         caminho = fixture(self.dir, "planta.json", {
@@ -6607,6 +8584,64 @@ class TesteBlueprintEBacklog(CasoBase):
         self.assertNotEqual(gate.novo_id("x"), gate.novo_id("x"), "id deve ser único")
 
 
+class TesteDirecaoDeContinuidade(CasoBase):
+    def test_sucesso_encaminha_para_a_proxima(self):
+        caminho = fixture(self.dir, "backlog.json", {"issues": [
+            {"id": "ISSUE-001", "titulo": "a", "instrucao_teste": "true", "status": "pendente"},
+            {"id": "ISSUE-002", "titulo": "b", "instrucao_teste": "true", "status": "pendente"}]})
+        _, obj, _ = rodar("issue", "--backlog", caminho, "--id", "ISSUE-001",
+                          "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "proxima")
+        self.assertIn("ISSUE-002", obj["proximo_passo"])
+
+    def test_falha_encaminha_para_corrigir_a_mesma(self):
+        caminho = fixture(self.dir, "backlog.json", {"issues": [
+            {"id": "ISSUE-001", "titulo": "a", "instrucao_teste": "exit 9",
+             "status": "pendente"}]})
+        _, obj, _ = rodar("issue", "--backlog", caminho, "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "corrigir")
+        self.assertIn("--id ISSUE-001", obj["proximo_passo"])
+
+    def test_ci_com_erro_encaminha_para_depurar(self):
+        fx = fixture(self.dir, "runs.json", [
+            {"databaseId": 1, "workflowName": "gates", "status": "completed",
+             "conclusion": "failure", "headBranch": "x", "url": "https://x"}])
+        _, obj, _ = rodar("cicd", "--runs-json", fx, "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "depurar")
+        self.assertIn("gh run", obj["proximo_passo"])
+
+    def test_indeterminado_encaminha_para_humano(self):
+        _, obj, _ = rodar("issues", "--sem-gh", "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "humano")
+
+    def test_gate_positivo_encerra(self):
+        _, obj, _ = rodar("continuidade", "--status-issues", "0", "--status-cicd", "0",
+                          "--status-testes", "0", "--saida-dir", self.saida)
+        self.assertEqual(obj["direcao"], "encerrar")
+
+    def test_funcao_direcao_de(self):
+        self.assertEqual(gate.direcao_de("testes", "1"), "corrigir")
+        self.assertEqual(gate.direcao_de("issue", "0", next_issue="ISSUE-002"), "proxima")
+        self.assertEqual(gate.direcao_de("issue", "0", next_issue=None), "encerrar")
+        self.assertEqual(gate.direcao_de("fabrica", "2"), "humano")
+
+
+class TesteGateFabricaNoFluxo(CasoBase):
+    def test_gate_fabrica_consta_dos_arquivos_de_teste_do_gate_testes(self):
+        self.assertIn("tests/testar_fabrica.py", gate.ARQUIVOS_DE_TESTE)
+
+    def test_gate_fabrica_responde_no_contrato(self):
+        codigo, obj, bruto = rodar("fabrica", "--saida-dir", self.saida)
+        self.assertIsNotNone(obj, bruto[:300])
+        self.assertEqual((obj["status"], codigo), ("0", 0))
+        self.assertEqual(obj["gate"], "fabrica")
+
+    def test_workflow_tem_o_job_da_fabrica(self):
+        with open(WORKFLOW, encoding="utf-8") as fh:
+            texto = fh.read()
+        self.assertRegex(texto, r"(?m)^\s{2}gate-fabrica:")
+
+
 class TesteSituacao(CasoBase):
     def test_situacao_resume_o_historico(self):
         rodar("blueprint", saida_dir=self.saida)
@@ -6645,6 +8680,43 @@ class TesteWorkflow(unittest.TestCase):
     def test_status_2_derruba_o_job(self):
         self.assertIn('if [ "$status" = "2" ]; then', self.texto)
         self.assertIn("exit 1", self.texto)
+
+    def test_blocos_run_sao_bash_valido(self):
+        """Valida de verdade o shell embutido no YAML (sem depender de PyYAML)."""
+        linhas = self.texto.splitlines()
+        blocos, i = [], 0
+        while i < len(linhas):
+            m = re.match(r"^(\s+)run: \|\s*$", linhas[i])
+            if m:
+                indent = len(m.group(1))
+                corpo, j = [], i + 1
+                while j < len(linhas) and (not linhas[j].strip()
+                                           or len(linhas[j]) - len(linhas[j].lstrip()) > indent):
+                    corpo.append(linhas[j])
+                    j += 1
+                base = min((len(l) - len(l.lstrip()) for l in corpo if l.strip()), default=0)
+                blocos.append("\n".join(l[base:] for l in corpo))
+                i = j
+            else:
+                i += 1
+        self.assertGreaterEqual(len(blocos), 6, "esperado um bloco run: por job")
+        for numero, corpo in enumerate(blocos, 1):
+            seguro = re.sub(r"\$\{\{[^}]*\}\}", "VALOR", corpo)  # expressões do Actions
+            with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as fh:
+                fh.write(seguro)
+                caminho = fh.name
+            try:
+                proc = subprocess.run(["bash", "-n", caminho], capture_output=True, text=True)
+            finally:
+                os.unlink(caminho)
+            self.assertEqual(proc.returncode, 0,
+                             f"bloco run #{numero} não é bash válido: {proc.stderr[:200]}")
+
+    def test_fabrica_no_fluxo(self):
+        self.assertIn("pipeline/gate.py fabrica", self.texto)
+        self.assertIn("pipeline/factory.py", self.texto)
+        self.assertIn("--status-fabrica", self.texto)
+        self.assertIn("--proxima", self.texto, "o caminho feliz constrói a próxima indexada")
 
     def test_yaml_estrutural(self):
         """Checagem estrutural mínima (sem PyYAML, que não está instalado aqui)."""
@@ -6716,6 +8788,7 @@ ARQUIVOS = {
     "pipeline/.gitignore": False,
     "pipeline/backlog.json": False,
     "pipeline/blueprint.json": False,
+    "pipeline/factory.py": True,
     "pipeline/gate.py": True,
     "pipeline/verificar_cnj.py": True,
     "scripts/datajud.sh": True,
@@ -6725,6 +8798,7 @@ ARQUIVOS = {
     "tests/testar_bootstrap.sh": True,
     "tests/testar_conformidade.py": True,
     "tests/testar_main.py": True,
+    "tests/testar_fabrica.py": True,
     "tests/testar_pipeline.py": True,
     "tools/gerar_bootstrap.py": True,
 }
@@ -6759,7 +8833,7 @@ CORPO_SCRIPT = r"""#!/usr/bin/env bash
 #    3. aplica TODAS as permissões (755 em scripts/testes, 644 em docs/dados)
 #    4. confere a integridade por SHA-256 de cada arquivo escrito
 #    5. valida a sintaxe (python -m py_compile, bash -n)
-#    6. roda as 4 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline)
+#    6. roda as 5 suítes de teste offline (conformidade, main.py, datajud.sh, pipeline, fábrica)
 #    7. imprime um relatório final com o código de saída de cada etapa
 #
 #  Uso:
@@ -6933,7 +9007,7 @@ done
 [[ "$ST_SH" == "0" ]] && PASSO "Bash: @@N_SH@@ scripts sem erro de sintaxe (bash -n)"
 
 # ------------------------------------------------------------------ 7. testes ---
-ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"
+ST_CONF="pulado"; ST_MAIN="pulado"; ST_SH_T="pulado"; ST_PIPE="pulado"; ST_FAB="pulado"
 if [[ "$SEM_TESTES" == "1" || "$SO_CRIAR" == "1" ]]; then
   TITULO "7/7 · Testes"
   ALERTA "suítes de teste não executadas (--so-criar/--sem-testes)"
@@ -6958,6 +9032,11 @@ else
     && ST_PIPE="ok" || ST_PIPE="FALHOU"
   grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_pipe.log | tail -2 | sed 's/^/     /' || true
   [[ "$ST_PIPE" == "ok" ]] && PASSO "pipeline de gates (contrato JSON, 0/1/2)" || FALHA "testes do pipeline"
+
+  ( cd "$DESTINO" && python3 tests/testar_fabrica.py ) >/tmp/bootstrap_fab.log 2>&1 \
+    && ST_FAB="ok" || ST_FAB="FALHOU"
+  grep -E '^(Ran |OK|FAILED)' /tmp/bootstrap_fab.log | tail -2 | sed 's/^/     /' || true
+  [[ "$ST_FAB" == "ok" ]] && PASSO "fábrica de issues (SQLite + eventos + padrão)" || FALHA "testes da fábrica"
 fi
 
 # ------------------------------------------------------------------ resumo ---
@@ -6971,14 +9050,17 @@ printf '  teste conf.. : %s\n' "$ST_CONF"
 printf '  teste main.. : %s\n' "$ST_MAIN"
 printf '  teste shell. : %s\n' "$ST_SH_T"
 printf '  teste pipe.. : %s\n' "$ST_PIPE"
+printf '  teste fabr.. : %s\n' "$ST_FAB"
 printf '\n  Próximos passos:\n'
 printf '    cd %s\n' "$DESTINO"
 printf '    python3 main.py 0001234-56.2024.8.17.2001   # consulta real (precisa de internet)\n'
 printf '    make gates                                  # veredito de continuidade do pipeline\n'
-printf '    make testes                                 # roda as 5 suítes de novo\n\n'
+printf '    make fabrica                                # estado da fábrica de issues (SQLite)\n'
+printf '    make testes                                 # roda as 6 suítes de novo\n\n'
 
 if [[ "$ST_PY" != "0" || "$ST_SH" != "0" || "$ST_CONF" == "FALHOU" \
-      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" ]]; then
+      || "$ST_MAIN" == "FALHOU" || "$ST_SH_T" == "FALHOU" || "$ST_PIPE" == "FALHOU" \
+      || "$ST_FAB" == "FALHOU" ]]; then
   FALHA "bootstrap concluiu com falhas (veja acima)"
   exit 1
 fi

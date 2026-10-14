@@ -29,3 +29,4 @@
 2026-10-14T00:00:49Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38487543275) | C1: append WAL + recompute CHECKPOINT | pipeline CI verde (run 38487543275) | 041b6ec
 2026-10-14T00:02:04Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38487543356) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38487543356) | 98cb72e
 2026-10-14T00:12:40Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38488726019) | C1: append WAL + recompute CHECKPOINT | pipeline CI verde (run 38488726019) | e5a5788
+2026-10-14T00:13:48Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38488725712) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38488725712) | c8a8ac2

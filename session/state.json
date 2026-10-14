@@ -2,8 +2,8 @@
   "sessionId": "arena/d917b13b-llm-arena-opencli",
   "branch": "arena/d917b13b-llm-arena-opencli",
   "pr": 1,
-  "status": "active",
-  "updatedAt": "2026-10-13T23:59:47.942Z",
+  "status": "continuity",
+  "updatedAt": "2026-10-14T00:11:16.115Z",
   "checkpoints": [
     {
       "at": "2026-10-13T00:00:00.000Z",
@@ -84,10 +84,16 @@
       "sha": "778d9875d926ffcea4d1c95e5ad976781606e12d"
     },
     {
-      "at": "2026-10-13T23:59:47.942Z",
+      "at": "2026-10-13T23:59:49.470Z",
+      "event": "continuity-branch-created",
+      "note": "Handoff automático: auto",
+      "sha": "d898108076758d875d0d22ea1c4d5c660e3d727c"
+    },
+    {
+      "at": "2026-10-14T00:11:16.115Z",
       "event": "push",
       "note": "auto",
-      "sha": "d898108076758d875d0d22ea1c4d5c660e3d727c"
+      "sha": "e0e71bf4c71a20e4b25141142a50554a2646e716"
     }
   ],
   "nextActions": [

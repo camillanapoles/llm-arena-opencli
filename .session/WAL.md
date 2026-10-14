@@ -30,5 +30,6 @@
 2026-10-13T23:59:45Z | FIX | FIX | guardião detectou deriva do CHECKPOINT (wal_hash) — corrida entre jobs igc-checkpoint no rebase (M4) | checkpoint --recompute (derivado recomposto sem tocar o WAL) + loops de push dos 3 workflows reforçados | memória íntegra (resume-check ok) | 852195f
 2026-10-13T23:59:45Z | VERIFICAÇÃO | CONTINUE | acceptance da ISSUE-3 + garantias do guardião | npm run ci 131/131 (118 + 9 guardião + 2 publicação + T1-T8...) e make testes 236/236 | aceitação verde na árvore final | 852195f
 2026-10-13T23:59:45Z | GATE | CONTINUE | Art. 12: fechamento do ciclo guardião+ISSUE-3 | close-gate 8/8 (round-trip T8 incluído) — nota 10.0 | pode fechar (Art. 12) | 852195f
+2026-10-14T00:03:22Z | EMIT | IMPLEMENT | guardião em produção + ISSUE-3 publicada + cadeia TS completa (verificado: 131/131 + 236 + T8 offline) | emit event_id=push#guardiao-iss3 rótulo=IMPLEMENT | PR #1 comment 6157801151 (https://github.com/camillanapoles/llm-arena-opencli/pull/1#issuecomment-6157801151) | 8847a31
 2026-10-14T00:02:46Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38487852562) | C1: append WAL + recompute CHECKPOINT | guardião: ciclo 38487852562 (escopo global varrido) | 0aede62
 2026-10-14T00:03:54Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38487852530) | C1: append WAL + recompute CHECKPOINT | pipeline CI verde (run 38487852530) | b5f7275

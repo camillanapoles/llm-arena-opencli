@@ -108,7 +108,33 @@ jobs:
               exit 0
             fi
             git pull --rebase --autostash origin "${alvo}" || true
+            # rebase pode unir entradas WAL de outro job — recompõe o derivado
+            node src/cli/igc-cli.ts checkpoint --recompute
+            git add .session/CHECKPOINT
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             sleep 3
           done
           echo "::error::IGC Art. 8: não consegui persistir o checkpoint (C1) — débito de erro aberto (retorno para fix)"
           exit 1
+
+  # ISSUE-3: publicação do arena-runtime.wasm em release consumível (arena.ai/agent)
+  publicar-wasm:
+    name: publicar arena-runtime.wasm (release)
+    if: startsWith(github.ref, 'refs/tags/wasm-v') || github.event_name == 'workflow_dispatch'
+    needs: [gates]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Build + manifest + release (SRI sha384)
+        run: |
+          versao="${GITHUB_REF_NAME#wasm-v}"
+          case "$versao" in
+            "$GITHUB_REF_NAME") versao="0.0.0+${GITHUB_RUN_NUMBER}" ;;
+          esac
+          bash scripts/publicar-wasm.sh --versao "$versao" --ref "$GITHUB_SHA"

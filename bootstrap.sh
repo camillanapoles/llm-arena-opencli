@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 10339 linhas, 497 KiB.
+#  Conteúdo embutido: 32 arquivos, 10343 linhas, 497 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -174,7 +174,7 @@ while read -r esperado caminho; do
     FALHA "hash diferente: $caminho"; falhas_hash=$((falhas_hash+1))
   fi
 done <<'MANIFESTO'
-9702aaa6069f4af831f2606fcc91e0248f1cadfb980f9b8c1becacb4c0ef5bf0  ./.github/workflows/gates.yml
+8685b21f6de2625e59c39a48711da85a1d3db7123036a8c3dbdbd4c0ff07987e  ./.github/workflows/gates.yml
 1ebe7247a079ef496b1ec457199469572a4b9c2b34656d92aa038c1d4254347c  ./.github/workflows/validacao-cnj.yml
 2caa341b92fddacfa3cdf6933cbbba6fbc338517152dd7ea7c7314f100f2d8f8  ./.gitignore
 4f7fb71e540cfafb00af75008e7949ac6c5a2431e7b991d9aac34bba22e77e03  ./BOOTSTRAP.md
@@ -773,6 +773,10 @@ jobs:
             fi
             echo "::notice::checkpoint: push rejeitado (corrida com outro job?) — rebasando ($tentativa/3)"
             git pull --rebase --autostash origin "${alvo}" || true
+            # rebase pode unir entradas WAL de outro job — recompõe o derivado
+            node src/cli/igc-cli.ts checkpoint --recompute
+            git add .session/CHECKPOINT
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             sleep 3
           done
           echo "::error::IGC Art. 8: não consegui persistir o checkpoint (C1) — débito de erro aberto (retorno para fix)"

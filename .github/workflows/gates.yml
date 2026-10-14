@@ -427,6 +427,10 @@ jobs:
             fi
             echo "::notice::checkpoint: push rejeitado (corrida com outro job?) — rebasando ($tentativa/3)"
             git pull --rebase --autostash origin "${alvo}" || true
+            # rebase pode unir entradas WAL de outro job — recompõe o derivado
+            node src/cli/igc-cli.ts checkpoint --recompute
+            git add .session/CHECKPOINT
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             sleep 3
           done
           echo "::error::IGC Art. 8: não consegui persistir o checkpoint (C1) — débito de erro aberto (retorno para fix)"

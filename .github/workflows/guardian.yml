@@ -1,0 +1,104 @@
+# =============================================================================
+# guardian.yml — GUARDIÃO DE PROJETO (continuidade automática do escopo global)
+#
+#   [schedule útil 14:00 UTC | dispatch | push na linhagem]
+#        │
+#        ├─ scan do escopo global (IGC + débitos + cadeia TS + backlog CNJ)
+#        ├─ próxima decisão (UMA ação limitada por ciclo — M6: sempre com motivo)
+#        ├─ run --executar (cycle da cadeia / fábrica / fix seguro; humano ≠ executa)
+#        └─ checkpoint IGC (Art. 8 C1/C2/C3) — commit igc(ci) [skip ci]
+#
+# O guardião NUNCA destrava itens bloqueados nem mescla PRs (decisão humana).
+# =============================================================================
+name: guardiao
+
+on:
+  schedule:
+    - cron: "0 14 * * 1-5"        # dias úteis, 14:00 UTC (11:00 Brasília)
+  workflow_dispatch:
+    inputs:
+      executar:
+        description: "Executar a próxima decisão (false = só reportar)"
+        type: boolean
+        required: false
+        default: true
+  push:
+    branches: ["arena/d917b13b-llm-arena-opencli"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: guardiao-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guardiao:
+    name: "guardião · continuidade do escopo global"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Retrato do escopo global (scan)
+        run: node src/cli/guardiao-cli.ts scan
+
+      - name: Próxima decisão do guardião (1 ação limitada por ciclo)
+        id: decidir
+        run: |
+          EXEC="${{ inputs.executar }}"
+          [ -z "$EXEC" ] && EXEC="true"
+          if [ "$EXEC" = "false" ]; then
+            node src/cli/guardiao-cli.ts next
+            exit 0
+          fi
+          set +e
+          node src/cli/guardiao-cli.ts run --executar
+          codigo=$?
+          set -e
+          echo "codigo=$codigo" >> "$GITHUB_OUTPUT"
+          if [ "$codigo" = "1" ]; then
+            echo "::notice::guardião: decisão humana necessária (ver motivo acima) — M6 documentado, sem execução forçada"
+            exit 0
+          fi
+          if [ "$codigo" != "0" ]; then
+            echo "::error::guardião: ação falhou — débito de erro aberto com prioridade (retorno para fix)"
+            exit 1
+          fi
+
+      - name: WAL + CHECKPOINT + commit do bot (IGC Art. 8 — C1/C2/C3)
+        if: always()
+        run: |
+          node src/cli/igc-cli.ts checkpoint \
+            --id-conteudo "$(git rev-parse --short HEAD)" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --slug d917b13b \
+            --resultado "guardião: ciclo ${GITHUB_RUN_ID} (escopo global varrido)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f .igc-registry.yml ]; then git add .igc-registry.yml; fi
+          git add -A -- .session
+          if git diff --cached --quiet; then
+            echo "WAL sem alterações — nada a persistir"
+            exit 0
+          fi
+          git commit -m "igc(ci): run ${GITHUB_RUN_ID} [igc-checkpoint] [skip ci]"
+          alvo="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          for tentativa in 1 2 3; do
+            if git push origin "HEAD:${alvo}"; then
+              exit 0
+            fi
+            echo "::notice::checkpoint: push rejeitado — rebasando ($tentativa/3)"
+            git pull --rebase --autostash origin "${alvo}" || true
+            # rebase pode unir entradas WAL de outro job — recompõe o derivado
+            node src/cli/igc-cli.ts checkpoint --recompute
+            git add .session/CHECKPOINT
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+            sleep 3
+          done
+          echo "::error::IGC Art. 8: checkpoint não persistido — estado divergente"
+          exit 1

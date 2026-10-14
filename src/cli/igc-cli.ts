@@ -107,6 +107,15 @@ switch (cmd) {
   }
 
   case "checkpoint": {
+    // --recompute: só recompõe o DERIVADO (CHECKPOINT) sobre o WAL atual —
+    // usado após `git pull --rebase` em corrida (união de entradas de outros jobs).
+    if (f["recompute"] === true) {
+      const atual = existsSync(CHECKPOINT) ? readCheckpoint(CHECKPOINT) : undefined;
+      const id = String(f["id-conteudo"] ?? atual?.id_conteudo ?? gitHead());
+      const cp = writeCheckpoint(CHECKPOINT, { id_conteudo: id, estado: String(f["estado"] ?? atual?.estado ?? "CONTINUE") });
+      console.log(`✔ checkpoint recomposto: id=${cp.id_conteudo} entradas=${cp.entradas}`);
+      process.exit(0);
+    }
     // C4: linhagem sem .session/ → bootstrap do protocolo neste run
     if (!existsSync(SESSION)) {
       writeFileSync(WAL, "# WAL.md — append-only (IGC v2.1)\n", "utf8");

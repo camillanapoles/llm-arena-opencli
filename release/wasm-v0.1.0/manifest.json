@@ -1,0 +1,26 @@
+{
+  "nome": "arena-runtime",
+  "versao": "0.1.0",
+  "tag": "wasm-v0.1.0",
+  "gerado_em": "2026-10-13T23:58:19Z",
+  "ref": "852195f427769004eab4e26270d6a777f4d18450",
+  "arquivos": {
+    "arena-runtime.wasm": {
+      "sha256": "bf2bc0a45a36737f4d6b1c42112a60bdfc69609f3186ec4c15706ca8864dc3b5",
+      "sri": "sha384-eegtUVSRxlkJvc9bKeF7tDOv9lvTSmj3S4Sh9cOCW5zmJtgVu0qdgTclJ+WFo8JI",
+      "bytes": 335
+    },
+    "loader.mjs": {
+      "sha256": "e9bd88551885ad0dd43d8fe4024bcad8c177ffcc79cf65086090fc66c48f084e",
+      "sri": "sha384-5rk9Rpt9rCE1uEVpanjdSrR4rYGECepVTlpEkj6QUzi7Oz+dhGSpGid3AHnN1KQh",
+      "bytes": 4317
+    }
+  },
+  "consumo": {
+    "url_release": "https://github.com/camillanapoles/llm-arena-opencli/releases/download/wasm-v0.1.0/arena-runtime.wasm",
+    "url_git": "https://raw.githubusercontent.com/camillanapoles/llm-arena-opencli/852195f427769004eab4e26270d6a777f4d18450/release/wasm-v0.1.0/arena-runtime.wasm",
+    "url_raw": "https://raw.githubusercontent.com/camillanapoles/llm-arena-opencli/852195f427769004eab4e26270d6a777f4d18450/wasm/dist/arena-runtime.wasm",
+    "loader": "release/wasm-v0.1.0/loader.mjs (git) · releases/download/wasm-v0.1.0/loader.mjs (release)",
+    "smoke": "carregue loader.mjs e chame loadArenaRuntime(bytes) — ver docs/PUBLICACAO-WASM.md"
+  }
+}

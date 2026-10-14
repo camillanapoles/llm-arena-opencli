@@ -1,6 +1,6 @@
-id_conteudo=271f439
-wal=2ed51ea38429375ac0762197a9980edcd2aa80ac535efbf97837cf9d8940bd4d
-entradas=25
+id_conteudo=9ca6258
+wal=7489a7293072bfdb1dc80d92782bce1cabd546b7b5c1230ec621ad8311b8d9e6
+entradas=26
 estado=CONTINUE
-atualizado_em=2026-10-14T00:12:09Z
+atualizado_em=2026-10-14T00:13:23Z
 convencao=id_conteudo = último commit de trabalho verificado (acceptance verde); o commit que grava o CHECKPOINT é a assinatura (diff = apenas .session/ + registry)

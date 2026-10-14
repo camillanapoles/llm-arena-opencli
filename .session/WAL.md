@@ -36,3 +36,4 @@
 2026-10-14T00:04:24Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38488014493) | C1: append WAL + recompute CHECKPOINT | guardião: ciclo 38488014493 (escopo global varrido) | f9ed061
 2026-10-14T00:04:48Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38487852494) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38487852494) | 39da70b
 2026-10-14T00:05:32Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38488014472) | C1: append WAL + recompute CHECKPOINT | pipeline CI verde (run 38488014472) | 0a1650f
+2026-10-14T00:07:18Z | igc(ci) | CONTINUE | pipeline concluído (run_id=38488014473) | C1: append WAL + recompute CHECKPOINT | pipeline gates verde (run 38488014473) | e4da59c

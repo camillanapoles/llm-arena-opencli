@@ -61,3 +61,13 @@
 ## M1 — correção de âncora (registro de correção, não edição)
 **O que é:** a entrada WAL#12 (contração E5) cita "WAL#10" como âncora do EMIT do PR; a entrada correta do EMIT do PR (comentário 6155983956) é **WAL#7**. A identificação de #10 como "EMIT do webhook" também estava errada: **WAL#10 é AMENDA** (retificação do contrato) — ver WAL#19. A memória é append-only: as correções valem por entradas novas (WAL#13 e WAL#19).
 **Gatilho:** n/a (correção registrada) · **Prioridade:** baixa.
+
+## D8 (ISSUE-3) — deploy final em arena.ai/agent (host do usuário)
+**O que é:** o artefato está PUBLICADO e consumível (canal git `release/wasm-v0.1.0/` + release tag `wasm-v0.1.0` + manifest SRI); o upload no host `arena.ai/agent` (CDN/prefixo com MIME `application/wasm`) é ação do usuário — 3 passos em `docs/PUBLICACAO-WASM.md`.
+**Gatilho / retorno para fix (E5):** após o upload, rodar o smoke do browser (passo 3 do doc) e registrar o resultado como entrada WAL `evento=SMOKE | resultado=<URL>`; a dívida se encerra com o smoke verde.
+**Prioridade:** média · **Quando:** quando o usuário expuser o prefixo.
+
+## D9 (publicação) — uploads.github.com bloqueado neste runtime
+**O que é:** o upload de assets em releases via `uploads.github.com` dá EOF neste runtime (fora do allowlist de rede); a release `wasm-v0.1.0` existe como marcador e o payload é publicado pelo **canal git** (`release/wasm-v<versao>/` + URL raw), que é o suficiente para consumo do front.
+**Gatilho / retorno para fix:** com rede completa, `gh release upload wasm-v0.1.0 wasm/dist/arena-runtime.wasm wasm/loader.mjs wasm/dist/manifest.json --clobber` anexa os assets à release existente; encerrar a dívida conferindo `gh release view wasm-v0.1.0`.
+**Prioridade:** baixa · **Quando:** runner/rede com uploads.github.com.

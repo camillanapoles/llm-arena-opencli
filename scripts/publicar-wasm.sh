@@ -79,17 +79,17 @@ cat > "$SAIDA_DIR/manifest.json" <<MANIFEST
 }
 MANIFEST
 
+if [ "$DRY_RUN" = "1" ]; then
+  echo "✔ dry-run: gh não acionado; canal git NÃO gravado (URL prevista: $URL_GIT)"
+  exit 0
+fi
+
 # canal git: publica o payload versionado (funciona sem uploads.github.com)
 mkdir -p "$DIR_GIT"
 cp "$WASM" "$LOADER" "$SAIDA_DIR/manifest.json" "$DIR_GIT/"
 echo "✔ canal git: $DIR_GIT (URL consumível: $URL_GIT)"
 echo "  wasm   sha256=$(sha256 "$WASM")"
 echo "  loader sha256=$(sha256 "$LOADER")"
-
-if [ "$DRY_RUN" = "1" ]; then
-  echo "✔ dry-run: gh não acionado (URL prevista: $URL_RELEASE)"
-  exit 0
-fi
 
 # canal release (best-effort): tag/manifest na release + assets quando a rede permitir
 if ! command -v gh >/dev/null 2>&1; then

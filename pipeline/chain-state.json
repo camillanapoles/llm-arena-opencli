@@ -1,0 +1,9 @@
+{
+  "atualizado_em": "2026-10-14T00:20:00Z",
+  "estados": {
+    "ISSUE-1": "delivered",
+    "ISSUE-2": "delivered",
+    "ISSUE-3": "chain-complete"
+  },
+  "nota": "cadeia TS COMPLETA (ISSUE-3: arena-runtime.wasm publicado — canal git release/wasm-v0.1.0 + release tag; loader smoke verde)"
+}

@@ -23,7 +23,7 @@
 #      bash bootstrap.sh --sem-testes          # pula as suítes
 #      bash bootstrap.sh --ajuda
 #
-#  Conteúdo embutido: 32 arquivos, 10444 linhas, 501 KiB.
+#  Conteúdo embutido: 32 arquivos, 10465 linhas, 502 KiB.
 #  Documentação: BOOTSTRAP.md · Wiki do CNJ: https://datajud-wiki.cnj.jus.br/api-publica/acesso
 # ==============================================================================
 set -euo pipefail
@@ -190,7 +190,7 @@ e36c89bd1faf65d6ea5f2044b705d473a6e48276585ddd3263782bf3657110c8  ./docs/exemplo
 0988a9fe28376cca40c84bbbe73172203e1f4740695026e2f9408f1fd88bea0a  ./docs/exemplo-saida/relatorio-tjpe-exemplo.md
 c58f533ad991e50add1ec5ea7c2f79910fb05796f36beb5f288311c39d6ceadf  ./main.py
 050816945908d18638af12bdf9bbaa59c4038ff5317f885004868bc3ef5e0941  ./pipeline/.gitignore
-09b9ae811dd2d618b20f2ac2fc72e11340e812f691c74097eaf01e6e7eabfac4  ./pipeline/backlog.json
+e2eefe6df630287eae7fb28944653d8aad4e2de81932467f084669c250813a9b  ./pipeline/backlog.json
 8d828da7ba61b5e197deba26c2932c1100a63e523c84a7c6139584cc27fc1452  ./pipeline/blueprint.json
 a3ed80173d0a1c3be6151d18b783e09a9850764d4577ff13e336c06b86d41720  ./pipeline/factory.py
 2143874e43fbdb47ac8707f1236eb5fff205880207589facffce2c1ed4926cfe  ./pipeline/gate.py
@@ -4429,7 +4429,7 @@ __ARQ__ pipeline/backlog.json
 {
   "nome": "backlog do projeto — consulta processual DataJud/DJEN",
   "gerado_por": "pipeline/factory.py 1.0.0 (SQLite ⇄ backlog.json)",
-  "gerado_em": "2026-10-14T16:08:58Z",
+  "gerado_em": "2026-10-15T15:56:37Z",
   "issues": [
     {
       "id": "ISSUE-001",
@@ -4775,12 +4775,33 @@ __ARQ__ pipeline/backlog.json
       "entregavel": "entrega de ISSUE-018 executada conforme a instrução, com sucesso testado",
       "instrucao_teste": "make testes",
       "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
-      "status": "pendente",
+      "status": "concluida",
       "depende_de": [
         "ISSUE-017"
       ],
       "origem": "fábrica (próxima indexada)",
       "criada_em": "2026-10-14T16:08:58Z",
+      "concluida_em": "2026-10-15T15:56:37Z",
+      "evidencias": [
+        {
+          "sucesso": "COMPLETADA",
+          "quando": "2026-10-15T15:56:37Z"
+        }
+      ]
+    },
+    {
+      "id": "ISSUE-019",
+      "indice": 19,
+      "titulo": "pendência 19 (gerada pela fábrica)",
+      "entregavel": "entrega de ISSUE-019 executada conforme a instrução, com sucesso testado",
+      "instrucao_teste": "make testes",
+      "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
+      "status": "pendente",
+      "depende_de": [
+        "ISSUE-018"
+      ],
+      "origem": "fábrica (próxima indexada)",
+      "criada_em": "2026-10-15T15:56:37Z",
       "concluida_em": null,
       "evidencias": []
     }

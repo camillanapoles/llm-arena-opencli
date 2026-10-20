@@ -4,9 +4,9 @@
 linhagens:
   d917b13b:
     branch: "arena/d917b13b-llm-arena-opencli"
-    checkpoint_ref: "4713cd0"
+    checkpoint_ref: "a26c959"
     ativa: true
-    checkpoint_em: "2026-10-19T17:56:15Z"
+    checkpoint_em: "2026-10-20T16:00:30Z"
     descricao: "sessão Arena — driver de automação (Node/TS + WASM) + unificação das duas pilhas; IGC v2.1 (A2': linhagem designada em runtime que proíbe criar branch)"
     sessao: "d917b13b"
     pr: "1"

@@ -1,7 +1,7 @@
 {
   "nome": "backlog do projeto — consulta processual DataJud/DJEN",
   "gerado_por": "pipeline/factory.py 1.0.0 (SQLite ⇄ backlog.json)",
-  "gerado_em": "2026-10-26T17:51:18Z",
+  "gerado_em": "2026-10-27T17:00:45Z",
   "issues": [
     {
       "id": "ISSUE-001",
@@ -515,12 +515,33 @@
       "entregavel": "entrega de ISSUE-026 executada conforme a instrução, com sucesso testado",
       "instrucao_teste": "make testes",
       "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
-      "status": "pendente",
+      "status": "concluida",
       "depende_de": [
         "ISSUE-025"
       ],
       "origem": "fábrica (próxima indexada)",
       "criada_em": "2026-10-26T17:51:18Z",
+      "concluida_em": "2026-10-27T17:00:45Z",
+      "evidencias": [
+        {
+          "sucesso": "COMPLETADA",
+          "quando": "2026-10-27T17:00:45Z"
+        }
+      ]
+    },
+    {
+      "id": "ISSUE-027",
+      "indice": 27,
+      "titulo": "pendência 27 (gerada pela fábrica)",
+      "entregavel": "entrega de ISSUE-027 executada conforme a instrução, com sucesso testado",
+      "instrucao_teste": "make testes",
+      "instrucao_desenvolvimento": "executar a entrada correspondente ao evento que gerou a issue / rodar o gate (make gates) e o teste indicado em instrucao_teste / corrigir até o teste passar (fix/debug) — a issue só fecha COMPLETADA com sucesso testado / marcar com `python3 pipeline/gate.py issue --marcar` (grava evidência e a data de conclusão)",
+      "status": "pendente",
+      "depende_de": [
+        "ISSUE-026"
+      ],
+      "origem": "fábrica (próxima indexada)",
+      "criada_em": "2026-10-27T17:00:45Z",
       "concluida_em": null,
       "evidencias": []
     }
